@@ -1,0 +1,1 @@
+../../../lib/serial/libserialport/libserialport_internal.h
