@@ -8,7 +8,6 @@
 # include <utime.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-
 #include <types.h>
 #include <utils/log.h>
 #include <lib/serial/libserialport_config.h>
@@ -18,7 +17,7 @@
 #define LOG_TAG "test_libserialport"
 
 #define SERIAL_PORT "/dev/ttyS1"
-#define BAUDRATE 115200
+#define BAUDRATE      115200
 
 static const char write_buf[] = "This is write test...\n\r";
 
