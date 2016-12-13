@@ -1,25 +1,7 @@
-/*
- *  Copyright (C) 2016, Zhang YanMing <yanmin.zhang@ingenic.com, jamincheung@126.com>
- *
- *  Ingenic QRcode SDK Project
- *
- *  This program is free software; you can redistribute it and/or modify it
- *  under  the terms of the GNU General  Public License as published by the
- *  Free Software Foundation;  either version 2 of the License, or (at your
- *  option) any later version.
- *
- *  You should have received a copy of the GNU General Public License along
- *  with this program; if not, write to the Free Software Foundation, Inc.,
- *  675 Mass Ave, Cambridge, MA 02139, USA.
- *
- */
-#ifndef UART_MANAGER_H
-#define UART_MANAGER_H
+#ifndef LIBQRCODE_API_H
+#define LIBQRCODE_API_H
 
-#include <types.h>
-
-#define UART_MAX_CHANNELS   3
-
+//////////////////////////////////////////////////////////////////////////UART///////////////////////////////////////////////////////////////////////////////////
 struct uart_manager {
     /**
      * Function: uart_init
@@ -61,7 +43,7 @@ struct uart_manager {
      *    flow_ctl: 流控选项
      *    UART_FLOWCONTROL_NONE: 无流控
      *    UART_FLOWCONTROL_XONXOFF: 软件流控使用XON/XOFF字符
-     *    UART_FLOWCONTROL_RTSCTS: 硬件刘空使用RTS/CTS信号
+     *    UART_FLOWCONTROL_RTSCTS: 硬件流控使用RTS/CTS信号
      *    UART_FLOWCONTROL_DTRDSR: 硬件流控使用DTR/DSR信号
      * Output: 无
      * Return: 0: 成功， -1: 失败
@@ -113,17 +95,15 @@ struct uart_manager* get_uart_manager(void);
  * 奇偶校验可设参数
  */
 enum uart_parity {
-    /** Special value to indicate setting should be left alone. */
-    UART_PARITY_INVALID = -1,
-    /** No parity. */
+    /** 无校验 */
     UART_PARITY_NONE = 0,
-    /** Odd parity. */
+    /** 奇校验 */
     UART_PARITY_ODD = 1,
-    /** Even parity. */
+    /** 偶校验 */
     UART_PARITY_EVEN = 2,
-    /** Mark parity. */
+    /** 校验位总为1 */
     UART_PARITY_MARK = 3,
-    /** Space parity. */
+    /** 校验位总为0 */
     UART_PARITY_SPACE = 4,
 };
 
@@ -131,14 +111,15 @@ enum uart_parity {
  * 流控可设参数
  */
 enum uart_flowcontrol {
-    /** No flow control. */
+    /** 无流控 */
     UART_FLOWCONTROL_NONE = 0,
-    /** Software flow control using XON/XOFF characters. */
+    /** 软件流控使用XON/XOFF字符 */
     UART_FLOWCONTROL_XONXOFF = 1,
-    /** Hardware flow control using RTS/CTS signals. */
+    /** 硬件流控使用RTS/CTS信号 */
     UART_FLOWCONTROL_RTSCTS = 2,
-    /** Hardware flow control using DTR/DSR signals. */
+    /** 硬件流控使用DTR/DSR信号 */
     UART_FLOWCONTROL_DTRDSR = 3,
 };
+
 
 #endif

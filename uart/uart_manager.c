@@ -210,6 +210,7 @@ static uint32_t uart_write(char* devname, const void* buf, uint32_t count,
     struct uart_port_dev* dev;
     uint32_t writen = 0;
 
+    assert_die_if(buf == NULL, "parameter buf is null\n");
     if (!(dev = get_in_use_channel(devname))) {
         LOGE("uart device %s is not in use\n", devname);
         goto out;
@@ -236,6 +237,7 @@ static uint32_t uart_read(char* devname, void* buf, uint32_t count, uint32_t tim
     uint32_t lower_buffer_count;
     uint32_t readed = 0;
 
+    assert_die_if(buf == NULL, "parameter buf is null\n");
     if (!(dev = get_in_use_channel(devname))) {
         LOGE("uart device %s is not in use\n", devname);
         goto out;

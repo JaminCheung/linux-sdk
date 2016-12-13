@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #include <types.h>
 #include <utils/log.h>
-#include <uart/uart_manager.h>
+#include <libqrcode_api.h>
 
 #define LOG_TAG "test_uart"
 

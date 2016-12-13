@@ -18,7 +18,7 @@ SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
         else if [ -x /bin/bash ]; then echo /bin/bash; \
         else echo sh; fi; fi)
 
-TARGET := sdk.so
+TARGET := libqrcode.so
 
 #
 # Top directory
