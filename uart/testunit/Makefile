@@ -13,7 +13,7 @@ all: $(TESTUNIT)
 %.o:%.c
 	$(QUIET_CC) $(COMPILE_SRC) $< -o $@
 
-$(TESTUNIT):
+$(TESTUNIT):$(TESTUNIT_OBJS)
 	$(QUIET_LINK)$(LINK_OBJS) -o $(OUTDIR)/$@ $(DEPEND_SDK_LIB) $(TESTUNIT_OBJS) $(LDFLAGS) $(LDLIBS)
 
 clean:
