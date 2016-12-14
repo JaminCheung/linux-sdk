@@ -18,7 +18,8 @@ SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
         else if [ -x /bin/bash ]; then echo /bin/bash; \
         else echo sh; fi; fi)
 
-TARGET := libqrcode.so
+TARGET_NAME := qrcode
+TARGET := lib$(TARGET_NAME).so
 
 #
 # Top directory
@@ -53,6 +54,7 @@ INCLUDES := -I$(TOPDIR)/include                                                \
 
 CFLAGS := -std=gnu11 $(INCLUDES)
 CHECKFLAGS := -Wall -Wuninitialized -Wundef
+LDFLAGS := -L$(OUTDIR) -l$(TARGET_NAME)
 
 ifndef DEBUG
 CFLAGS += -O2
