@@ -32,6 +32,11 @@ SRC-y += utils/signal_handler.c                                 \
 #
 SRC-y += uart/uart_manager.c
 
+#
+# Camera
+#
+SRC-y += camera/camera_manager.c
+
 SRCS := $(SRC-y)
 
 #
@@ -47,7 +52,7 @@ LIBS-SRCS := $(LIBS-SRC-y)
 #
 # Targets
 #
-all: $(TARGET)
+all: $(TARGET) testunit
 
 .PHONY : all testunit testunit_clean clean backup
 
@@ -57,10 +62,12 @@ all: $(TARGET)
 testunit:
 	make -C lib/serial/testunit all
 	make -C uart/testunit all
+	make -C camera/testunit all
 
 testunit_clean:
 	make -C lib/serial/testunit clean
 	make -C uart/testunit clean
+	make -C camera/testunit clean
 
 $(TARGET): $(OBJS) $(LIBS)
 	@echo -e '\n  sdk: $(SRCS) $(LIBS-SRCS) -o $(OUTDIR)/$@\n'

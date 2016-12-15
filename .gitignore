@@ -1,1 +1,7 @@
 *.o
+/out
+
+# ctags file
+tags
+TAGS
+.tags*
