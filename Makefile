@@ -37,6 +37,11 @@ SRC-y += uart/uart_manager.c
 #
 SRC-y += camera/camera_manager.c
 
+#
+# PWM
+#
+SRC-y += pwm/pwm_manager.c
+
 SRCS := $(SRC-y)
 
 #
@@ -63,11 +68,13 @@ testunit:
 	make -C lib/serial/testunit all
 	make -C uart/testunit all
 	make -C camera/testunit all
+	make -C pwm/testunit all
 
 testunit_clean:
 	make -C lib/serial/testunit clean
 	make -C uart/testunit clean
 	make -C camera/testunit clean
+	make -C pwm/testunit clean
 
 $(TARGET): $(OBJS) $(LIBS)
 	@echo -e '\n  sdk: $(SRCS) $(LIBS-SRCS) -o $(OUTDIR)/$@\n'
