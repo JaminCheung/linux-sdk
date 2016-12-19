@@ -37,7 +37,9 @@ int main(int argc, char *argv[])
     /* 获取操作看门狗的句柄 */
     wdt = get_watchdog_manager();
 
+    /* 初始化看门狗,并设定timeout */
     wdt->init(WDT_TIMEOUT);
+    wdt->enable(); /* 使能 */
 
     while(1) {
         sleep(1);
@@ -51,8 +53,10 @@ int main(int argc, char *argv[])
         else if(second/2 == 3)
             wdt->disable(); /* 关闭看门狗 */
 
-        else if(second/2 == 4)
-            wdt->init(5);  /* 重新设置timeout */
+        else if(second/2 == 4) {
+            wdt->init(5);   /* 重新设置timeout */
+            wdt->enable();  /* 使能 */
+        }
     }
 
     wdt->deinit();

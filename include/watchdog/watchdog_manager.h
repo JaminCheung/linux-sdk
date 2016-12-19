@@ -22,7 +22,7 @@ struct watchdog_manager {
      * Description: 看门狗初始化
      *       Input:
      *          timeout: 看门狗超时的时间, 以秒为单位, 其值必须大于零
-     *      Others: 必须优先调用init函数, 此函数执行成功后, 看门狗就开始倒计时, 可多次调用设置timeout
+     *      Others: 必须优先调用init函数初始化看门狗和设置timeout, 可被多次调用
      *      Return: 0 --> 成功, -1 --> 失败
      */
     int (*init)(unsigned int timeout);
@@ -40,7 +40,7 @@ struct watchdog_manager {
      *    Function: reset
      * Description: 看门狗喂狗
      *       Input: 无
-     *      Others: 在调用init函数后, 在timeout时间内不调用此函数, 系统将复位
+     *      Others: 使能看门狗后, 在timeout时间内不调用此函数, 系统将复位
      *      Return: 0 --> 成功, -1 --> 失败
      */
     int (*reset)(void);
@@ -49,7 +49,7 @@ struct watchdog_manager {
      *    Function: enable
      * Description: 看门狗使能
      *       Input: 无
-     *      Others: 一般在调用disable函数之后, 需要再重新启动看门狗时, 才调用此函数
+     *      Others: 在init函数初始化或disable函数关闭看门狗之后, 调用此函数启动看门狗
      *      Return: 0 --> 成功, -1 --> 失败
      */
     int (*enable)(void);
@@ -58,7 +58,7 @@ struct watchdog_manager {
      *    Function: disable
      * Description: 看门狗关闭
      *       Input: 无
-     *      Others: 此函数区别deinit函数的地方在于, 调用此函数之后, 能通过enable函数重新启动
+     *      Others: 对应enable函数, 区别deinit函数的地方在于, 调用此函数之后, 能通过enable函数重新启动
      *      Return: 0 --> 成功, -1 --> 失败
      */
     int (*disable)(void);
