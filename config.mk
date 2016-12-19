@@ -54,7 +54,7 @@ INCLUDES := -I$(TOPDIR)/include                                                \
 
 CFLAGS := -std=gnu11 $(INCLUDES)
 CHECKFLAGS := -Wall -Wuninitialized -Wundef
-LDFLAGS := -L$(OUTDIR) -l$(TARGET_NAME)
+LDFLAGS := -L$(OUTDIR) -l$(TARGET_NAME) -lpthread -lrt
 
 ifndef DEBUG
 CFLAGS += -O2

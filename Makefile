@@ -24,8 +24,14 @@ include config.mk
 # Utils
 #
 SRC-y += utils/signal_handler.c                                 \
-          utils/compare_string.c                                       \
-          utils/assert.c                                                      \
+         utils/compare_string.c                                 \
+         utils/assert.c                                         \
+	 utils/thread_pool/thread_pool.c
+
+#
+# Timer
+#
+SRC-y += timer/timer_manager.c
 
 #
 # Uart
@@ -66,23 +72,26 @@ all: $(TARGET) testunit
 #
 testunit:
 	make -C lib/serial/testunit all
+	make -C utils/thread_pool/testunit all
 	make -C uart/testunit all
 	make -C camera/testunit all
 	make -C pwm/testunit all
+	make -C timer/testunit all
 
 testunit_clean:
 	make -C lib/serial/testunit clean
+	make -C utils/thread_pool/testunit clean
 	make -C uart/testunit clean
 	make -C camera/testunit clean
 	make -C pwm/testunit clean
+	make -C timer/testunit clean
 
 $(TARGET): $(OBJS) $(LIBS)
-	@echo -e '\n  sdk: $(SRCS) $(LIBS-SRCS) -o $(OUTDIR)/$@\n'
 	$(QUIET_CC_SHARED_LIB)$(COMPILE_SRC_TO_SHARED_LIB) $(SRCS) $(LIBS-SRCS) -o $(OUTDIR)/$@
 	#@$(STRIP) $(OUTDIR)/$@
 	@echo -e '\n  sdk: $(shell basename $(OUTDIR))/$@ is ready\n'
 
 clean:
-	rm -rf $(OUTDIR)
+	@rm -rf $(OUTDIR)
 
 distclean: clean
