@@ -53,6 +53,11 @@ SRC-y += pwm/pwm_manager.c
 #
 SRC-y += watchdog/watchdog_manager.c
 
+#
+# Power
+#
+SRC-y += power/power_manager.c
+
 SRCS := $(SRC-y)
 
 #
@@ -88,6 +93,7 @@ testunit:
 	make -C pwm/testunit all
 	make -C timer/testunit all
 	make -C watchdog/testunit all
+	make -C power/testunit all
 
 testunit_clean:
 	make -C lib/serial/testunit clean
@@ -97,6 +103,7 @@ testunit_clean:
 	make -C pwm/testunit clean
 	make -C timer/testunit clean
 	make -C watchdog/testunit clean
+	make -C power/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(OUTDIR)
