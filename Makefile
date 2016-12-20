@@ -58,14 +58,20 @@ SRC-y += watchdog/watchdog_manager.c
 #
 SRC-y += power/power_manager.c
 
+#
+# I2C
+#
+SRC-y += i2c/i2c_manager.c
+
 SRCS := $(SRC-y)
 
 #
 # lib serialport serving for Uart
 #
 LIBS-SRC-y += lib/serial/libserialport/linux_termios.c    \
-          lib/serial/libserialport/linux.c                                  \
-          lib/serial/libserialport/serialport.c
+          lib/serial/libserialport/linux.c                \
+          lib/serial/libserialport/serialport.c           \
+          lib/i2c/libsmbus.c
 
 LIBS-SRCS := $(LIBS-SRC-y)
 
@@ -94,6 +100,7 @@ testunit:
 	make -C timer/testunit all
 	make -C watchdog/testunit all
 	make -C power/testunit all
+	make -C i2c/testunit all
 
 testunit_clean:
 	make -C lib/serial/testunit clean
@@ -104,6 +111,7 @@ testunit_clean:
 	make -C timer/testunit clean
 	make -C watchdog/testunit clean
 	make -C power/testunit clean
+	make -C i2c/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(OUTDIR)
