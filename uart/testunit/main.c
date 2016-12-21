@@ -25,7 +25,6 @@ int main(int argc, char *argv[]) {
 
     struct uart_manager* uart = get_uart_manager();
     int int_ret;
-    unsigned int uint_ret;
     char write_buf[] = "This is write test...\n\r";
     char read_buf[2048];
 
@@ -49,17 +48,17 @@ int main(int argc, char *argv[]) {
     }
 
 
-    uint_ret = uart->write(PORT_S1_DEVNAME,
+    int_ret = uart->write(PORT_S1_DEVNAME,
             write_buf, sizeof(write_buf), PORT_S1_TRANSMIT_TIMEOUT);
-    if (uint_ret < sizeof(write_buf)) {
+    if ((int_ret < 0) || (int_ret < sizeof(write_buf))) {
         LOGE("uart write called failed\n");
         return -1;
     }
 
     while(1) {
-        uint_ret = uart->read(PORT_S1_DEVNAME,
+        int_ret = uart->read(PORT_S1_DEVNAME,
             read_buf, PORT_S1_TRANSMIT_LENGTH, PORT_S1_TRANSMIT_TIMEOUT);
-        if (uint_ret < PORT_S1_TRANSMIT_LENGTH) {
+        if ((int_ret < 0) || (int_ret < PORT_S1_TRANSMIT_LENGTH)){
             LOGE("uart read called failed\n");
             return -1;
         }

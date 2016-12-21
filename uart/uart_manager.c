@@ -27,9 +27,9 @@
 #include <types.h>
 #include <utils/log.h>
  #include <utils/assert.h>
-#include <lib/serial/libserialport_config.h>
-#include <lib/serial/libserialport.h>
-#include <lib/serial/libserialport_internal.h>
+#include <lib/uart/libserialport_config.h>
+#include <lib/uart/libserialport.h>
+#include <lib/uart/libserialport_internal.h>
 #include <uart/uart_manager.h>
 
 #define LOG_TAG "uart"
@@ -205,7 +205,7 @@ out:
     return -1;
 }
 
-static uint32_t uart_write(char* devname, const void* buf, uint32_t count,
+static int32_t uart_write(char* devname, const void* buf, uint32_t count,
         uint32_t timeout_ms) {
     struct uart_port_dev* dev;
     uint32_t writen = 0;
@@ -229,10 +229,10 @@ static uint32_t uart_write(char* devname, const void* buf, uint32_t count,
 
     return writen;
 out:
-    return 0;
+    return -1;
 }
 
-static uint32_t uart_read(char* devname, void* buf, uint32_t count, uint32_t timeout_ms) {
+static int32_t uart_read(char* devname, void* buf, uint32_t count, uint32_t timeout_ms) {
     struct uart_port_dev* dev;
     uint32_t lower_buffer_count;
     uint32_t readed = 0;
@@ -256,7 +256,7 @@ static uint32_t uart_read(char* devname, void* buf, uint32_t count, uint32_t tim
 
     return readed;
 out:
-    return 0;
+    return -1;
 }
 
 struct uart_manager uart_manager = {

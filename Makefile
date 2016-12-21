@@ -23,10 +23,11 @@ include config.mk
 #
 # Utils
 #
-SRC-y += utils/signal_handler.c                                 \
-         utils/compare_string.c                                 \
-         utils/assert.c                                         \
-	 utils/thread_pool/thread_pool.c
+SRC-y += utils/signal_handler.c                     \
+         utils/compare_string.c                     \
+         utils/assert.c                             \
+         utils/common.c                             \
+         utils/thread_pool/thread_pool.c
 
 #
 # Timer
@@ -63,15 +64,34 @@ SRC-y += power/power_manager.c
 #
 SRC-y += i2c/i2c_manager.c
 
+#
+# Flash
+#
+SRC-y +=  flash/flash_manager.c			        \
+          flash/block/blocks/mtd/mtd.c                  \
+          flash/block/blocks/mtd/base.c                 \
+          flash/block/fs/fs_manager.c                   \
+          flash/block/fs/normal.c
+
 SRCS := $(SRC-y)
 
 #
-# lib serialport serving for Uart
+# Uart Lib
 #
-LIBS-SRC-y += lib/serial/libserialport/linux_termios.c    \
-          lib/serial/libserialport/linux.c                \
-          lib/serial/libserialport/serialport.c           \
-          lib/i2c/libsmbus.c
+LIBS-SRC-y += lib/uart/libserialport/linux_termios.c    \
+          lib/uart/libserialport/linux.c                \
+          lib/uart/libserialport/serialport.c           \
+
+#
+# I2c Lib
+#
+LIBS-SRC-y += lib/i2c/libsmbus.c
+
+#
+# MTD Lib
+#
+LIBS-SRC-y += lib/mtd/libmtd_legacy.c                     \
+              lib/mtd/libmtd.c
 
 LIBS-SRCS := $(LIBS-SRC-y)
 
@@ -81,7 +101,7 @@ LIBS-SRCS := $(LIBS-SRC-y)
 #
 $(TARGET): $(OBJS) $(LIBS)
 	$(QUIET_CC_SHARED_LIB)$(COMPILE_SRC_TO_SHARED_LIB) $(SRCS) $(LIBS-SRCS) -o $(OUTDIR)/$@
-	#@$(STRIP) $(OUTDIR)/$@
+	@$(STRIP) $(OUTDIR)/$@
 	@echo -e '\n  sdk: $(shell basename $(OUTDIR))/$@ is ready\n'
 
 all: $(TARGET) testunit
@@ -92,7 +112,7 @@ all: $(TARGET) testunit
 # Test unit
 #
 testunit:
-	make -C lib/serial/testunit all
+	make -C lib/uart/testunit all
 	make -C utils/thread_pool/testunit all
 	make -C uart/testunit all
 	make -C camera/testunit all
@@ -101,9 +121,10 @@ testunit:
 	make -C watchdog/testunit all
 	make -C power/testunit all
 	make -C i2c/testunit all
+	make -C flash/testunit all
 
 testunit_clean:
-	make -C lib/serial/testunit clean
+	make -C lib/uart/testunit clean
 	make -C utils/thread_pool/testunit clean
 	make -C uart/testunit clean
 	make -C camera/testunit clean
@@ -112,6 +133,7 @@ testunit_clean:
 	make -C watchdog/testunit clean
 	make -C power/testunit clean
 	make -C i2c/testunit clean
+	make -C flash/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(OUTDIR)

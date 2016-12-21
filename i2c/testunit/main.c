@@ -17,7 +17,7 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <i2c/i2c_manager.h>
+#include <libqrcode_api.h>
 
 /*
  * Macros

@@ -1,10 +1,112 @@
 #ifndef LIBQRCODE_API_H
 #define LIBQRCODE_API_H
 
+#include <types.h>
+
 //////////////////////////////////////////////////////////////////////////COMMON///////////////////////////////////////////////////////////////////////////////////
 typedef void (*func_handle)(void *arg);
 
-//////////////////////////////////////////////////////////////////////////UART/////////////////////////////////////////////////////////////////////////////////// //
+//////////////////////////////////////////////////////////////////////////I2C///////////////////////////////////////////////////////////////////////////////////////////
+/*
+ * Macros
+ */
+
+/*
+ * 读写I2C设备所发送的地址的长度, 以BIT为单位, 有8BIT或16BIT, 应该根据实际使用的器件修改宏值
+ */
+#define I2C_DEV_ADDR_LENGTH    8
+/*
+ * 对设备的这个地址进行读操作, 以检测I2C总线上有没有 chip_addr这个从设备, 可根据实际修改宏值
+ */
+#define I2C_CHECK_READ_ADDR    0x00
+/*
+ * 对设备一次读写操作后, 在进行下次读写操作时的延时时间,单位:us, 值不能太小, 否则导致读写出错
+ */
+#define I2C_ACCESS_DELAY_US    5000
+
+/*
+ * 定义芯片所支持的所有I2C总线的id, 不能修改任何一个enum i2c成员的值, 否则导致不可预想的错误
+ */
+enum i2c {
+    I2C0,
+    I2C1,
+    I2C2,
+};
+
+/*
+ * 应为每个I2C从设备定义一个struct i2c_unit 结构体变量, 每个成员说明如下:
+ *        id: 表示从设备所挂载的I2C总戏
+ * chip_addr: 为从设备的7位地址
+ *
+ */
+struct i2c_unit {
+    enum i2c id;
+    int chip_addr;
+};
+
+struct i2c_manager {
+    /**
+     *    Function: init
+     * Description: I2C初始化
+     *       Input:
+     *            i2c: 每个I2C设备对应 struct i2c_unit 结构体指针, 必须先初始化结构体的成员
+     *                 其中: id 的值应大于0, 小于I2C_DEVICE_MAX; chip_addr: 为设备的7位地址
+     *      Others: 必须优先调用 init函数, 可以被多次调用, 用于初始化不同的I2C设备
+     *      Return: 0 --> 成功, 非0 --> 失败
+     */
+    int (*init)(struct i2c_unit *i2c);
+
+    /**
+     *    Function: deinit
+     * Description: I2C 设备释放
+     *       Input:
+     *            i2c: 每个I2C设备对应 struct i2c_unit 结构体指针, 必须先初始化结构体的成员
+     *                 其中: id 的值应大于0, 小于I2C_DEVICE_MAX; chip_addr: 为设备的7位地址
+     *      Others: 对应于init函数, 不再使用某个I2C设备时, 调用此函数释放, 释放后不能再进行读写操作
+     *      Return: 无
+     */
+    void (*deinit)(struct i2c_unit *i2c);
+
+    /**
+     *    Function: read
+     * Description: 从I2C设备读取数据
+     *       Input:
+     *            i2c: 每个I2C设备对应 struct i2c_unit 结构体指针, 必须先初始化结构体的成员
+     *                 其中: id 的值应大于0, 小于I2C_DEVICE_MAX; chip_addr: 为设备的7位地址
+     *            buf: 存储读取数据的缓存区指针, 不能是空指针
+     *           addr: 指定从I2C设备的哪个地址开始读取数据
+     *          count: 读取的字节数
+     *      Others: 无
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*read)(struct i2c_unit *i2c, uint8_t *buf, int addr, int count);
+
+    /**
+     *    Function: write
+     * Description: 往I2C设备写入数据
+     *       Input:
+     *            i2c: 每个I2C设备对应 struct i2c_unit 结构体指针, 必须先初始化结构体的成员
+     *                 其中: id 的值应大于0, 小于I2C_DEVICE_MAX; chip_addr: 为设备的7位地址
+     *            buf: 指向存储待写入数据的缓存区指针, 不能是空指针
+     *           addr: 指定从I2C设备的哪个地址开始写入数据
+     *          count: 写入的字节数
+     *      Others: 无
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*write)(struct i2c_unit *i2c, uint8_t *buf, int addr, int count);
+};
+
+
+/**
+ *    Function: get_i2c_manager
+ * Description: 获取 i2c_manager 句柄
+ *       Input: 无
+ *      Return: 返回 struct i2c_manager 结构体指针
+ *      Others: 通过该结构体指针访问内部提供的方法
+ */
+struct i2c_manager *get_i2c_manager(void);
+//////////////////////////////////////////////////////////////////////////UART////////////////////////////////////////////////////////////////////////////////////////
+#define UART_MAX_CHANNELS   3
 /**
  * 奇偶校验可设参数
  */
@@ -80,7 +182,7 @@ struct uart_manager {
      *    UART_FLOWCONTROL_DTRDSR: 硬件流控使用DTR/DSR信号
      * Output: 无
      * Return: 0: 成功， -1: 失败
-     * Others: 对应uart_init, 在不再使用uart时调用
+     * Others: 无
      */
     int32_t (*flow_control)(char* devname, uint8_t flow_ctl);
     /**
@@ -96,7 +198,7 @@ struct uart_manager {
      * Return: 正数或0: 成功写入的字节数
      * Others: 在使用之前要先调用uart_init
      */
-    uint32_t (*write)(char* devname, const void* buf, uint32_t count,
+    int32_t (*write)(char* devname, const void* buf, uint32_t count,
         uint32_t timeout_ms);
     /**
      * Function: uart_read
@@ -111,7 +213,7 @@ struct uart_manager {
      * Return: 正数或0: 成功读取的字节数
      * Others: 在使用之前要先调用uart_init
      */
-    uint32_t (*read)(char* devname, void* buf, uint32_t count, uint32_t timeout_ms);
+    int32_t (*read)(char* devname, void* buf, uint32_t count, uint32_t timeout_ms);
 };
 
 /**
@@ -124,7 +226,9 @@ struct uart_manager {
  */
 struct uart_manager* get_uart_manager(void);
 
-//////////////////////////////////////////////////////////////////////////TIMER/////////////////////////////////////////////////////////////////////////////////// // //
+//////////////////////////////////////////////////////////////////////////TIMER////////////////////////////////////////////////////////////////////////////////////////
+/* 系统支持的最大定时器个数 */
+#define TIMER_DEFAULT_MAX_CNT                            5
 
 struct timer_manager {
     /**
@@ -149,7 +253,7 @@ struct timer_manager {
      * Function: timer_deinit
      * Description: 定时器释放
      * Input:
-     *  id: 定时器id号, id号有效范围为[1,TIMER_DEFAULT_MAX_CNT]
+     *      id: 定时器id号, id号有效范围为[1,TIMER_DEFAULT_MAX_CNT]
      * Output: 无
      * Return: 0:成功 -1: 失败
      * Others: 与timer_init相对应
@@ -197,4 +301,401 @@ struct timer_manager {
  * Others: 通过该结构体指针访问timer_manager内部提供的方法
  */
 struct timer_manager*  get_timer_manager(void);
+
+
+
+//////////////////////////////////////////////////////////////////////////FLASH////////////////////////////////////////////////////////////////////////////////////////
+struct flash_manager {
+    /**
+     * Function: flash_init
+     * Description: flash初始化
+     * Input: 无
+     * Output: 无
+     * Return: 0:成功 -1: 失败
+     * Others: 在flash的读/写/擦除操作之前，首先执行初始化
+     */
+    int32_t (*init)(void);
+    /**
+     * Function: flash_deinit
+     * Description: flash释放
+     * Input: 无
+     * Output: 无
+     * Return: 0:成功 -1: 失败
+     * Others: 与flash_init相对应
+     */
+    int32_t (*deinit)(void);
+    /**
+     * Function: flash_get_erase_unit
+     * Description: 获取flash擦除单元， 单位: bytes
+     * Input: 无
+     * Output: 无
+     * Return: >0: 成功返回擦除单元大小  0: 失败
+     * Others: 无
+     */
+    int32_t (*get_erase_unit)(void);
+    /**
+     * Function: flash_erase
+     * Description: flash擦除
+     * Input:
+     *      offset: flash片内偏移物理地址
+     *      length: 擦除大小，单位: byte
+     *          注意:该大小必须是擦除单元大小的整数倍
+     * Output: 无
+     * Return: 0:成功  -1:失败
+     * Others: 无
+     */
+    int64_t (*erase)(int64_t offset,  int64_t length);
+    /**
+     * Function: flash_read
+     * Description: flash读取
+     * Input:
+     *      offset: flash片内偏移物理地址
+     *      buf: 读取缓冲区
+     *      length: 读取大小，单位: byte
+     * Output: 无
+     * Return: >0: 返回成功读取的字节数  -1:失败
+     * Others: 无
+     */
+    int64_t (*read)(int64_t offset,  void* buf, int64_t length);
+    /**
+     * Function: flash_write
+     * Description: flash写入
+     * Input:
+     *      offset: flash片内偏移物理地址
+     *      buf: 写入缓冲区
+     *      length: 写入大小，单位: byte
+     * Output: 无
+     * Return: >0: 返回成功写入的字节数  -1:失败
+     * Others: 无
+     */
+    int64_t (*write)(int64_t offset,  void* buf, int64_t length);
+};
+/**
+ * Function: get_flash_manager
+ * Description: 获取flash_mananger句柄
+ * Input:  无
+ * Output: 无
+ * Return: 返回flash_manager结构体指针
+ * Others: 通过该结构体指针访问flash_manager内部提供的方法
+ */
+struct flash_manager* get_flash_manager(void);
+
+//////////////////////////////////////////////////////////////////////////////////////////////CAMERA/////////////////////////////////////////////////////////////////////////////////////
+#define SENSOR_ADDR_LENGTH   8
+
+#if (SENSOR_ADDR_LENGTH == 8)
+#define ADDR_END    0xff
+#define VAL_END     0xff
+#define ENDMARKER   {0xff, 0xff}
+struct regval_list {
+    unsigned char regaddr;
+    unsigned char regval;
+};
+#elif (SENSOR_ADDR_LENGTH == 16)
+#define ADDR_END    0xffff
+#define VAL_END     0xff
+#define ENDMARKER   {0xffff, 0xff}
+struct regval_list {
+    unsigned short regaddr;
+    unsigned char regval;
+};
+#endif
+
+#define SIZE   12
+struct reg_msg {
+    unsigned int write_size;
+    unsigned int read_size;
+    unsigned char reg_buf[SIZE];
+};
+
+/* timing parameters */
+struct timing_param_t {
+    unsigned long mclk_freq;
+    unsigned int pclk_active_level; //0 for rising edge, 1 for falling edge
+    unsigned int hsync_active_level;
+    unsigned int vsync_active_level;
+};
+
+/* image parameters */
+struct img_param_t {
+    unsigned int width;      /* width */
+    unsigned int height;     /* height */
+    unsigned int bpp;        /* bits per pixel: 8/16/32 */
+    unsigned int size;       /* image size */
+};
+
+struct camera_manager {
+    /**
+     *    Function: camera_init
+     * Description: 摄像头初始化
+     *       Input: 无
+     *      Others: 必须优先调用 camera_init
+     *      Return: 0 --> 成功, 非0 --> 失败
+     */
+    int (*camera_init)(void);
+
+    /**
+     *    Function: camera_deinit
+     * Description: 摄像头释放
+     *       Input: 无
+     *      Others: 对应 camera_init, 不再使用camera时调用
+     *      Return: 无
+     */
+    void (*camera_deinit)(void);
+
+    /**
+     *    Function: camera_read
+     * Description: 读取摄像头采集数据,保存在 yuvbuf 指向的缓存区中
+     *       Input:
+     *          yuvbuf: 图像缓存区指针, 缓存区必须大于或等于读取的大小
+     *            size: 读取数据大小,字节为单位, 一般设为 image_size
+     *      Others: 在此函数中会断言yuvbuf是否等于NULL, 如果为NULL, 将推出程序
+     *      Return: 返回实际读取到的字节数, 如果返回-1 --> 失败
+     */
+    int (*camera_read)(unsigned char *yuvbuf, unsigned int size);
+
+    /**
+     *    Function: set_img_param
+     * Description: 设置控制器捕捉图像的分辨率和像素深度
+     *       Input:
+     *           img: struct img_param_t 结构指针, 指定图像的分辨率和像素深度
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*set_img_param)(struct img_param_t *img);
+
+    /**
+     *    Function: set_timing_param
+     * Description: 设置控制器时序, 包括mclk 频率、pclk有效电平、hsync有效电平、vsync有效电平
+     *       Input:
+     *          timing: struct timing_param_t 结构指针, 指定 mclk频率、pclk有效电平、hsync有效电平、vsync有效电平
+     *                  在camera_init函数中分别初始化为:24000000、0、1、1, 为0是高电平有效, 为1则是低电平有效
+     *      Others: 如果在camera_init函数内默认设置已经符合要求,则不需要调用
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*set_timing_param)(struct timing_param_t *timing);
+
+    /**
+     *    Function: sensor_setup_addr
+     * Description: 设置摄像头sensor的I2C地址 (在 probe 失败时,应该调用此函数设置sensor的I2C地址)
+     *       Input:
+     *              chip_addr: 摄像头sensor的I2C地址(不需要右移一位)
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*sensor_setup_addr)(int chip_addr);
+
+    /**
+     *    Function: sensor_setup_regs
+     * Description: 设置摄像头sensor的多个寄存器,用于初始化sensor
+     *       Input:
+     *          vals: struct regval_list 结构指针, 通常传入struct regval_list结构数组
+     *      Others: 在开始读取图像数据时, 应该调用此函数初始化sensor寄存器
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*sensor_setup_regs)(const struct regval_list *vals);
+
+    /**
+     *    Function: sensor_write_reg
+     * Description: 设置摄像头sensor的单个寄存器
+     *       Input:
+     *          regaddr: 摄像头sensor的寄存器地址
+     *           regval: 摄像头sensor寄存器的值
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*sensor_write_reg)(unsigned int regaddr, unsigned char regval);
+
+    /**
+     *    Function: sensor_read_reg
+     * Description: 读取摄像头sensor某个寄存器的知
+     *       Input:
+     *          regaddr: 摄像头sensor的寄存器地址
+     *      Return: -1 --> 失败, 其他 --> 寄存器的值
+     */
+    unsigned char (*sensor_read_reg)(unsigned int regaddr);
+};
+
+/**
+ *    Function: get_camera_manager
+ * Description: 获取 camera_mananger 句柄
+ *       Input: 无
+ *      Return: 返回 camera_manager 结构体指针
+ *      Others: 通过该结构体指针访问内部提供的方法
+ */
+struct camera_manager *get_camera_manager(void);
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////PWM/////////////////////////////////////////////////////////////////////////////////
+#define PWM_DEVICE_MAX   5
+#define PWM_PERIOD_MIN   200
+#define PWM_PERIOD_MAX   100000000
+
+enum pwm {
+    PWM0,
+    PWM1,
+    PWM2,
+    PWM3,
+    PWM4,
+};
+
+enum pwm_state {
+    PWM_DISABLE,
+    PWM_ENABLE,
+};
+
+struct pwm_manager {
+    /**
+     *    Function: init
+     * Description: PWM通道初始化
+     *       Input:
+     *              id: PWM通道id, 其值必须小于PWM_DEVICE_MAX
+     *      Others: 必须优先调用 pwm_init函数
+     *      Return: 0 --> 成功, 非0 --> 失败
+     */
+    int (*init)(enum pwm id);
+
+    /**
+     *    Function: deinit
+     * Description: PWM通道释放
+     *       Input:
+     *              id: PWM通道id, 其值必须小于PWM_DEVICE_MAX
+     *      Others: 对应于init函数, 不再使用PWM某个通道时,应该调用此函数释放
+     *      Return: 无
+     */
+    void (*deinit)(enum pwm id);
+
+    /**
+     *    Function: setup_freq
+     * Description: 设置PWM通道的频率
+     *       Input:
+     *              id: PWM通道id, 其值必须小于PWM_DEVICE_MAX
+     *            freq: 周期值, ns 为单位
+     *      Others: 此函数可以不调用, 即使用默认频率: 30000ns
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*setup_freq)(enum pwm id, unsigned int freq);
+
+    /**
+     *    Function: setup_duty
+     * Description: 设置PWM通道的占空比
+     *       Input:
+     *              id: PWM通道id, 其值必须小于PWM_DEVICE_MAX
+     *            duty: 占空比, 其值为 0 ~ 100 区间
+     *      Others: 初始化占空比为 0,这里不用关心IO输出的有效电平,例如:不管LED在低电平亮还是高电平亮, duty=100时, LED最亮
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*setup_duty)(enum pwm id, unsigned int duty);
+
+    /**
+     *    Function: setup_state
+     * Description: 设置PWM通道的工作状态
+     *       Input:
+     *             id: PWM通道id, 其值必须小于PWM_DEVICE_MAX
+     *          state: 工作状态: 0 --> disable, 非0 --> enable
+     *      Others: 此函数不需要在 setup_freq 或 setup_duty 之前调用,主要用于暂停/开始PWM的工作.
+     *              再重新开始工作时,PWM保持之前的 freq 和 duty 继续工作
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*setup_state)(enum pwm id, enum pwm_state state);
+};
+
+/**
+ *    Function: get_pwm_manager
+ * Description: 获取 pwm_manager 句柄
+ *       Input: 无
+ *      Return: 返回 struct pwm_manager 结构体指针
+ *      Others: 通过该结构体指针访问内部提供的方法
+ */
+struct pwm_manager *get_pwm_manager(void);
+
+////////////////////////////////////////////////////////////////////////////WATCHDOG////////////////////////////////////////////////////////////////////////
+struct watchdog_manager {
+    /**
+     *    Function: init
+     * Description: 看门狗初始化
+     *       Input:
+     *          timeout: 看门狗超时的时间, 以秒为单位, 其值必须大于零
+     *      Others: 必须优先调用init函数初始化看门狗和设置timeout, 可被多次调用
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*init)(unsigned int timeout);
+
+    /**
+     *    Function: deinit
+     * Description: 看门狗释放
+     *       Input: 无
+     *      Others: 对应init函数, 不再使用看门狗时调用, 该函数将关闭看门狗, 释放设备
+     *      Return: 无
+     */
+    void (*deinit)(void);
+
+    /**
+     *    Function: reset
+     * Description: 看门狗喂狗
+     *       Input: 无
+     *      Others: 使能看门狗后, 在timeout时间内不调用此函数, 系统将复位
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*reset)(void);
+
+    /**
+     *    Function: enable
+     * Description: 看门狗使能
+     *       Input: 无
+     *      Others: 在init函数初始化或disable函数关闭看门狗之后, 调用此函数启动看门狗
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*enable)(void);
+
+    /**
+     *    Function: disable
+     * Description: 看门狗关闭
+     *       Input: 无
+     *      Others: 对应enable函数, 区别deinit函数的地方在于, 调用此函数之后, 能通过enable函数重新启动
+     *      Return: 0 --> 成功, -1 --> 失败
+     */
+    int (*disable)(void);
+};
+
+/**
+ *    Function: get_watchdog_manager
+ * Description: 获取 watchdog_manager 句柄
+ *       Input: 无
+ *      Return: 返回 struct watchdog_manager 结构体指针
+ *      Others: 通过该结构体指针访问内部提供的方法
+ */
+struct watchdog_manager *get_watchdog_manager(void);
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////PWM////////////////////////////////////////////////////////////////////////////////////////////
+struct power_manager {
+    /**
+     *    Function: power_off
+     * Description: 关机
+     *       Input: 无
+     *      Return: -1 --> 失败, 成功没有返回值
+     */
+    int (*power_off)(void);
+
+    /**
+     *    Function: reboot
+     * Description: 系统复位
+     *       Input: 无
+     *      Return: -1 --> 失败, 成功没有返回值
+     */
+    int (*reboot)(void);
+
+    /**
+     *    Function: sleep
+     * Description: 进入休眠
+     *       Input: 无
+     *      Return: -1 --> 失败, 0 --> 成功
+     */
+    int (*sleep)(void);
+};
+
+/**
+ *    Function: get_power_manager
+ * Description: 获取 power_manager 句柄
+ *       Input: 无
+ *      Return: 返回 struct power_manager 结构体指针
+ *      Others: 通过该结构体指针访问内部提供的方法
+ */
+struct power_manager *get_power_manager(void);
 #endif

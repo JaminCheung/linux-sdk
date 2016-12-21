@@ -1,1 +1,0 @@
-../../../lib/serial/libserialport/config.h

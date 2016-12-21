@@ -10,9 +10,9 @@
 #include <sys/types.h>
 #include <types.h>
 #include <utils/log.h>
-#include <lib/serial/libserialport_config.h>
-#include <lib/serial/libserialport.h>
-#include <lib/serial/libserialport_internal.h>
+#include <lib/uart/libserialport_config.h>
+#include <lib/uart/libserialport.h>
+#include <lib/uart/libserialport_internal.h>
 
 #define LOG_TAG "test_libserialport"
 

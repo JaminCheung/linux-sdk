@@ -27,8 +27,6 @@
 #define TIMER_WORK_THREAD_PRIORITY                   1
 /* The reserved timer info struct used for epoll thread exit */
 #define TIMER_SYS_RESERVED_CNT                          1
-/* 系统支持的最大定时器个数 */
-#define TIMER_DEFAULT_MAX_CNT                            5
 
 typedef void (*timer_handle)(void *arg);
 struct timer_info {

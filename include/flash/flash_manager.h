@@ -1,5 +1,5 @@
 /*
- *  Copyright (C) 2016, Wang Qiuwei <qiuwei.wang@ingenic.com, panddio@163.com>
+ *  Copyright (C) 2016, Zhang YanMing <yanmin.zhang@ingenic.com, jamincheung@126.com>
  *
  *  Ingenic QRcode SDK Project
  *
@@ -13,9 +13,19 @@
  *  675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
-#ifndef POWER_MANAGER_H
-#define POWER_MANAGER_H
+#ifndef FLASH_MANAGER_H
+#define FLASH_MANAGER_H
+
+struct  flash_info {
+    struct block_manager *blk_mgr;
+    uint32_t init_called;
+    struct bm_operation_option operation_option;
+    struct bm_operate_prepare_info*  prepare_info;
+    uint32_t block_size;
+    uint32_t page_size;
+    int64_t capacity;
+    pthread_mutex_t mutex_lock;
+};
 
 #include <libqrcode_api.h>
-
-#endif /* POWER_MANAGER_H */
+#endif

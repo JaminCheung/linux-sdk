@@ -31,6 +31,7 @@
 
 #define LOG_TAG "thread_pool"
 
+#if 0
 static void dump_work_queue(struct thread_pool_manager* pm) {
     assert_die_if(pm == NULL, "Paramter pm is null\n");
     struct thread_pool *pool = pm->pool;
@@ -42,6 +43,7 @@ static void dump_work_queue(struct thread_pool_manager* pm) {
         LOGI("work %d\n", *(int*)(worker->arg));
     }
 }
+#endif
 
 static void * thread_routine(void *arg) {
     struct thread_work *worker = NULL;
@@ -85,8 +87,6 @@ out:
     LOGI("thread 0x%x is exit\n", (unsigned int)pthread_self());
     pthread_exit (NULL);
 }
-
-static void dump_work_queue(struct thread_pool_manager* pm);
 
 static int32_t thread_pool_destroy(struct thread_pool_manager* pm, uint32_t thread_cnt) {
     struct thread_pool *pool_tmp = NULL;

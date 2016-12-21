@@ -47,6 +47,7 @@ static int pm_power_off(void) {
         LOGE("Failed to power off: %s\n", strerror(errno));
         return -1;
     }
+    return 0;
 }
 
 static int pm_reboot(void) {
@@ -59,6 +60,7 @@ static int pm_reboot(void) {
         LOGE("Failed to reboot: %s\n", strerror(errno));
         return -1;
     }
+    return 0;
 }
 
 static int pm_sleep(void) {
