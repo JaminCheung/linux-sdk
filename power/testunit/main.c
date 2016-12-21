@@ -17,7 +17,7 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <power/power_manager.h>
+#include <libqrcode_api.h>
 
 
 #define LOG_TAG   "test_power"

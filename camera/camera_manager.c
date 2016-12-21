@@ -48,7 +48,7 @@ static int sensor_fd = -1;
 /*
  * Functions
  */
-static int set_img_param(struct img_param_t *img) {
+static int set_img_param(struct camera_img_param *img) {
 
     if (ioctl(cim_fd, IOCTL_SET_IMG_PARAM, (unsigned long)img) < 0) {
         LOGE("ioctl: failed to set img param: %s\n", strerror(errno));
@@ -58,7 +58,7 @@ static int set_img_param(struct img_param_t *img) {
     return 0;
 }
 
-static int set_timing_param(struct timing_param_t *timing) {
+static int set_timing_param(struct camera_timing_param *timing) {
 
     if (ioctl(cim_fd, IOCTL_SET_TIMING_PARAM, (unsigned long)timing) < 0) {
         LOGE("ioctl: ailed to set timing param: %s\n", strerror(errno));
@@ -127,7 +127,7 @@ static int sensor_write_reg(uint32_t regaddr, uint8_t regval) {
     return 0;
 }
 
-static int sensor_setup_regs(const struct regval_list *vals) {
+static int sensor_setup_regs(const struct camera_regval_list *vals) {
 
     while(1) {
         if ((vals->regaddr == ADDR_END) && \
@@ -153,7 +153,7 @@ static int camera_read(uint8_t *yuvbuf, uint32_t size) {
 }
 
 static int camera_init(void) {
-    struct timing_param_t timing;
+    struct camera_timing_param timing;
 
     timing.mclk_freq = 24000000;
     timing.pclk_active_level  = 0;

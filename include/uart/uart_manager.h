@@ -15,5 +15,11 @@
  */
 #ifndef UART_MANAGER_H
 #define UART_MANAGER_H
+ struct uart_port_dev {
+    char name[NAME_MAX];
+    struct sp_port* sp_port;
+    struct sp_port_config *sp_config;
+    uint8_t in_use;
+};
 #include <libqrcode_api.h>
 #endif

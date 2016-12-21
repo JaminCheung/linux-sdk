@@ -125,7 +125,8 @@
 
 /* Define to `unsigned int' if <sys/types.h> does not define. */
 /* #undef size_t */
-
+#define HAVE_STRUCT_TERMIOS_C_ISPEED  1
+#define HAVE_STRUCT_TERMIOS_C_OSPEED 1
 #if HAVE_STRUCT_TERMIOS_C_ISPEED && HAVE_STRUCT_TERMIOS_C_OSPEED
 # define HAVE_TERMIOS_SPEED 1
 #endif

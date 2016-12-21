@@ -38,7 +38,7 @@ enum i2c {
  */
 struct i2c_unit {
     enum i2c id;
-    int chip_addr;
+    int32_t chip_addr;
 };
 
 struct i2c_manager {
@@ -51,7 +51,7 @@ struct i2c_manager {
      *      Others: 必须优先调用 init函数, 可以被多次调用, 用于初始化不同的I2C设备
      *      Return: 0 --> 成功, 非0 --> 失败
      */
-    int (*init)(struct i2c_unit *i2c);
+    int32_t (*init)(struct i2c_unit *i2c);
 
     /**
      *    Function: deinit
@@ -76,7 +76,7 @@ struct i2c_manager {
      *      Others: 无
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*read)(struct i2c_unit *i2c, uint8_t *buf, int addr, int count);
+    int32_t (*read)(struct i2c_unit *i2c, uint8_t *buf, int32_t addr, int32_t count);
 
     /**
      *    Function: write
@@ -90,7 +90,7 @@ struct i2c_manager {
      *      Others: 无
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*write)(struct i2c_unit *i2c, uint8_t *buf, int addr, int count);
+    int32_t (*write)(struct i2c_unit *i2c, uint8_t *buf, int32_t addr, int32_t count);
 };
 
 
@@ -300,7 +300,7 @@ struct timer_manager {
  */
 struct timer_manager*  get_timer_manager(void);
 
-/////////////////////////////////////////////////////FLASH////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////FLASH/////////////////////////////////////////////////////////////
 struct flash_manager {
     /**
      * Function: flash_init
@@ -393,7 +393,7 @@ struct flash_manager* get_flash_manager(void);
  * regaddr: 寄存器的地址
  *  regval: 对应寄存器的值
  */
-struct regval_list {
+struct camera_regval_list {
     uint8_t regaddr;
     uint8_t regval;
 };
@@ -408,7 +408,7 @@ struct regval_list {
  * regaddr: 寄存器的地址
  *  regval: 对应寄存器的值
  */
-struct regval_list {
+struct camera_regval_list {
     uint16_t regaddr;
     uint8_t regval;
 };
@@ -421,7 +421,7 @@ struct regval_list {
  *     bpp: 图像的像素深度
  *    size: 图像的大小, 字节为单位, size = width * height * bpp / 2
  */
-struct img_param_t {
+struct camera_img_param {
     uint32_t width;
     uint32_t height;
     uint32_t bpp;    /* bits per pixel: 8/16/32 */
@@ -435,7 +435,7 @@ struct img_param_t {
  *   hsync_active_level: hsync 的有效电平, 为0是高电平有效, 为1则是低电平有效
  *   vsync_active_level: vsync 的有效电平, 为0是高电平有效, 为1则是低电平有效
  */
-struct timing_param_t {
+struct camera_timing_param {
     uint32_t mclk_freq;
     uint8_t pclk_active_level;
     uint8_t hsync_active_level;
@@ -450,7 +450,7 @@ struct camera_manager {
      *      Others: 必须优先调用 camera_init
      *      Return: 0 --> 成功, 非0 --> 失败
      */
-    int (*camera_init)(void);
+    int32_t (*camera_init)(void);
 
     /**
      *    Function: camera_deinit
@@ -470,7 +470,7 @@ struct camera_manager {
      *      Others: 在此函数中会断言yuvbuf是否等于NULL, 如果为NULL, 将推出程序
      *      Return: 返回实际读取到的字节数, 如果返回-1 --> 失败
      */
-    int (*camera_read)(uint8_t *yuvbuf, uint32_t size);
+    int32_t (*camera_read)(uint8_t *yuvbuf, uint32_t size);
 
     /**
      *    Function: set_img_param
@@ -479,7 +479,7 @@ struct camera_manager {
      *           img: struct img_param_t 结构指针, 指定图像的分辨率和像素深度
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*set_img_param)(struct img_param_t *img);
+    int32_t (*set_img_param)(struct camera_img_param *img);
 
     /**
      *    Function: set_timing_param
@@ -490,7 +490,7 @@ struct camera_manager {
      *      Others: 如果在camera_init函数内默认设置已经符合要求,则不需要调用
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*set_timing_param)(struct timing_param_t *timing);
+    int32_t (*set_timing_param)(struct camera_timing_param *timing);
 
     /**
      *    Function: sensor_setup_addr
@@ -499,7 +499,7 @@ struct camera_manager {
      *              chip_addr: 摄像头sensor的I2C地址(不需要右移一位)
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*sensor_setup_addr)(int chip_addr);
+    int32_t (*sensor_setup_addr)(int32_t chip_addr);
 
     /**
      *    Function: sensor_setup_regs
@@ -509,7 +509,7 @@ struct camera_manager {
      *      Others: 在开始读取图像数据时, 应该调用此函数初始化sensor寄存器
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*sensor_setup_regs)(const struct regval_list *vals);
+    int32_t (*sensor_setup_regs)(const struct camera_regval_list *vals);
 
     /**
      *    Function: sensor_write_reg
@@ -519,7 +519,7 @@ struct camera_manager {
      *           regval: 摄像头sensor寄存器的值
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*sensor_write_reg)(uint32_t regaddr, uint8_t regval);
+    int32_t (*sensor_write_reg)(uint32_t regaddr, uint8_t regval);
 
     /**
      *    Function: sensor_read_reg
@@ -578,7 +578,7 @@ struct pwm_manager {
      *      Others: 必须优先调用 pwm_init函数
      *      Return: 0 --> 成功, 非0 --> 失败
      */
-    int (*init)(enum pwm id);
+    int32_t (*init)(enum pwm id);
 
     /**
      *    Function: deinit
@@ -599,7 +599,7 @@ struct pwm_manager {
      *      Others: 此函数可以不调用, 即使用默认频率: 30000ns
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*setup_freq)(enum pwm id, uint32_t freq);
+    int32_t (*setup_freq)(enum pwm id, uint32_t freq);
 
     /**
      *    Function: setup_duty
@@ -610,7 +610,7 @@ struct pwm_manager {
      *      Others: 初始化占空比为 0,这里不用关心IO输出的有效电平,例如:不管LED在低电平亮还是高电平亮, duty=100时, LED最亮
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*setup_duty)(enum pwm id, uint32_t duty);
+    int32_t (*setup_duty)(enum pwm id, uint32_t duty);
 
     /**
      *    Function: setup_state
@@ -622,7 +622,7 @@ struct pwm_manager {
      *              再重新开始工作时,PWM保持之前的 freq 和 duty 继续工作
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*setup_state)(enum pwm id, enum pwm_state state);
+    int32_t (*setup_state)(enum pwm id, enum pwm_state state);
 };
 
 /**
@@ -644,7 +644,7 @@ struct watchdog_manager {
      *      Others: 必须优先调用init函数初始化看门狗和设置timeout, 可被多次调用
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*init)(uint32_t timeout);
+    int32_t (*init)(uint32_t timeout);
 
     /**
      *    Function: deinit
@@ -662,7 +662,7 @@ struct watchdog_manager {
      *      Others: 使能看门狗后, 在timeout时间内不调用此函数, 系统将复位
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*reset)(void);
+    int32_t (*reset)(void);
 
     /**
      *    Function: enable
@@ -671,7 +671,7 @@ struct watchdog_manager {
      *      Others: 在init函数初始化或disable函数关闭看门狗之后, 调用此函数启动看门狗
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*enable)(void);
+    int32_t (*enable)(void);
 
     /**
      *    Function: disable
@@ -680,7 +680,7 @@ struct watchdog_manager {
      *      Others: 对应enable函数, 区别deinit函数的地方在于, 调用此函数之后, 能通过enable函数重新启动
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*disable)(void);
+    int32_t (*disable)(void);
 };
 
 /**
@@ -700,7 +700,7 @@ struct power_manager {
      *       Input: 无
      *      Return: -1 --> 失败, 成功不需要处理返回值
      */
-    int (*power_off)(void);
+    int32_t (*power_off)(void);
 
     /**
      *    Function: reboot
@@ -708,7 +708,7 @@ struct power_manager {
      *       Input: 无
      *      Return: -1 --> 失败, 成功不需要处理返回值
      */
-    int (*reboot)(void);
+    int32_t (*reboot)(void);
 
     /**
      *    Function: sleep
@@ -716,7 +716,7 @@ struct power_manager {
      *       Input: 无
      *      Return: -1 --> 失败, 0 --> 成功
      */
-    int (*sleep)(void);
+    int32_t (*sleep)(void);
 };
 
 /**

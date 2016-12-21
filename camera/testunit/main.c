@@ -15,14 +15,12 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
-
 #include <utils/log.h>
 #include <utils/assert.h>
 #include <camera/camera_manager.h>
-
 #include "gc2155.h"
 #include "yuv2bmp.h"
-
+#include <libqrcode_api.h>
 /*
  * Macro
  */
@@ -61,8 +59,8 @@ int main(int argc, char *argv[])
     unsigned char *yuvbuf = NULL;
     unsigned char *rgbbuf = NULL;
     unsigned char pid, vid;
-    struct img_param_t img;
-    struct timing_param_t timing;
+    struct camera_img_param img;
+    struct camera_timing_param timing;
     struct camera_manager *cm;
 
     /* 获取操作摄像头句柄 */

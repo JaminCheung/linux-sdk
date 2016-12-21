@@ -34,13 +34,6 @@
 
 #define LOG_TAG "uart"
 
-struct uart_port_dev {
-    char name[NAME_MAX];
-    struct sp_port* sp_port;
-    struct sp_port_config *sp_config;
-    uint8_t in_use;
-};
-
 static struct uart_port_dev port_dev[UART_MAX_CHANNELS];
 
 static  struct uart_port_dev* get_in_use_channel(char *devname) {
@@ -234,8 +227,8 @@ out:
 
 static int32_t uart_read(char* devname, void* buf, uint32_t count, uint32_t timeout_ms) {
     struct uart_port_dev* dev;
-    uint32_t lower_buffer_count;
-    uint32_t readed = 0;
+    int32_t lower_buffer_count;
+    uint32_t read_count = 0;
 
     assert_die_if(buf == NULL, "parameter buf is null\n");
     if (!(dev = get_in_use_channel(devname))) {
@@ -248,13 +241,15 @@ static int32_t uart_read(char* devname, void* buf, uint32_t count, uint32_t time
         goto out;
     }
 
-    if (((readed = sp_blocking_read(dev->sp_port, buf, count, timeout_ms)) < 0)
-        || (readed < count)) {
+    if ((read_count = sp_blocking_read(dev->sp_port, buf, count, timeout_ms)) < 0) {
         LOGE("Failed to read on uart %s\n", devname);
         goto out;
     }
+    if (read_count < count) {
+        LOGW("timeout occured, but read size is not sufficient\n");
+    }
 
-    return readed;
+    return read_count;
 out:
     return -1;
 }
