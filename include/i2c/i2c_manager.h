@@ -17,4 +17,14 @@
 #define I2C_MANAGER_H
 
 #include <libqrcode_api.h>
+
+/*
+ * Macros
+ */
+#define CHECK_I2C_FUNC(funcs, lable)                \
+    do {                                            \
+            assert_die_if(0 == (funcs & lable),     \
+            #lable " i2c function is required.");   \
+    } while (0);
+
 #endif /* I2C_MANAGER_H */

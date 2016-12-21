@@ -43,11 +43,11 @@ struct pwm_dev {
     int freq_fd;
     int duty_fd;
     int ctrl_fd;
-    int is_init;
-    unsigned int max;
+    bool is_init;
+    uint32_t max;
 };
 
-static struct pwm_dev pwm_dev[PWM_DEVICE_MAX];
+static struct pwm_dev pwm_dev[PWM_CHANNEL_MAX];
 
 /*
  * Functions
@@ -58,8 +58,8 @@ static int pwm_init(enum pwm id) {
     char temp[12] = "";
     char node[64] = "";
 
-    assert_die_if(id >= PWM_DEVICE_MAX, "PWM%d is invalid!\n", id);
-    if (pwm_dev[id].is_init == 1)
+    assert_die_if(id >= PWM_CHANNEL_MAX, "PWM%d is invalid!\n", id);
+    if (pwm_dev[id].is_init == true)
         return 0;
 
     sprintf(node, "/sys/class/jz-pwm/pwm%d/max_dutyratio", id);
@@ -91,32 +91,34 @@ static int pwm_init(enum pwm id) {
     assert_die_if(fd < 0, "Open %s failed: %s\n", node, strerror(errno));
     pwm_dev[id].ctrl_fd = fd;
 
-    pwm_dev[id].is_init = 1;
+    pwm_dev[id].is_init = true;
     return 0;
 }
 
 static void pwm_deinit(enum pwm id) {
 
-    assert_die_if(id >= PWM_DEVICE_MAX, "PWM%d is invalid!\n", id);
-    if (pwm_dev[id].is_init == 0)
+    assert_die_if(id >= PWM_CHANNEL_MAX, "PWM%d is invalid!\n", id);
+    if (pwm_dev[id].is_init == false)
         return;
 
     close(pwm_dev[id].freq_fd);
     close(pwm_dev[id].duty_fd);
     close(pwm_dev[id].ctrl_fd);
-    pwm_dev[id].is_init = 0;
+    pwm_dev[id].is_init = false;
     pwm_dev[id].freq_fd = -1;
     pwm_dev[id].duty_fd = -1;
     pwm_dev[id].ctrl_fd = -1;
 }
 
-static int pwm_setup_freq(enum pwm id, unsigned int freq) {
+static int pwm_setup_freq(enum pwm id, uint32_t freq) {
     int size;
     char temp[12] = "";
 
-    assert_die_if(id >= PWM_DEVICE_MAX, "PWM%d is invalid!\n", id);
-    if (pwm_dev[id].is_init == 0)
+    assert_die_if(id >= PWM_CHANNEL_MAX, "PWM%d is invalid!\n", id);
+    if (pwm_dev[id].is_init == false) {
+        LOGE("The PWM%d is not initialized!\n", id);
         return -1;
+    }
 
     size = snprintf(temp, sizeof(temp), "%d", freq);
     if (write(pwm_dev[id].freq_fd, temp, size) < 0) {
@@ -127,14 +129,16 @@ static int pwm_setup_freq(enum pwm id, unsigned int freq) {
     return 0;
 }
 
-static int pwm_setup_duty(enum pwm id, unsigned int duty) {
+static int pwm_setup_duty(enum pwm id, uint32_t duty) {
     float val = 0.0;
     int size;
     char temp[12] = "";
 
-    assert_die_if(id >= PWM_DEVICE_MAX, "PWM%d is invalid!\n", id);
-    if (pwm_dev[id].is_init == 0)
+    assert_die_if(id >= PWM_CHANNEL_MAX, "PWM%d is invalid!\n", id);
+    if (pwm_dev[id].is_init == false) {
+        LOGE("The PWM%d is not initialized!\n", id);
         return -1;
+    }
 
     if (duty > 100)
         duty = 100;
@@ -155,9 +159,11 @@ static int pwm_setup_state(enum pwm id, enum pwm_state state) {
     int size;
     char temp[6] = "";
 
-    assert_die_if(id >= PWM_DEVICE_MAX, "PWM%d is invalid!\n", id);
-    if (pwm_dev[id].is_init == 0)
+    assert_die_if(id >= PWM_CHANNEL_MAX, "PWM%d is invalid!\n", id);
+    if (pwm_dev[id].is_init == false) {
+        LOGE("The PWM%d is not initialized!\n", id);
         return -1;
+    }
 
     size = snprintf(temp, sizeof(temp), "%d", !!state);
     if (write(pwm_dev[id].ctrl_fd, temp, size) < 0) {

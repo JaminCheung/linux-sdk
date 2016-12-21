@@ -34,14 +34,7 @@
 /*
  * Macros
  */
-#define LOG_TAG         "i2c"
-#define I2C_DEVICE_MAX  3
-
-#define CHECK_I2C_FUNC(funcs, lable)                \
-    do {                                            \
-            assert_die_if(0 == (funcs & lable),     \
-            #lable " i2c function is required.");   \
-    } while (0);
+#define LOG_TAG  "i2c"
 
 /*
  * Variables
@@ -52,7 +45,7 @@ struct i2c_bus {
     bool is_init;
 };
 
-static struct i2c_bus i2c_bus[I2C_DEVICE_MAX];
+static struct i2c_bus i2c_bus[I2C_BUS_MAX];
 
 /*
  * Functions
@@ -177,7 +170,7 @@ static int i2c_write(struct i2c_unit *i2c, uint8_t *buf, int addr, int count) {
     int retval;
 
     assert_die_if(!buf, "Error: buffer pointer cannot be 'NULL'\n");
-    assert_die_if(i2c->id >= I2C_DEVICE_MAX, "I2C-%d is invalid!\n", i2c->id);
+    assert_die_if(i2c->id >= I2C_BUS_MAX, "I2C-%d is invalid!\n", i2c->id);
     if (i2c_bus[i2c->id].is_init == false) {
         LOGE("Write failed: I2C-%d is not initialized!\n", i2c->id);
         return -1;
@@ -205,7 +198,7 @@ static int i2c_read(struct i2c_unit *i2c, uint8_t *buf, int addr, int count) {
     int retval;
 
     assert_die_if(!buf, "Error: buffer pointer cannot be 'NULL'\n");
-    assert_die_if(i2c->id >= I2C_DEVICE_MAX, "I2C-%d is invalid!\n", i2c->id);
+    assert_die_if(i2c->id >= I2C_BUS_MAX, "I2C-%d is invalid!\n", i2c->id);
     if (i2c_bus[i2c->id].is_init == false) {
         LOGE("Read failed: I2C-%d is not initialized!\n", i2c->id);
         return -1;
@@ -233,7 +226,7 @@ static int i2c_init(struct i2c_unit *i2c) {
     int retval = 0;
     unsigned long funcs;
 
-    assert_die_if(i2c->id >= I2C_DEVICE_MAX, "I2C-%d is invalid!\n", i2c->id);
+    assert_die_if(i2c->id >= I2C_BUS_MAX, "I2C-%d is invalid!\n", i2c->id);
 
     if (i2c_bus[i2c->id].is_init == false) {
         retval = i2c_smbus_open(i2c->id);
@@ -260,7 +253,7 @@ static int i2c_init(struct i2c_unit *i2c) {
 }
 
 static void i2c_deinit(struct i2c_unit *i2c) {
-    assert_die_if(i2c->id >= I2C_DEVICE_MAX, "I2C-%d is invalid!\n", i2c->id);
+    assert_die_if(i2c->id >= I2C_BUS_MAX, "I2C-%d is invalid!\n", i2c->id);
 
     if (i2c_bus[i2c->id].count == 1) {
         i2c_smbus_close(i2c_bus[i2c->id].fd);
@@ -272,7 +265,7 @@ static void i2c_deinit(struct i2c_unit *i2c) {
     if (i2c_bus[i2c->id].count < 0)
         i2c_bus[i2c->id].count = 0;
 
-    i2c->id = I2C_DEVICE_MAX;
+    i2c->id = I2C_BUS_MAX;
 }
 
 struct i2c_manager i2c_manager = {

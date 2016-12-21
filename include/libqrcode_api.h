@@ -3,14 +3,11 @@
 
 #include <types.h>
 
-//////////////////////////////////////////////////////////////////////////COMMON///////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////COMMON///////////////////////////////////////////////////////////
 typedef void (*func_handle)(void *arg);
 
-//////////////////////////////////////////////////////////////////////////I2C///////////////////////////////////////////////////////////////////////////////////////////
-/*
- * Macros
- */
-
+/////////////////////////////////////////////////////I2C//////////////////////////////////////////////////////////////
+#define I2C_BUS_MAX            3
 /*
  * 读写I2C设备所发送的地址的长度, 以BIT为单位, 有8BIT或16BIT, 应该根据实际使用的器件修改宏值
  */
@@ -105,7 +102,8 @@ struct i2c_manager {
  *      Others: 通过该结构体指针访问内部提供的方法
  */
 struct i2c_manager *get_i2c_manager(void);
-//////////////////////////////////////////////////////////////////////////UART////////////////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////UART/////////////////////////////////////////////////////////////
 #define UART_MAX_CHANNELS   3
 /**
  * 奇偶校验可设参数
@@ -226,7 +224,7 @@ struct uart_manager {
  */
 struct uart_manager* get_uart_manager(void);
 
-//////////////////////////////////////////////////////////////////////////TIMER////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////TIMER////////////////////////////////////////////////////////////
 /* 系统支持的最大定时器个数 */
 #define TIMER_DEFAULT_MAX_CNT                            5
 
@@ -302,9 +300,7 @@ struct timer_manager {
  */
 struct timer_manager*  get_timer_manager(void);
 
-
-
-//////////////////////////////////////////////////////////////////////////FLASH////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////FLASH////////////////////////////////////////////////////////////
 struct flash_manager {
     /**
      * Function: flash_init
@@ -380,48 +376,70 @@ struct flash_manager {
  */
 struct flash_manager* get_flash_manager(void);
 
-//////////////////////////////////////////////////////////////////////////////////////////////CAMERA/////////////////////////////////////////////////////////////////////////////////////
-#define SENSOR_ADDR_LENGTH   8
+//////////////////////////////////////////////CAMERA//////////////////////////////////////////////////////////////////
+/*
+ * sensor寄存器地址的长度, 以BIT为单位, 有8BIT或16BIT, 应该根据实际使用的sensor修改此宏值
+ */
+#define SENSOR_ADDR_LENGTH  8
 
 #if (SENSOR_ADDR_LENGTH == 8)
+/* 一下三个宏的值不能随便修改, 否则导致不可预知的错误 */
 #define ADDR_END    0xff
 #define VAL_END     0xff
 #define ENDMARKER   {0xff, 0xff}
+
+/*
+ * 配置sensor寄存器时, 需传入struct regval_list结构体指针, 以指定配置的寄存器和配置的值
+ * regaddr: 寄存器的地址
+ *  regval: 对应寄存器的值
+ */
 struct regval_list {
-    unsigned char regaddr;
-    unsigned char regval;
+    uint8_t regaddr;
+    uint8_t regval;
 };
 #elif (SENSOR_ADDR_LENGTH == 16)
+/* 一下三个宏的值不能随便修改, 否则导致不可预知的错误 */
 #define ADDR_END    0xffff
 #define VAL_END     0xff
 #define ENDMARKER   {0xffff, 0xff}
+
+/*
+ * 配置sensor寄存器时, 需传入struct regval_list结构体指针, 以指定配置的寄存器和配置的值
+ * regaddr: 寄存器的地址
+ *  regval: 对应寄存器的值
+ */
 struct regval_list {
-    unsigned short regaddr;
-    unsigned char regval;
+    uint16_t regaddr;
+    uint8_t regval;
 };
 #endif
 
-#define SIZE   12
-struct reg_msg {
-    unsigned int write_size;
-    unsigned int read_size;
-    unsigned char reg_buf[SIZE];
-};
-
-/* timing parameters */
-struct timing_param_t {
-    unsigned long mclk_freq;
-    unsigned int pclk_active_level; //0 for rising edge, 1 for falling edge
-    unsigned int hsync_active_level;
-    unsigned int vsync_active_level;
-};
-
-/* image parameters */
+/*
+ * 用于设置控制器捕捉图像的分辨率和像素深度, 每个成员说明如下:
+ *   width: 图像水平方向的分辨率
+ *  height: 图像垂直方向的分辨率
+ *     bpp: 图像的像素深度
+ *    size: 图像的大小, 字节为单位, size = width * height * bpp / 2
+ */
 struct img_param_t {
-    unsigned int width;      /* width */
-    unsigned int height;     /* height */
-    unsigned int bpp;        /* bits per pixel: 8/16/32 */
-    unsigned int size;       /* image size */
+    uint32_t width;
+    uint32_t height;
+    uint32_t bpp;    /* bits per pixel: 8/16/32 */
+    uint32_t size;
+};
+
+/*
+ * 用于设置camera 控制器时序的结构, 每个成员说明如下:
+ *            mclk_freq: mclk 的频率
+ *    pclk_active_level: pclk 的有效电平, 为0是高电平有效, 为1则是低电平有效
+ *   hsync_active_level: hsync 的有效电平, 为0是高电平有效, 为1则是低电平有效
+ *   vsync_active_level: vsync 的有效电平, 为0是高电平有效, 为1则是低电平有效
+ */
+struct timing_param_t {
+    uint32_t mclk_freq;
+    uint8_t pclk_active_level;
+    uint8_t hsync_active_level;
+    uint8_t vsync_active_level;
 };
 
 struct camera_manager {
@@ -452,7 +470,7 @@ struct camera_manager {
      *      Others: 在此函数中会断言yuvbuf是否等于NULL, 如果为NULL, 将推出程序
      *      Return: 返回实际读取到的字节数, 如果返回-1 --> 失败
      */
-    int (*camera_read)(unsigned char *yuvbuf, unsigned int size);
+    int (*camera_read)(uint8_t *yuvbuf, uint32_t size);
 
     /**
      *    Function: set_img_param
@@ -501,7 +519,7 @@ struct camera_manager {
      *           regval: 摄像头sensor寄存器的值
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*sensor_write_reg)(unsigned int regaddr, unsigned char regval);
+    int (*sensor_write_reg)(uint32_t regaddr, uint8_t regval);
 
     /**
      *    Function: sensor_read_reg
@@ -510,7 +528,7 @@ struct camera_manager {
      *          regaddr: 摄像头sensor的寄存器地址
      *      Return: -1 --> 失败, 其他 --> 寄存器的值
      */
-    unsigned char (*sensor_read_reg)(unsigned int regaddr);
+    uint8_t (*sensor_read_reg)(uint32_t regaddr);
 };
 
 /**
@@ -522,11 +540,18 @@ struct camera_manager {
  */
 struct camera_manager *get_camera_manager(void);
 
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////PWM/////////////////////////////////////////////////////////////////////////////////
-#define PWM_DEVICE_MAX   5
-#define PWM_PERIOD_MIN   200
-#define PWM_PERIOD_MAX   100000000
+/////////////////////////////////////////////////////PWM//////////////////////////////////////////////////////////////
+#define PWM_CHANNEL_MAX   5
 
+/* PWM 频率的最小值 */
+#define PWM_FREQ_MIN     200
+/* PWM 频率的最大值 */
+#define PWM_FREQ_MAX     100000000
+
+/*
+ * 定义芯片所支持的所有PWM通道的id, 不能修改任何一个enum pwm成员的值
+ * 不能修改任何一个enum pwm成员的值, 否则导致不可预知的错误
+ */
 enum pwm {
     PWM0,
     PWM1,
@@ -535,6 +560,10 @@ enum pwm {
     PWM4,
 };
 
+/*
+ * 定义PWM通道的工作状态, 用于 setup_state 函数设置PWM通道的工作状态
+ * 不能修改任何一个enum pwm_state成员的值, 否则会PWM通道工作状态设置错误
+ */
 enum pwm_state {
     PWM_DISABLE,
     PWM_ENABLE,
@@ -570,7 +599,7 @@ struct pwm_manager {
      *      Others: 此函数可以不调用, 即使用默认频率: 30000ns
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*setup_freq)(enum pwm id, unsigned int freq);
+    int (*setup_freq)(enum pwm id, uint32_t freq);
 
     /**
      *    Function: setup_duty
@@ -581,7 +610,7 @@ struct pwm_manager {
      *      Others: 初始化占空比为 0,这里不用关心IO输出的有效电平,例如:不管LED在低电平亮还是高电平亮, duty=100时, LED最亮
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*setup_duty)(enum pwm id, unsigned int duty);
+    int (*setup_duty)(enum pwm id, uint32_t duty);
 
     /**
      *    Function: setup_state
@@ -605,7 +634,7 @@ struct pwm_manager {
  */
 struct pwm_manager *get_pwm_manager(void);
 
-////////////////////////////////////////////////////////////////////////////WATCHDOG////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////WATCHDOG/////////////////////////////////////////////////////////
 struct watchdog_manager {
     /**
      *    Function: init
@@ -615,7 +644,7 @@ struct watchdog_manager {
      *      Others: 必须优先调用init函数初始化看门狗和设置timeout, 可被多次调用
      *      Return: 0 --> 成功, -1 --> 失败
      */
-    int (*init)(unsigned int timeout);
+    int (*init)(uint32_t timeout);
 
     /**
      *    Function: deinit
@@ -663,13 +692,13 @@ struct watchdog_manager {
  */
 struct watchdog_manager *get_watchdog_manager(void);
 
-//////////////////////////////////////////////////////////////////////////////////////////////////////////PWM////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////POWER////////////////////////////////////////////////////////////
 struct power_manager {
     /**
      *    Function: power_off
      * Description: 关机
      *       Input: 无
-     *      Return: -1 --> 失败, 成功没有返回值
+     *      Return: -1 --> 失败, 成功不需要处理返回值
      */
     int (*power_off)(void);
 
@@ -677,7 +706,7 @@ struct power_manager {
      *    Function: reboot
      * Description: 系统复位
      *       Input: 无
-     *      Return: -1 --> 失败, 成功没有返回值
+     *      Return: -1 --> 失败, 成功不需要处理返回值
      */
     int (*reboot)(void);
 

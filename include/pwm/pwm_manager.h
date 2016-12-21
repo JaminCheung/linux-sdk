@@ -17,4 +17,5 @@
 #define PWM_MANAGER_H
 
 #include <libqrcode_api.h>
+
 #endif /* PWM_MANAGER_H */

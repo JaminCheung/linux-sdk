@@ -26,6 +26,7 @@
 #include <sys/ioctl.h>
 #include <sys/types.h>
 
+#include <types.h>
 #include <utils/log.h>
 #include <utils/assert.h>
 #include <camera/camera_manager.h>
@@ -36,24 +37,7 @@
 #define DEFAULT_CIM_DEV     "/dev/cim0"
 #define DEFAULT_SENSOR_DEV  "/dev/sensor"
 
-
-/*
- * Ioctl Commands
- */
-#define IOCTL_READ_REG            0
-#define IOCTL_WRITE_REG           1
-#define IOCTL_READ_EEPROM         2
-#define IOCTL_WRITE_EEPROM        3
-#define IOCTL_SET_ADDR            4
-#define IOCTL_SET_CLK             5
-
-#define IOCTL_SET_IMG_FORMAT      8  //arg type: enum imgformat
-#define IOCTL_SET_TIMING_PARAM    9  //arg type: timing_param_t
-#define IOCTL_SET_IMG_PARAM      10  //arg type: img_param_t
-#define IOCTL_GET_FRAME          11
-#define IOCTL_GET_FRAME_BLOCK    12
-
-#define LOG_TAG "camera"
+#define LOG_TAG  "camera"
 
 /*
  * Variables
@@ -97,7 +81,7 @@ static int sensor_setup_addr(int chip_addr) {
     return 0;
 }
 
-static unsigned char sensor_read_reg(unsigned int regaddr) {
+static uint8_t sensor_read_reg(uint32_t regaddr) {
     struct reg_msg msg;
 
 #if (SENSOR_ADDR_LENGTH == 8)
@@ -107,8 +91,8 @@ static unsigned char sensor_read_reg(unsigned int regaddr) {
 #elif (SENSOR_ADDR_LENGTH == 16)
     msg.write_size = 2;
     msg.read_size  = 1;
-    msg.reg_buf[0] = (regaddr & 0x00ff);
-    msg.reg_buf[1] = (regaddr & 0xff00);
+    msg.reg_buf[0] = (regaddr >> 8) & 0xff;
+    msg.reg_buf[1] = (regaddr & 0xff);
 #endif
 
     if (ioctl(sensor_fd, IOCTL_READ_REG, (void *)&msg) < 0) {
@@ -119,7 +103,7 @@ static unsigned char sensor_read_reg(unsigned int regaddr) {
     return msg.reg_buf[0];
 }
 
-static int sensor_write_reg(unsigned int regaddr, unsigned char regval) {
+static int sensor_write_reg(uint32_t regaddr, uint8_t regval) {
     struct reg_msg msg;
 
 #if (SENSOR_ADDR_LENGTH == 8)
@@ -130,8 +114,8 @@ static int sensor_write_reg(unsigned int regaddr, unsigned char regval) {
 #elif (SENSOR_ADDR_LENGTH == 16)
     msg.write_size = 3;
     msg.read_size  = 0;
-    msg.reg_buf[0] = (regaddr & 0x00ff);
-    msg.reg_buf[1] = (regaddr & 0xff00);
+    msg.reg_buf[0] = (regaddr >> 8) & 0xff;
+    msg.reg_buf[1] = (regaddr & 0xff);
     msg.reg_buf[2] = regval;
 #endif
 
@@ -162,9 +146,9 @@ static int sensor_setup_regs(const struct regval_list *vals) {
     return 0;
 }
 
-static int camera_read(unsigned char *yuvbuf, unsigned int size) {
+static int camera_read(uint8_t *yuvbuf, uint32_t size) {
 
-    assert_die_if(!yuvbuf, "Failed to malloc framebuf: %s\n", strerror(errno));
+    assert_die_if(!yuvbuf, "Error: framebuf pointer cannot to 'NULL'\n");
     return read(cim_fd, yuvbuf, size);
 }
 
