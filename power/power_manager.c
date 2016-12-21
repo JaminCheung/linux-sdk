@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
-#include <linux/watchdog.h>
+#include <sys/reboot.h>
 
 #include <utils/log.h>
 #include <utils/assert.h>
@@ -33,55 +33,51 @@
 /*
  * Macros
  */
-#define POWER_OFF_CMD     "echo o > /proc/sysrq-trigger"
-#define REBOOT_SYS_CMD    "echo b > /proc/sysrq-trigger"
-#define ENTRY_SLEEP_CMD   "echo mem > /sys/power/state"
+#define ENTRY_SLEEP_DEV   "/sys/power/state"
 #define LOG_TAG           "power"
 
 
 static int pm_power_off(void) {
-    pid_t ret;
+    int ret;
 
-    ret = system(POWER_OFF_CMD);
+    sync();
 
-    if ((-1 != ret) && \
-        (WIFEXITED(ret)) && \
-        (WEXITSTATUS(ret) == 0))
-        return 0;
-    else {
+    ret = reboot(RB_POWER_OFF);
+    if (ret < 0) {
         LOGE("Failed to power off: %s\n", strerror(errno));
         return -1;
     }
 }
 
 static int pm_reboot(void) {
-    pid_t ret;
+    int ret;
 
-    ret = system(REBOOT_SYS_CMD);
+    sync();
 
-    if ((-1 != ret) && \
-        (WIFEXITED(ret)) && \
-        (WEXITSTATUS(ret) == 0))
-        return 0;
-    else {
+    ret = reboot(RB_AUTOBOOT);
+    if (ret < 0) {
         LOGE("Failed to reboot: %s\n", strerror(errno));
         return -1;
     }
 }
 
 static int pm_sleep(void) {
-    pid_t ret;
+    int fd;
+    char cmd[] = "mem";
 
-    ret = system(ENTRY_SLEEP_CMD);
+    fd = open(ENTRY_SLEEP_DEV, O_WRONLY);
+    if (fd < 0) {
+        LOGE("Failed to open %s: %s\n", \
+             ENTRY_SLEEP_DEV, strerror(errno));
+        return -1;
+    }
 
-    if ((-1 != ret) && \
-        (WIFEXITED(ret)) && \
-        (WEXITSTATUS(ret) == 0))
-        return 0;
-    else {
+    if (strlen(cmd) != write(fd, cmd, strlen(cmd))) {
         LOGE("Failed to entry sleep: %s\n", strerror(errno));
         return -1;
     }
+
+    return 0;
 }
 
 struct power_manager power_manager = {

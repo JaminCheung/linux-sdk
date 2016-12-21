@@ -21,7 +21,7 @@ struct power_manager {
      *    Function: power_off
      * Description: 关机
      *       Input: 无
-     *      Return: 0 --> 成功, -1 --> 失败
+     *      Return: -1 --> 失败, 成功没有返回值
      */
     int (*power_off)(void);
 
@@ -29,7 +29,7 @@ struct power_manager {
      *    Function: reboot
      * Description: 系统复位
      *       Input: 无
-     *      Return: 0 --> 成功, -1 --> 失败
+     *      Return: -1 --> 失败, 成功没有返回值
      */
     int (*reboot)(void);
 
@@ -37,7 +37,7 @@ struct power_manager {
      *    Function: sleep
      * Description: 进入休眠
      *       Input: 无
-     *      Return: 0 --> 成功, -1 --> 失败
+     *      Return: -1 --> 失败, 0 --> 成功
      */
     int (*sleep)(void);
 };
