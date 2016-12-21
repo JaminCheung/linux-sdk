@@ -43,7 +43,7 @@ static int wdt_fd = -1;
 /*
  * Functions
  */
-static int watchdog_enable(void) {
+static int32_t watchdog_enable(void) {
     int on = WDIOS_ENABLECARD;
 
     assert_die_if(wdt_fd < 0, "The watchdog is not initialized!\n");
@@ -55,7 +55,7 @@ static int watchdog_enable(void) {
     return 0;
 }
 
-static int watchdog_disable(void) {
+static int32_t watchdog_disable(void) {
     int off = WDIOS_DISABLECARD;
 
     assert_die_if(wdt_fd < 0, "The watchdog is not initialized!\n");
@@ -67,7 +67,7 @@ static int watchdog_disable(void) {
     return 0;
 }
 
-static int watchdog_reset(void) {
+static int32_t watchdog_reset(void) {
     assert_die_if(wdt_fd < 0, "The watchdog is not initialized!\n");
     if (ioctl(wdt_fd, WDIOC_KEEPALIVE, NULL) < 0) {
         LOGE("Failed to reset watchdog: %s\n", strerror(errno));
@@ -77,7 +77,7 @@ static int watchdog_reset(void) {
     return 0;
 }
 
-static int watchdog_init(unsigned int timeout) {
+static int32_t watchdog_init(uint32_t timeout) {
     assert_die_if(timeout <= 0, "timeout = %d is invalid!\n", timeout);
 
     if (wdt_fd < 0) {

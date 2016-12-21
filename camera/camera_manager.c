@@ -48,7 +48,8 @@ static int sensor_fd = -1;
 /*
  * Functions
  */
-static int set_img_param(struct camera_img_param *img) {
+static int32_t set_img_param(struct camera_img_param *img) {
+    assert_die_if(!img, "Error: img pointer cannot to 'NULL'\n");
 
     if (ioctl(cim_fd, IOCTL_SET_IMG_PARAM, (unsigned long)img) < 0) {
         LOGE("ioctl: failed to set img param: %s\n", strerror(errno));
@@ -58,7 +59,8 @@ static int set_img_param(struct camera_img_param *img) {
     return 0;
 }
 
-static int set_timing_param(struct camera_timing_param *timing) {
+static int32_t set_timing_param(struct camera_timing_param *timing) {
+    assert_die_if(!timing, "Error: timing pointer cannot to 'NULL'\n");
 
     if (ioctl(cim_fd, IOCTL_SET_TIMING_PARAM, (unsigned long)timing) < 0) {
         LOGE("ioctl: ailed to set timing param: %s\n", strerror(errno));
@@ -68,10 +70,8 @@ static int set_timing_param(struct camera_timing_param *timing) {
     return 0;
 }
 
-static int sensor_setup_addr(int chip_addr) {
-
-    assert_die_if(!(chip_addr > 0), "Sensor addr must greater than 0: %s\n", \
-                  strerror(errno));
+static int32_t sensor_setup_addr(int32_t chip_addr) {
+    assert_die_if(!(chip_addr > 0), "Error: chip addr must greater than 0\n");
 
     if (ioctl(sensor_fd, IOCTL_SET_ADDR, (unsigned long)&chip_addr) < 0) {
         LOGE("ioctl: failed to set chip addr: %s\n", strerror(errno));
@@ -103,7 +103,7 @@ static uint8_t sensor_read_reg(uint32_t regaddr) {
     return msg.reg_buf[0];
 }
 
-static int sensor_write_reg(uint32_t regaddr, uint8_t regval) {
+static int32_t sensor_write_reg(uint32_t regaddr, uint8_t regval) {
     struct reg_msg msg;
 
 #if (SENSOR_ADDR_LENGTH == 8)
@@ -127,7 +127,7 @@ static int sensor_write_reg(uint32_t regaddr, uint8_t regval) {
     return 0;
 }
 
-static int sensor_setup_regs(const struct camera_regval_list *vals) {
+static int32_t sensor_setup_regs(const struct camera_regval_list *vals) {
 
     while(1) {
         if ((vals->regaddr == ADDR_END) && \
@@ -141,18 +141,19 @@ static int sensor_setup_regs(const struct camera_regval_list *vals) {
         }
 
         vals++;
+        usleep(50);
     }
 
     return 0;
 }
 
-static int camera_read(uint8_t *yuvbuf, uint32_t size) {
+static int32_t camera_read(uint8_t *yuvbuf, uint32_t size) {
 
     assert_die_if(!yuvbuf, "Error: framebuf pointer cannot to 'NULL'\n");
     return read(cim_fd, yuvbuf, size);
 }
 
-static int camera_init(void) {
+static int32_t camera_init(void) {
     struct camera_timing_param timing;
 
     timing.mclk_freq = 24000000;
@@ -176,7 +177,6 @@ static int camera_init(void) {
 static void camera_deinit(void) {
     close(cim_fd);
     close(sensor_fd);
-
     cim_fd    = -1;
     sensor_fd = -1;
 }

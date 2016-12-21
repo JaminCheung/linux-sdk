@@ -52,7 +52,7 @@ static struct pwm_dev pwm_dev[PWM_CHANNEL_MAX];
 /*
  * Functions
  */
-static int pwm_init(enum pwm id) {
+static int32_t pwm_init(enum pwm id) {
     int fd;
     int ret;
     char temp[12] = "";
@@ -110,7 +110,7 @@ static void pwm_deinit(enum pwm id) {
     pwm_dev[id].ctrl_fd = -1;
 }
 
-static int pwm_setup_freq(enum pwm id, uint32_t freq) {
+static int32_t pwm_setup_freq(enum pwm id, uint32_t freq) {
     int size;
     char temp[12] = "";
 
@@ -129,7 +129,7 @@ static int pwm_setup_freq(enum pwm id, uint32_t freq) {
     return 0;
 }
 
-static int pwm_setup_duty(enum pwm id, uint32_t duty) {
+static int32_t pwm_setup_duty(enum pwm id, uint32_t duty) {
     float val = 0.0;
     int size;
     char temp[12] = "";
@@ -155,7 +155,7 @@ static int pwm_setup_duty(enum pwm id, uint32_t duty) {
     return 0;
 }
 
-static int pwm_setup_state(enum pwm id, enum pwm_state state) {
+static int32_t pwm_setup_state(enum pwm id, enum pwm_state state) {
     int size;
     char temp[6] = "";
 

@@ -50,7 +50,7 @@ static struct i2c_bus i2c_bus[I2C_BUS_MAX];
 /*
  * Functions
  */
-static int i2c_write_1b(int fd, uint8_t *buf) {
+static int32_t i2c_write_1b(int fd, uint8_t *buf) {
     int retval = 0;
 
     retval = i2c_smbus_write_byte(fd, buf[0]);
@@ -62,7 +62,7 @@ static int i2c_write_1b(int fd, uint8_t *buf) {
     return retval;
 }
 
-static int i2c_write_2b(int fd, uint8_t *buf) {
+static int32_t i2c_write_2b(int fd, uint8_t *buf) {
     int retval = 0;
 
     retval = i2c_smbus_write_byte_data(fd, buf[0], buf[1]);
@@ -75,7 +75,7 @@ static int i2c_write_2b(int fd, uint8_t *buf) {
 }
 
 #if (I2C_DEV_ADDR_LENGTH == 16)
-static int i2c_write_3b(int fd, uint8_t *buf) {
+static int32_t i2c_write_3b(int fd, uint8_t *buf) {
     int retval = 0;
 
     retval = i2c_smbus_write_word_data(fd, buf[0], buf[2] << 8 | buf[1]);
@@ -88,7 +88,7 @@ static int i2c_write_3b(int fd, uint8_t *buf) {
 }
 #endif
 
-static int i2c_write_byte(int fd, int addr, uint8_t data) {
+static int32_t i2c_write_byte(int fd, int addr, uint8_t data) {
 #if (I2C_DEV_ADDR_LENGTH == 8)
     uint8_t buf[2];
 
@@ -109,7 +109,7 @@ static int i2c_write_byte(int fd, int addr, uint8_t data) {
 #endif
 }
 
-static int i2c_read_byte(int fd, int addr) {
+static int32_t i2c_read_byte(int fd, int addr) {
     int retval = 0;
 
     ioctl(fd, BLKFLSBUF);
@@ -144,7 +144,7 @@ static int i2c_read_byte(int fd, int addr) {
 #endif
 }
 
-static int i2c_check_chip_addr(struct i2c_unit *i2c) {
+static int32_t i2c_check_chip_addr(struct i2c_unit *i2c) {
     int i;
     int retval;
 
@@ -165,7 +165,7 @@ static int i2c_check_chip_addr(struct i2c_unit *i2c) {
     return -1;
 }
 
-static int i2c_write(struct i2c_unit *i2c, uint8_t *buf, int addr, int count) {
+static int32_t i2c_write(struct i2c_unit *i2c, uint8_t *buf, int addr, int count) {
     int i;
     int retval;
 
@@ -193,7 +193,7 @@ static int i2c_write(struct i2c_unit *i2c, uint8_t *buf, int addr, int count) {
     return 0;
 }
 
-static int i2c_read(struct i2c_unit *i2c, uint8_t *buf, int addr, int count) {
+static int32_t i2c_read(struct i2c_unit *i2c, uint8_t *buf, int addr, int count) {
     int i;
     int retval;
 
@@ -221,7 +221,7 @@ static int i2c_read(struct i2c_unit *i2c, uint8_t *buf, int addr, int count) {
     return 0;
 }
 
-static int i2c_init(struct i2c_unit *i2c) {
+static int32_t i2c_init(struct i2c_unit *i2c) {
     char filename[32] = "";
     int retval = 0;
     unsigned long funcs;

@@ -37,7 +37,7 @@
 #define LOG_TAG           "power"
 
 
-static int pm_power_off(void) {
+static int32_t pm_power_off(void) {
     int ret;
 
     sync();
@@ -50,7 +50,7 @@ static int pm_power_off(void) {
     return 0;
 }
 
-static int pm_reboot(void) {
+static int32_t pm_reboot(void) {
     int ret;
 
     sync();
@@ -63,7 +63,7 @@ static int pm_reboot(void) {
     return 0;
 }
 
-static int pm_sleep(void) {
+static int32_t pm_sleep(void) {
     int fd;
     char cmd[] = "mem";
 
