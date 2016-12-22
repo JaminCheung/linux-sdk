@@ -18,42 +18,10 @@
 #define LIB_GPIO_H
 
 #include <types.h>
-
+#include <libqrcode_api.h>
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-typedef enum _gpio_direction {
-    GPIO_IN,
-    GPIO_OUT,
-} gpio_direction;
-
-typedef enum _gpio_value {
-    GPIO_LOW = 0,
-    GPIO_HIGH = 1,
-} gpio_value;;
-
-typedef enum _gpio_irq_mode {
-    GPIO_NONE,
-    GPIO_RISING,
-    GPIO_FALLING,
-    GPIO_BOTH,
-} gpio_irq_mode;
-
-typedef enum _gpio_status {
-    GPIO_INVALID = 0,
-    GPIO_VALID = 1,
-} gpio_status;
-
-struct gpio_pin {
-    uint32_t no;
-    gpio_direction direction;
-    gpio_irq_mode irq_mode;
-    int fd;
-    gpio_status valid;
-};
-
-
 int gpio_open(struct gpio_pin *pin, unsigned int no);
 int gpio_open_by_name(struct gpio_pin *pin, const char *name);
 int gpio_open_dir(struct gpio_pin *pin, unsigned int no, gpio_direction dir);

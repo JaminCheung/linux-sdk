@@ -2,7 +2,6 @@
 #define LIBQRCODE_API_H
 
 #include <types.h>
-#include <lib/gpio/libgpio.h>
 
 /////////////////////////////////////////////////////COMMON///////////////////////////////////////////////////////////
 typedef void (*func_handle)(void *arg);
@@ -15,6 +14,36 @@ typedef void (*func_handle)(void *arg);
 #define GPIO_PB(n)  (1*32 + n)
 #define GPIO_PC(n)  (2*32 + n)
 #define GPIO_PD(n)  (3*32 + n)
+
+typedef enum _gpio_direction {
+    GPIO_IN,
+    GPIO_OUT,
+} gpio_direction;
+
+typedef enum _gpio_value {
+    GPIO_LOW = 0,
+    GPIO_HIGH = 1,
+} gpio_value;
+
+typedef enum _gpio_irq_mode {
+    GPIO_NONE,
+    GPIO_RISING,
+    GPIO_FALLING,
+    GPIO_BOTH,
+} gpio_irq_mode;
+
+typedef enum _gpio_status {
+    GPIO_INVALID = 0,
+    GPIO_VALID = 1,
+} gpio_status;
+
+struct gpio_pin {
+    uint32_t no;
+    gpio_direction direction;
+    gpio_irq_mode irq_mode;
+    int fd;
+    gpio_status valid;
+};
 
 /**
  * GPIO的中断回调函数
