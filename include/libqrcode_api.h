@@ -657,7 +657,7 @@ struct camera_manager {
      *    Function: set_img_param
      * Description: 设置控制器捕捉图像的分辨率和像素深度
      *       Input:
-     *           img: struct img_param_t 结构指针, 指定图像的分辨率和像素深度
+     *           img: struct img_param_t 结构体指针, 指定图像的分辨率和像素深度
      *      Return: 0 --> 成功, -1 --> 失败
      */
     int32_t (*set_img_param)(struct camera_img_param *img);
@@ -666,7 +666,7 @@ struct camera_manager {
      *    Function: set_timing_param
      * Description: 设置控制器时序, 包括mclk 频率、pclk有效电平、hsync有效电平、vsync有效电平
      *       Input:
-     *          timing: struct timing_param_t 结构指针, 指定 mclk频率、pclk有效电平、hsync有效电平、vsync有效电平
+     *          timing: struct timing_param_t 结构体指针, 指定 mclk频率、pclk有效电平、hsync有效电平、vsync有效电平
      *                  在camera_init函数中分别初始化为:24000000、0、1、1, 为0是高电平有效, 为1则是低电平有效
      *      Others: 如果在camera_init函数内默认设置已经符合要求,则不需要调用
      *      Return: 0 --> 成功, -1 --> 失败
@@ -686,7 +686,7 @@ struct camera_manager {
      *    Function: sensor_setup_regs
      * Description: 设置摄像头sensor的多个寄存器,用于初始化sensor
      *       Input:
-     *          vals: struct regval_list 结构指针, 通常传入struct regval_list结构数组
+     *          vals: struct regval_list 结构体指针, 通常传入struct regval_list结构数组
      *      Others: 在开始读取图像数据时, 应该调用此函数初始化sensor寄存器
      *      Return: 0 --> 成功, -1 --> 失败
      */
@@ -704,7 +704,7 @@ struct camera_manager {
 
     /**
      *    Function: sensor_read_reg
-     * Description: 读取摄像头sensor某个寄存器的知
+     * Description: 读取摄像头sensor某个寄存器的值
      *       Input:
      *          regaddr: 摄像头sensor的寄存器地址
      *      Return: -1 --> 失败, 其他 --> 寄存器的值
@@ -764,9 +764,9 @@ struct pwm_manager {
      *    Function: init
      * Description: PWM通道初始化
      *       Input:
-     *              id: PWM通道id, 其值必须小于PWM_DEVICE_MAX
+     *              id: PWM通道id, 其值必须小于PWM_CHANNEL_MAX
      *           level: PWM通道工作的有效电平, 例如: PWM通道接的是LED, 当低电平LED亮, 即这个参数的值是ACTIVE_LOW
-     *      Others: 必须优先调用 pwm_init函数
+     *      Others: 在使用每路PWM通道之前，必须优先调用pwm_init函数进行初始化
      *      Return: 0 --> 成功, 非0 --> 失败
      */
     int32_t (*init)(enum pwm id, enum pwm_active level);
@@ -775,7 +775,7 @@ struct pwm_manager {
      *    Function: deinit
      * Description: PWM通道释放
      *       Input:
-     *              id: PWM通道id, 其值必须小于PWM_DEVICE_MAX
+     *              id: PWM通道id, 其值必须小于PWM_CHANNEL_MAX
      *      Others: 对应于init函数, 不再使用PWM某个通道时,应该调用此函数释放
      *      Return: 无
      */
@@ -785,7 +785,7 @@ struct pwm_manager {
      *    Function: setup_freq
      * Description: 设置PWM通道的频率
      *       Input:
-     *              id: PWM通道id, 其值必须小于PWM_DEVICE_MAX
+     *              id: PWM通道id, 其值必须小于PWM_CHANNEL_MAX
      *            freq: 周期值, ns 为单位
      *      Others: 此函数可以不调用, 即使用默认频率: 30000ns
      *      Return: 0 --> 成功, -1 --> 失败
@@ -796,9 +796,9 @@ struct pwm_manager {
      *    Function: setup_duty
      * Description: 设置PWM通道的占空比
      *       Input:
-     *              id: PWM通道id, 其值必须小于PWM_DEVICE_MAX
+     *              id: PWM通道id, 其值必须小于PWM_CHANNEL_MAX
      *            duty: 占空比, 其值为 0 ~ 100 区间
-     *      Others: 初始化占空比为 0,这里不用关心IO输出的有效电平,例如:不管LED在低电平亮还是高电平亮, duty=100时, LED最亮
+     *      Others: 这里不用关心IO输出的有效电平,例如:不管LED在低电平亮还是高电平亮, duty=100时, LED最亮
      *      Return: 0 --> 成功, -1 --> 失败
      */
     int32_t (*setup_duty)(enum pwm id, uint32_t duty);
@@ -807,8 +807,8 @@ struct pwm_manager {
      *    Function: setup_state
      * Description: 设置PWM通道的工作状态
      *       Input:
-     *             id: PWM通道id, 其值必须小于PWM_DEVICE_MAX
-     *          state: 工作状态: 0 --> disable, 非0 --> enable
+     *             id: PWM通道id, 其值必须小于PWM_CHANNEL_MAX
+     *          state: 指定PWM的工作状态, 为0: disable, 非0: enable
      *      Others: 此函数不需要在 setup_freq 或 setup_duty 之前调用,主要用于暂停/开始PWM的工作.
      *              再重新开始工作时,PWM保持之前的 freq 和 duty 继续工作
      *      Return: 0 --> 成功, -1 --> 失败
