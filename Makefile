@@ -122,7 +122,6 @@ $(TARGET): $(OBJS) $(LIBS)
 #
 testunit:
 	make -C lib/uart/testunit all
-	make -C utils/thread_pool/testunit all
 	make -C uart/testunit all
 	make -C gpio/testunit all
 	make -C camera/testunit all
@@ -135,7 +134,6 @@ testunit:
 
 testunit_clean:
 	make -C lib/uart/testunit clean
-	make -C utils/thread_pool/testunit clean
 	make -C uart/testunit clean
 	make -C gpio/testunit clean
 	make -C camera/testunit clean
