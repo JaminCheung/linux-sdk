@@ -19,12 +19,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-
 #include <stdbool.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
-#include <sys/types.h>
 
 #include <utils/log.h>
 #include <utils/assert.h>
@@ -52,9 +50,10 @@ static struct pwm_dev pwm_dev[PWM_CHANNEL_MAX];
 /*
  * Functions
  */
-static int32_t pwm_init(enum pwm id) {
+static int32_t pwm_init(enum pwm id, enum active level) {
     int fd;
     int ret;
+    int size;
     char temp[12] = "";
     char node[64] = "";
 
@@ -62,31 +61,39 @@ static int32_t pwm_init(enum pwm id) {
     if (pwm_dev[id].is_init == true)
         return 0;
 
-    sprintf(node, "/sys/class/jz-pwm/pwm%d/max_dutyratio", id);
+    /* set PWM active level */
+    snprintf(node, sizeof(node), "/sys/class/jz-pwm/pwm%d/active_level", id);
+    fd = open(node, O_WRONLY);
+    assert_die_if(fd < 0, "Open %s failed: %s\n", node, strerror(errno));
+    size = sprintf(temp, "%d", level);
+    if (write(fd, temp, size) < 0) {
+        LOGE("Failed to setup PWM%d active level: %s\n", \
+             id, strerror(errno));
+        return -1;
+    }
+    close(fd);
 
+    /* read the max dutyratio */
+    snprintf(node, sizeof(node), "/sys/class/jz-pwm/pwm%d/max_dutyratio", id);
     fd = open(node, O_RDONLY);
     assert_die_if(fd < 0, "Open %s failed: %s\n", node, strerror(errno));
 
     ret = read(fd, temp, sizeof(temp));
     assert_die_if(ret <= 0, "Read %s error: %s\n", node, strerror(errno));
-
     pwm_dev[id].max = atoi(temp);
     close(fd);
 
-    bzero(&node, sizeof(node));
-    sprintf(node, "/sys/class/jz-pwm/pwm%d/dutyratio", id);
+    snprintf(node, sizeof(node), "/sys/class/jz-pwm/pwm%d/dutyratio", id);
     fd = open(node, O_WRONLY);
     assert_die_if(fd < 0, "Open %s failed: %s\n", node, strerror(errno));
     pwm_dev[id].duty_fd = fd;
 
-    bzero(&node, sizeof(node));
-    sprintf(node, "/sys/class/jz-pwm/pwm%d/period", id);
+    snprintf(node, sizeof(node), "/sys/class/jz-pwm/pwm%d/period", id);
     fd = open(node, O_WRONLY);
     assert_die_if(fd < 0, "Open %s failed: %s\n", node, strerror(errno));
     pwm_dev[id].freq_fd = fd;
 
-    bzero(&node, sizeof(node));
-    sprintf(node, "/sys/class/jz-pwm/pwm%d/enable", id);
+    snprintf(node, sizeof(node), "/sys/class/jz-pwm/pwm%d/enable", id);
     fd = open(node, O_WRONLY);
     assert_die_if(fd < 0, "Open %s failed: %s\n", node, strerror(errno));
     pwm_dev[id].ctrl_fd = fd;

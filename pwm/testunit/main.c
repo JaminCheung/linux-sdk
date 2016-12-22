@@ -25,13 +25,15 @@
 /*
  * Variables
  */
-const unsigned int duty[] = {
+const int duty[] = {
      0,  1,  2,  3,  4,  5,  6,  7,
      9, 10, 11, 13, 15, 17, 19, 21,
     23, 25, 27, 29, 31, 33, 35, 38,
     41, 44, 47, 50, 53, 56, 59, 62,
     66, 70, 74, 79, 84, 89, 94, 100,
 };
+
+uint32_t delay_us = 40000;
 
 /*
  * Functions
@@ -44,6 +46,7 @@ void print_usage() {
             -c   ----> select PWM channel\n \
             -f   ----> set PWM frequency\n \
             -n   ----> set cycle times\n \
+            -t   ----> set delay_us value\n \
             -h   ----> get help message\n\n \
         eg:\n \
         test_pwm -c 2   ----> select PWM channel 2\n \
@@ -54,14 +57,14 @@ static void breathing_lamp(struct pwm_manager *pwm, enum pwm id, int cycle_times
     int i;
 
     while(cycle_times--) {
-        for(i = 0; i < sizeof(duty)/sizeof(unsigned int); i++) {
+        for(i = 0; i < sizeof(duty)/sizeof(int); i++) {
             pwm->setup_duty(id, duty[i]);
-            usleep(50000);
+            usleep(delay_us);
         }
 
-        for(i = sizeof(duty)/sizeof(unsigned int) - 1; i >= 0; i--) {
+        for(i = sizeof(duty)/sizeof(int) - 1; i >= 0; i--) {
             pwm->setup_duty(id, duty[i]);
-            usleep(50000);
+            usleep(delay_us);
         }
     }
 }
@@ -70,12 +73,12 @@ int main(int argc, char *argv[])
 {
     int oc;
     int cycle_times = 10;
-    int pwm_id = 0;
-    unsigned int freq = 30000;
+    uint32_t freq = 30000;
+    enum pwm pwm_id = 0;
     struct pwm_manager *pwm;
 
     while(1) {
-        oc = getopt(argc, argv, "hc:f:n:");
+        oc = getopt(argc, argv, "hc:f:n:t:");
         if(oc == -1)
             break;
 
@@ -92,6 +95,10 @@ int main(int argc, char *argv[])
             cycle_times = atoi(optarg);
             break;
 
+        case 't':
+            delay_us = atoi(optarg);
+            break;
+
         case 'h':
         default:
             print_usage();
@@ -102,7 +109,8 @@ int main(int argc, char *argv[])
     /* 获取操作PWM的句柄 */
     pwm = get_pwm_manager();
 
-    pwm->init(pwm_id);
+    /* 初始化PWM通道,设置有效电平 */
+    pwm->init(pwm_id, ACTIVE_LOW);
     pwm->setup_freq(pwm_id, freq);
 
     /* 模拟呼吸灯效果 */
