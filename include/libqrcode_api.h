@@ -701,7 +701,7 @@ struct camera_manager *get_camera_manager(void);
 #define PWM_FREQ_MAX     100000000
 
 /*
- * 定义芯片所支持的所有PWM通道的id, 不能修改任何一个enum pwm成员的值
+ * 定义芯片所支持的所有PWM通道的id, 用于区分每一个PWM通道
  * 不能修改任何一个enum pwm成员的值, 否则导致不可预知的错误
  */
 enum pwm {
@@ -713,17 +713,17 @@ enum pwm {
 };
 
 /*
- * 定义PWM通道的工作状态, 用于 setup_state 函数设置PWM通道的工作状态
- * 不能修改任何一个enum pwm_state成员的值, 否则会PWM通道工作状态设置错误
+ * 定义PWM通道的工作有效电平, 用于初始化PWM通道时指定工作的有效电平
+ * 不能修改任何一个enum pwm_active成员的值, 否则会导致有效电平设置错误
  */
-enum active {
+enum pwm_active {
     ACTIVE_LOW,
     ACTIVE_HIGH,
 };
 
 /*
  * 定义PWM通道的工作状态, 用于 setup_state 函数设置PWM通道的工作状态
- * 不能修改任何一个enum pwm_state成员的值, 否则会PWM通道工作状态设置错误
+ * 不能修改任何一个enum pwm_state成员的值, 否则会导致工作状态设置错误
  */
 enum pwm_state {
     PWM_DISABLE,
@@ -736,10 +736,11 @@ struct pwm_manager {
      * Description: PWM通道初始化
      *       Input:
      *              id: PWM通道id, 其值必须小于PWM_DEVICE_MAX
+     *           level: PWM通道工作的有效电平, 例如: PWM通道接的是LED, 当低电平LED亮, 即这个参数的值是ACTIVE_LOW
      *      Others: 必须优先调用 pwm_init函数
      *      Return: 0 --> 成功, 非0 --> 失败
      */
-    int32_t (*init)(enum pwm id, enum active level);
+    int32_t (*init)(enum pwm id, enum pwm_active level);
 
     /**
      *    Function: deinit

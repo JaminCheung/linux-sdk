@@ -50,7 +50,7 @@ static struct pwm_dev pwm_dev[PWM_CHANNEL_MAX];
 /*
  * Functions
  */
-static int32_t pwm_init(enum pwm id, enum active level) {
+static int32_t pwm_init(enum pwm id, enum pwm_active level) {
     int fd;
     int ret;
     int size;
