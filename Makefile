@@ -40,6 +40,11 @@ SRC-y += timer/timer_manager.c
 SRC-y += uart/uart_manager.c
 
 #
+# GPIO
+#
+SRC-y += gpio/gpio_manager.c
+
+#
 # Camera
 #
 SRC-y += camera/camera_manager.c
@@ -93,6 +98,11 @@ LIBS-SRC-y += lib/i2c/libsmbus.c
 LIBS-SRC-y += lib/mtd/libmtd_legacy.c                     \
               lib/mtd/libmtd.c
 
+#
+# lib gpio serving for gpio
+#
+LIBS-SRC-y += lib/gpio/libgpio.c
+
 LIBS-SRCS := $(LIBS-SRC-y)
 
 
@@ -115,6 +125,7 @@ testunit:
 	make -C lib/uart/testunit all
 	make -C utils/thread_pool/testunit all
 	make -C uart/testunit all
+	make -C gpio/testunit all
 	make -C camera/testunit all
 	make -C pwm/testunit all
 	make -C timer/testunit all
@@ -127,6 +138,7 @@ testunit_clean:
 	make -C lib/uart/testunit clean
 	make -C utils/thread_pool/testunit clean
 	make -C uart/testunit clean
+	make -C gpio/testunit clean
 	make -C camera/testunit clean
 	make -C pwm/testunit clean
 	make -C timer/testunit clean
