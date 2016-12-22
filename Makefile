@@ -106,6 +106,10 @@ LIBS-SRC-y += lib/gpio/libgpio.c
 LIBS-SRCS := $(LIBS-SRC-y)
 
 
+all: $(TARGET) testunit
+
+.PHONY : all testunit testunit_clean clean backup
+
 #
 # Targets
 #
@@ -113,11 +117,6 @@ $(TARGET): $(OBJS) $(LIBS)
 	$(QUIET_CC_SHARED_LIB)$(COMPILE_SRC_TO_SHARED_LIB) $(SRCS) $(LIBS-SRCS) -o $(OUTDIR)/$@
 	@$(STRIP) $(OUTDIR)/$@
 	@echo -e '\n  sdk: $(shell basename $(OUTDIR))/$@ is ready\n'
-
-all: $(TARGET) testunit
-
-.PHONY : all testunit testunit_clean clean backup
-
 #
 # Test unit
 #
@@ -150,4 +149,4 @@ testunit_clean:
 clean: testunit_clean
 	@rm -rf $(OUTDIR)
 
-distclean: clean testunit_clean
+distclean: clean
