@@ -25,12 +25,14 @@
 #include <utils/log.h>
 #include <pthread.h>
 #include <sys/epoll.h>
+
+#include <lib/gpio/libgpio.h>
 #include <gpio/gpio_manager.h>
 
 #define LOG_TAG "gpio"
 
-#define MAX_POLL_NUM                GPIO_PD(5)+1
-#define IRQ_PTHREAD_MODE         SCHED_RR
+#define MAX_POLL_NUM           GPIO_PD(5)+1
+#define IRQ_PTHREAD_MODE       SCHED_RR
 
 static int epollfd;
 static gpio_irq_func irq_func;
