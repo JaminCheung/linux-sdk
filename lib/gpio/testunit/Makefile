@@ -12,7 +12,7 @@ TESTUNIT_OBJS := main.o                                                        \
 all: $(TESTUNIT)
 
 $(TESTUNIT): $(TESTUNIT_OBJS)
-	$(QUIET_LINK)$(LINK_OBJS) -o $(OUTDIR)/$@ $(TESTUNIT_OBJS) $(LDFLAGS) $(LDLIBS)
+	$(QUIET_LINK)$(LINK_OBJS) -o $(OUTDIR)/$@ $(TESTUNIT_OBJS) $(LDFLAGS)
 
 clean:
 	rm -rf $(TESTUNIT_OBJS)

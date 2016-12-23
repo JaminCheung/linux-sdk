@@ -23,92 +23,91 @@ include config.mk
 #
 # Utils
 #
-SRC-y += utils/signal_handler.c                     \
-         utils/compare_string.c                     \
-         utils/assert.c                             \
-         utils/common.c                             \
-         utils/thread_pool/thread_pool.c
+OBJ-y += utils/signal_handler.o                     \
+         utils/compare_string.o                     \
+         utils/assert.o                             \
+         utils/common.o                             \
+         utils/thread_pool/thread_pool.o
 
 #
 # Timer
 #
-SRC-y += timer/timer_manager.c
+OBJ-y += timer/timer_manager.o
 
 #
 # Uart
 #
-SRC-y += uart/uart_manager.c
+OBJ-y += uart/uart_manager.o
 
 #
 # GPIO
 #
-SRC-y += gpio/gpio_manager.c
+OBJ-y += gpio/gpio_manager.o
 
 #
 # Camera
 #
-SRC-y += camera/camera_manager.c
+OBJ-y += camera/camera_manager.o
 
 #
 # PWM
 #
-SRC-y += pwm/pwm_manager.c
+OBJ-y += pwm/pwm_manager.o
 
 #
 # Watchdog
 #
-SRC-y += watchdog/watchdog_manager.c
+OBJ-y += watchdog/watchdog_manager.o
 
 #
 # Power
 #
-SRC-y += power/power_manager.c
+OBJ-y += power/power_manager.o
 
 #
 # I2C
 #
-SRC-y += i2c/i2c_manager.c
+OBJ-y += i2c/i2c_manager.o
 
 #
 # Efuse
 #
-SRC-y += efuse/efuse_manager.c
+OBJ-y += efuse/efuse_manager.o
 
 #
 # Flash
 #
-SRC-y +=  flash/flash_manager.c			        \
-          flash/block/blocks/mtd/mtd.c                  \
-          flash/block/blocks/mtd/base.c                 \
-          flash/block/fs/fs_manager.c                   \
-          flash/block/fs/normal.c
+OBJ-y +=  flash/flash_manager.o                         \
+          flash/block/blocks/mtd/mtd.o                  \
+          flash/block/blocks/mtd/base.o                 \
+          flash/block/fs/fs_manager.o                   \
+          flash/block/fs/normal.o
 
-SRCS := $(SRC-y)
-
+OBJS := $(OBJ-y)
 #
 # Uart Lib
 #
-LIBS-SRC-y += lib/uart/libserialport/linux_termios.c    \
-          lib/uart/libserialport/linux.c                \
-          lib/uart/libserialport/serialport.c           \
+LIBS-OBJ-y += lib/uart/libserialport/linux_termios.o    \
+          lib/uart/libserialport/linux.o                \
+          lib/uart/libserialport/serialport.o           \
 
 #
 # I2c Lib
 #
-LIBS-SRC-y += lib/i2c/libsmbus.c
+LIBS-OBJ-y += lib/i2c/libsmbus.o
 
 #
 # MTD Lib
 #
-LIBS-SRC-y += lib/mtd/libmtd_legacy.c                     \
-              lib/mtd/libmtd.c
+LIBS-OBJ-y += lib/mtd/libmtd_legacy.o                   \
+              lib/mtd/libmtd.o
 
 #
 # lib gpio serving for gpio
 #
-LIBS-SRC-y += lib/gpio/libgpio.c
+LIBS-OBJ-y += lib/gpio/libgpio.o
 
-LIBS-SRCS := $(LIBS-SRC-y)
+LIBS-OBJS := $(LIBS-OBJ-y)
 
 
 all: $(TARGET) testunit
@@ -118,15 +117,14 @@ all: $(TARGET) testunit
 #
 # Targets
 #
-$(TARGET): $(OBJS) $(LIBS)
-	$(QUIET_CC_SHARED_LIB)$(COMPILE_SRC_TO_SHARED_LIB) $(SRCS) $(LIBS-SRCS) -o $(OUTDIR)/$@
+$(TARGET): $(OBJS) $(LIBS-OBJS)
+	$(QUIET_LINK)$(LINK_OBJS) $(LDFLAGS) $(LDSHFLAGS) $(OBJS) $(LIBS-OBJS) -o $(OUTDIR)/$@
 	@$(STRIP) $(OUTDIR)/$@
 	@echo -e '\n  sdk: $(shell basename $(OUTDIR))/$@ is ready\n'
 #
 # Test unit
 #
 testunit:
-	make -C lib/uart/testunit all
 	make -C uart/testunit all
 	make -C gpio/testunit all
 	make -C camera/testunit all
@@ -139,7 +137,6 @@ testunit:
 	make -C efuse/testunit all
 
 testunit_clean:
-	make -C lib/uart/testunit clean
 	make -C uart/testunit clean
 	make -C gpio/testunit clean
 	make -C camera/testunit clean
@@ -152,6 +149,7 @@ testunit_clean:
 	make -C efuse/testunit clean
 
 clean: testunit_clean
+	@rm -rf $(LIBS-OBJS) $(OBJS)
 	@rm -rf $(OUTDIR)
 
 distclean: clean

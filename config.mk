@@ -46,15 +46,15 @@ STRIP := $(CROSS_COMPILE)strip
 # Compiler & Linker options
 #
 ARFLAGS := rcv
-SOFLAGS := -shared -fPIC
 INCLUDES := -I$(TOPDIR)/include                                                \
             -I$(TOPDIR)/include/lib                                            \
             -I$(TOPDIR)/include/lib/zlib                                       \
             -I$(TOPDIR)/include/lib/zip/minizip
 
-CFLAGS := -std=gnu11 $(INCLUDES)
+CFLAGS := -std=gnu11 $(INCLUDES) -fPIC
 CHECKFLAGS := -Wall -Wuninitialized -Wundef
-LDFLAGS := -L$(OUTDIR) -l$(TARGET_NAME) -lpthread -lrt
+LDFLAGS := -lpthread -lrt -Wl,-rpath,/usr/lib
+LDSHFLAGS := -shared -Wl,-Bsymbolic
 
 ifndef DEBUG
 CFLAGS += -O2
@@ -67,12 +67,10 @@ override CFLAGS := $(CHECKFLAGS) $(CFLAGS)
 #
 # Quiet compile
 #
-COMPILE_SRC_TO_SHARED_LIB := $(CC) $(CFLAGS) $(SOFLAGS)
 COMPILE_SRC := $(CC) $(CFLAGS) -c
 LINK_OBJS   := $(CC) $(CFLAGS)
 
 ifndef V
-QUIET_CC_SHARED_LIB      = @echo -e "  CC SHARED\t$@";
 QUIET_AR        = @echo -e "  AR\t$@";
 QUIET_CC        = @echo -e "  CC\t$@";
 QUIET_LINK      = @echo -e "  LINK\t$@";

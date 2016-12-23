@@ -4,7 +4,7 @@ include ../../config.mk
 
 TESTUNIT := test_gpio
 TESTUNIT_OBJS := main.o
-DEPEND_SDK_LIB := $(TOPDIR)/out/$(TARGET)
+LINK_LIBS := -L$(OUTDIR) -l$(TARGET_NAME)
 
 .PHONY : all clean
 
@@ -14,7 +14,7 @@ all: $(TESTUNIT)
 	$(QUIET_CC) $(COMPILE_SRC) $< -o $@
 
 $(TESTUNIT):$(TESTUNIT_OBJS)
-	$(QUIET_LINK)$(LINK_OBJS) $(LDFLAGS) -o $(OUTDIR)/$@  $(TESTUNIT_OBJS)
+	$(QUIET_LINK)$(LINK_OBJS) $(LINK_LIBS) $(LDFLAGS) -o $(OUTDIR)/$@  $(TESTUNIT_OBJS)
 
 clean:
-	rm -rf $(TESTUNIT_OBJS)
+	@rm -rf $(TESTUNIT_OBJS)

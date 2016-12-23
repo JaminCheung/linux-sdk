@@ -4,6 +4,7 @@ include ../../config.mk
 
 TESTUNIT := test_camera
 TESTUNIT_OBJS := main.o yuv2bmp.o
+LINK_LIBS := -L$(OUTDIR) -l$(TARGET_NAME)
 
 .PHONY : all clean
 
@@ -13,7 +14,7 @@ all: $(TESTUNIT)
 	$(QUIET_CC) $(COMPILE_SRC) $< -o $@
 
 $(TESTUNIT):$(TESTUNIT_OBJS)
-	$(QUIET_LINK)$(LINK_OBJS) -o $(OUTDIR)/$@ $(TESTUNIT_OBJS) $(LDFLAGS) $(LDLIBS)
+	$(QUIET_LINK)$(LINK_OBJS) $(LINK_LIBS) -o $(OUTDIR)/$@ $(TESTUNIT_OBJS) $(LDFLAGS)
 
 clean:
-	rm -rf $(TESTUNIT_OBJS)
+	@rm -rf $(TESTUNIT_OBJS)
