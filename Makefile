@@ -70,6 +70,11 @@ SRC-y += power/power_manager.c
 SRC-y += i2c/i2c_manager.c
 
 #
+# Efuse
+#
+SRC-y += efuse/efuse_manager.c
+
+#
 # Flash
 #
 SRC-y +=  flash/flash_manager.c			        \
@@ -131,6 +136,7 @@ testunit:
 	make -C power/testunit all
 	make -C i2c/testunit all
 	make -C flash/testunit all
+	make -C efuse/testunit all
 
 testunit_clean:
 	make -C lib/uart/testunit clean
@@ -143,6 +149,7 @@ testunit_clean:
 	make -C power/testunit clean
 	make -C i2c/testunit clean
 	make -C flash/testunit clean
+	make -C efuse/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(OUTDIR)
