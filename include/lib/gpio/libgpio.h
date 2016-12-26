@@ -18,7 +18,7 @@
 #define LIB_GPIO_H
 
 #include <types.h>
-#include <libqrcode_api.h>
+#include <gpio/gpio_manager.h>
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -18,5 +18,12 @@
 #define GPIO_MANAGER_H
 
 #include <libqrcode_api.h>
+struct gpio_pin {
+    uint32_t no;
+    gpio_direction direction;
+    gpio_irq_mode irq_mode;
+    int fd;
+    gpio_status valid;
+};
 
 #endif

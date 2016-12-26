@@ -37,13 +37,6 @@ typedef enum _gpio_status {
     GPIO_VALID = 1,
 } gpio_status;
 
-struct gpio_pin {
-    uint32_t no;
-    gpio_direction direction;
-    gpio_irq_mode irq_mode;
-    int fd;
-    gpio_status valid;
-};
 
 /**
  * GPIO的中断回调函数
