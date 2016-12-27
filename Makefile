@@ -75,6 +75,12 @@ OBJ-y += i2c/i2c_manager.o
 OBJ-y += efuse/efuse_manager.o
 
 #
+# RTC
+#
+OBJ-y += rtc/rtc_manager.o
+
+
+#
 # Flash
 #
 OBJ-y +=  flash/flash_manager.o                         \
@@ -135,6 +141,7 @@ testunit:
 	make -C i2c/testunit all
 	make -C flash/testunit all
 	make -C efuse/testunit all
+	make -C rtc/testunit all
 
 testunit_clean:
 	make -C uart/testunit clean
@@ -147,6 +154,7 @@ testunit_clean:
 	make -C i2c/testunit clean
 	make -C flash/testunit clean
 	make -C efuse/testunit clean
+	make -C rtc/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS-OBJS) $(OBJS)

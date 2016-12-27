@@ -135,7 +135,7 @@ struct gpio_manager {
 
     /**
      * Function: set_irq_func
-     * Description: 使能GPIO中断
+     * Description: 设置GPIO中断回调函数
      * Input:
      *   func: GPIO中断回调函数
      *       参数：无返回值 和 参数（GPIO的编号）
@@ -934,9 +934,9 @@ enum efuse_segment {
 
 struct efuse_manager {
     /**
-     *    Function: read
-     * Description: 读EFUSE指定的段
-     *       Input:
+     *      Function: read
+     *      Description: 读EFUSE指定的段
+     *      Input:
      *          seg_id: 读取EFUSE段的id
      *             buf: 存储读取数据的缓存区指针
      *          length: 读取的长度，以字节为单位
@@ -945,9 +945,9 @@ struct efuse_manager {
     int32_t (*read)(enum efuse_segment seg_id, uint32_t *buf, uint32_t length);
 
      /**
-     *    Function: write
-     * Description: 写数据到指定的EFUSE段
-     *       Input:
+     *      Function: write
+     *      Description: 写数据到指定的EFUSE段
+     *      Input:
      *          seg_id: 写EFUSE目标段的id
      *             buf: 存储待写入数据的缓存区指针
      *          length: 写入的长度，以字节为单位
@@ -957,12 +957,62 @@ struct efuse_manager {
 };
 
 /**
- *    Function: get_efuse_manager
- * Description: 获取 efuse_manager 句柄
- *       Input: 无
+ *      Function: get_efuse_manager
+ *      Description: 获取 efuse_manager 句柄
+ *      Input: 无
  *      Return: 返回 struct efuse_manager 结构体指针
  *      Others: 通过该结构体指针访问内部提供的方法
  */
 struct efuse_manager *get_efuse_manager(void);
-/////////////////////////////////////////////////////11.USB/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////11.RTC/////////////////////////////////////////////////////////////
+
+#include <linux/rtc.h>
+/*
+ * 用于设置RTC时间的结构体:
+ * struct rtc_time {
+ *   int tm_sec;             秒 – 取值区间为[0,59]
+ *   int tm_min;            分 - 取值区间为[0,59]
+ *   int tm_hour;           时 - 取值区间为[0,23]
+ *   int tm_mday;         一个月中的日期 - 取值区间为[1,31]
+ *   int tm_mon;           月份（从一月开始，0代表一月） - 取值区间为[0,11]
+ *   int tm_year;           年份，其值等于实际年份减去1900
+ *   int tm_wday;          星期 – 取值区间为[0,6]，其中0代表星期天，1代表星期一，以此类推
+ *   int tm_yday;           从每年的1月1日开始的天数 – 取值区间为[0,365]，
+ *                                   其中0代表1月1日，1代表1月2日，以此类推
+ *   int tm_isdst;           夏令时标识符，实行夏令时的时候，tm_isdst为正。
+ *                                   不实行夏令时的进候，tm_isdst为0；不了解情况时，tm_isdst()为负。
+ * };
+ */
+
+struct rtc_manager {
+    /**
+     *      Function: read
+     *      Description: 读RTC时钟
+     *      Input:
+     *          time: 读取时间的结构体
+     *      注意：time是struct rtc_time结构体指针
+     *      Return: -1 --> 失败, 0 --> 成功
+     */
+    int32_t (*read)(struct rtc_time *time);
+
+     /**
+     *      Function: write
+     *      Description: 写RTC时钟
+     *      Input:
+     *          time: 需要写入的时间
+     *      注意：time是struct rtc_time结构体指针
+     *      Return: -1 --> 失败, 0 --> 成功
+     */
+    int32_t (*write)(const struct rtc_time *time);
+};
+
+/**
+ *      Function: get_rtc_manager
+ *      Description: 获取 rtc_manager 句柄
+ *      Input: 无
+ *      Return: 返回 struct rtc_manager 结构体指针
+ *      Others: 通过该结构体指针访问内部提供的方法
+ */
+struct rtc_manager *get_rtc_manager(void);
+/////////////////////////////////////////////////////12.USB/////////////////////////////////////////////////////////////
 #endif
