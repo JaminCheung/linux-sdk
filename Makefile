@@ -79,6 +79,10 @@ OBJ-y += efuse/efuse_manager.o
 #
 OBJ-y += rtc/rtc_manager.o
 
+#
+# SPI
+#
+OBJ-y += spi/spi_manager.o
 
 #
 # Flash
@@ -142,6 +146,7 @@ testunit:
 	make -C flash/testunit all
 	make -C efuse/testunit all
 	make -C rtc/testunit all
+	make -C spi/testunit all
 
 testunit_clean:
 	make -C uart/testunit clean
@@ -155,6 +160,7 @@ testunit_clean:
 	make -C flash/testunit clean
 	make -C efuse/testunit clean
 	make -C rtc/testunit clean
+	make -C spi/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS-OBJS) $(OBJS)
