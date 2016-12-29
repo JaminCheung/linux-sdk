@@ -4,8 +4,8 @@
 #include <time.h>
 #include <errno.h>
 #include <fcntl.h>
-# include <unistd.h>
-# include <utime.h>
+#include <unistd.h>
+#include <utime.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <types.h>
@@ -21,6 +21,7 @@
 #define PORT_S1_STOPBITS       1
 #define PORT_S1_TRANSMIT_TIMEOUT    3000  //ms
 #define PORT_S1_TRANSMIT_LENGTH     10
+
 int main(int argc, char *argv[]) {
 
     struct uart_manager* uart = get_uart_manager();

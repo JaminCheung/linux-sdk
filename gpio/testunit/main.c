@@ -1,9 +1,10 @@
 #include <signal.h>
 #include <stdlib.h>
-#include <utils/log.h>
 #include <types.h>
 #include <pthread.h>
-#include <gpio/gpio_manager.h>
+
+#include <utils/log.h>
+#include <libqrcode_api.h>
 
 #define LOG_TAG "test_gpio"
 

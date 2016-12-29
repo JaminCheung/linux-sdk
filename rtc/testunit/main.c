@@ -8,9 +8,10 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+#include <time.h>
+
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <time.h>
 #include <libqrcode_api.h>
 
 int main(void)

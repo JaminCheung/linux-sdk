@@ -17,7 +17,6 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <efuse/efuse_manager.h>
 #include <libqrcode_api.h>
 
 
@@ -122,7 +121,15 @@ int main(int argc, char *argv[])
     }
     bzero(buf, length);
 
-    if (oprt == WRITE_EFUSE) {
+    /* 获取操作EFUSE的句柄 */
+    efuse = get_efuse_manager();
+
+    if (oprt == READ_EFUSE) {
+        /* 读EFUSE指定的段 */
+        efuse->read(seg_id, buf, length);
+        for (i = 0; i < length / 4; i++)
+            LOGI("Read buf[%02d] = 0x%08x\n", i, buf[i]);
+    } else {
         char *val = argv[3];
         char temp[9] = "";
         double val_length;
@@ -139,17 +146,7 @@ int main(int argc, char *argv[])
             LOGI("To write buf[%02d] = 0x%08x\n", i, buf[i]);
             val += 8;
         }
-    }
 
-     /* 获取操作EFUSE的句柄 */
-    efuse = get_efuse_manager();
-
-    if (oprt == READ_EFUSE) {
-        /* 读EFUSE指定的段 */
-        efuse->read(seg_id, buf, length);
-        for (i = 0; i < length / 4; i++)
-            LOGI("Read buf[%02d] = 0x%08x\n", i, buf[i]);
-    } else {
         /*
          * 写EFUSE
          * 写EFUSE需要硬件支持，并且所写段没有写保护，否则失败

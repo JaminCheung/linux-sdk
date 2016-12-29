@@ -12,14 +12,13 @@
 #include <fcntl.h>
 #include <stdbool.h>
 #include <termios.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <watchdog/watchdog_manager.h>
+#include <libqrcode_api.h>
 
 
 #define LOG_TAG      "test_wdt"

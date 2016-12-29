@@ -11,16 +11,16 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdbool.h>
-#include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
+
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <camera/camera_manager.h>
+#include <libqrcode_api.h>
+
 #include "gc2155.h"
 #include "yuv2bmp.h"
-#include <libqrcode_api.h>
 /*
  * Macro
  */
