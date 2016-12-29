@@ -40,6 +40,19 @@
 
 static const char* prefix_platform_xburst = "Ingenic Xburst";
 
+void msleep(uint64_t msec) {
+    struct timespec ts;
+    int err;
+
+    ts.tv_sec = (msec / 1000);
+    ts.tv_nsec = (msec % 1000) * 1000 * 1000;
+
+    do {
+        err = nanosleep(&ts, &ts);
+    } while (err < 0 && errno == EINTR);
+}
+
+
 enum system_platform_t get_system_platform(void) {
     FILE* fp = NULL;
     char line[256] = {0};

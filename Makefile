@@ -92,6 +92,10 @@ OBJ-y +=  flash/flash_manager.o                         \
           flash/block/blocks/mtd/base.o                 \
           flash/block/fs/fs_manager.o                   \
           flash/block/fs/normal.o
+#
+# USB
+#
+OBJ-y += usb/usb_device_manager.o
 
 OBJS := $(OBJ-y)
 #
@@ -147,6 +151,7 @@ testunit:
 	make -C efuse/testunit all
 	make -C rtc/testunit all
 	make -C spi/testunit all
+	make -C usb/testunit all
 
 testunit_clean:
 	make -C uart/testunit clean
@@ -161,6 +166,7 @@ testunit_clean:
 	make -C efuse/testunit clean
 	make -C rtc/testunit clean
 	make -C spi/testunit clean
+	make -C usb/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS-OBJS) $(OBJS)

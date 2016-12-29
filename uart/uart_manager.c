@@ -198,7 +198,7 @@ out:
     return -1;
 }
 
-static int32_t uart_write(char* devname, const void* buf, uint32_t count,
+static int32_t uart_write(char* devname, void* buf, uint32_t count,
         uint32_t timeout_ms) {
     struct uart_port_dev* dev;
     uint32_t writen = 0;
