@@ -57,7 +57,7 @@ LDFLAGS := -lpthread -lrt -Wl,-rpath,/usr/lib
 LDSHFLAGS := -shared -Wl,-Bsymbolic
 
 ifndef DEBUG
-CFLAGS += -O2
+CFLAGS += -Os -mhard-float
 else
 CFLAGS += -g -DLOCAL_DEBUG -DDEBUG
 endif

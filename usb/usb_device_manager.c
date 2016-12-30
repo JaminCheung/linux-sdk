@@ -677,7 +677,7 @@ static uint32_t usb_device_transfer_unit(char* devname) {
     }
 
     retval = dev_c->transfer_unit;
-    LOGV("transfer unit size is %d\n", retval);
+    // LOGV("transfer unit size is %d\n", retval);
     return retval;
 }
 
