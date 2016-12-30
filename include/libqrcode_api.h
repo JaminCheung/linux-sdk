@@ -6,7 +6,7 @@
 /////////////////////////////////////////////////////COMMON///////////////////////////////////////////////////////////
 typedef void (*func_handle)(void *arg);
 
-/////////////////////////////////////////////////////1.GPIO/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////1 GPIO/////////////////////////////////////////////////////////////
 /**
  * GPIO编号
  */
@@ -180,7 +180,7 @@ struct gpio_manager {
  */
 struct gpio_manager* get_gpio_manager(void);
 
-/////////////////////////////////////////////////////2.TIMER////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////2 TIMER////////////////////////////////////////////////////////////
 /* 系统支持的最大定时器个数 */
 #define TIMER_DEFAULT_MAX_CNT                            3
 
@@ -256,7 +256,7 @@ struct timer_manager {
  */
 struct timer_manager*  get_timer_manager(void);
 
-/////////////////////////////////////////////////////3.WATCHDOG/////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////3 WATCHDOG/////////////////////////////////////////////////////////
 struct watchdog_manager {
     /**
      *    Function: init
@@ -314,7 +314,7 @@ struct watchdog_manager {
  */
 struct watchdog_manager *get_watchdog_manager(void);
 
-/////////////////////////////////////////////////////4.POWER////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////4 POWER////////////////////////////////////////////////////////////
 struct power_manager {
     /**
      *    Function: power_off
@@ -350,7 +350,7 @@ struct power_manager {
  */
 struct power_manager *get_power_manager(void);
 
-/////////////////////////////////////////////////////5.PWM//////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////5 PWM//////////////////////////////////////////////////////////////
 #define PWM_CHANNEL_MAX   5
 
 /* PWM 频率的最小值 */
@@ -454,7 +454,7 @@ struct pwm_manager {
  */
 struct pwm_manager *get_pwm_manager(void);
 
-/////////////////////////////////////////////////////6.UART/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////6 UART/////////////////////////////////////////////////////////////
 #define UART_MAX_CHANNELS   3
 /**
  * 奇偶校验可设参数
@@ -575,7 +575,7 @@ struct uart_manager {
  */
 struct uart_manager* get_uart_manager(void);
 
-/////////////////////////////////////////////////////7.I2C//////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////7 I2C//////////////////////////////////////////////////////////////
 #define I2C_BUS_MAX            3
 /*
  * 读写I2C设备所发送的地址的长度, 以BIT为单位, 有8BIT或16BIT, 应该根据实际使用的器件修改宏值
@@ -672,7 +672,7 @@ struct i2c_manager {
  */
 struct i2c_manager *get_i2c_manager(void);
 
-//////////////////////////////////////////////8.CAMERA//////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////8 CAMERA//////////////////////////////////////////////////////////////////
 /*
  * sensor寄存器地址的长度, 以BIT为单位, 有8BIT或16BIT, 应该根据实际使用的sensor修改此宏值
  */
@@ -836,7 +836,7 @@ struct camera_manager {
  */
 struct camera_manager *get_camera_manager(void);
 
-/////////////////////////////////////////////////////9.FLASH/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////9 FLASH/////////////////////////////////////////////////////////////
 struct flash_manager {
     /**
      * Function: flash_init
@@ -885,7 +885,7 @@ struct flash_manager {
      *      buf: 读取缓冲区
      *      length: 读取大小，单位: byte
      * Output: 无
-     * Return: >0: 返回成功读取的字节数  -1:失败
+     * Return: >=0: 返回成功读取的字节数  -1:失败
      * Others: 无
      */
     int64_t (*read)(int64_t offset,  void* buf, int64_t length);
@@ -897,7 +897,7 @@ struct flash_manager {
      *      buf: 写入缓冲区
      *      length: 写入大小，单位: byte
      * Output: 无
-     * Return: >0: 返回成功写入的字节数  -1:失败
+     * Return: >=0: 返回成功写入的字节数  -1:失败
      * Others: 无
      */
     int64_t (*write)(int64_t offset,  void* buf, int64_t length);
@@ -912,7 +912,7 @@ struct flash_manager {
  */
 struct flash_manager* get_flash_manager(void);
 
-/////////////////////////////////////////////////////10.EFUSE////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////10 EFUSE////////////////////////////////////////////////////////////
 /*
  * 一下几个宏是定义EFUSE各个段的长度，以芯片手册为准，这里以字节为单位
  */
@@ -965,7 +965,7 @@ struct efuse_manager {
  */
 struct efuse_manager *get_efuse_manager(void);
 
-//////////////////////////////////////////////////////11.RTC/////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////11 RTC/////////////////////////////////////////////////////////////
 #include <linux/rtc.h>
 /*
  * 用于设置RTC时间的结构体:
@@ -1015,7 +1015,7 @@ struct rtc_manager {
  */
 struct rtc_manager *get_rtc_manager(void);
 
-//////////////////////////////////////////////////////12.SPI/////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////12 SPI/////////////////////////////////////////////////////////////
 #define SPI_DEVICE_MAX      2
 
 /*
@@ -1125,7 +1125,7 @@ struct spi_manager {
  */
 struct spi_manager *get_spi_manager(void);
 
-//////////////////////////////////////////////////////13.USB/////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////13 USB/////////////////////////////////////////////////////////////
 /*系统支持的最大USB设备数目*/
 #define USB_DEVICE_MAX_COUNT  1
 
@@ -1136,8 +1136,8 @@ struct usb_device_manager {
      * Input:
      *      devname: usb设备名称
      *          共支持2类usb设备
-     *          hid设备: dev/hidg0
-     *          cdc acm设备: dev/ttyGS0
+     *          hid设备: /dev/hidg0
+     *          cdc acm设备: /dev/ttyGS0
      *  Output: 无
      *  Return: 0: 成功， -1: 失败
      *  Others: 内部最大可以支持1个usb设备通道[配置宏USB_DEVICE_MAX_COUNT], 每个通道在使用前必须优先调用usb_device_init
@@ -1150,8 +1150,8 @@ struct usb_device_manager {
      * Input:
      *      devname: usb设备名称
      *          共支持2类usb设备
-     *          hid设备: dev/hidg0
-     *          cdc acm设备: dev/ttyGS0
+     *          hid设备: /dev/hidg0
+     *          cdc acm设备: /dev/ttyGS0
      * Output: 无
      * Return: 0: 成功， -1: 失败
      * Others: 对应usb_device_init, 在不再使用该设备时调用
@@ -1166,8 +1166,8 @@ struct usb_device_manager {
      *      switch_to: 目标切换功能设备名称
      *      switch_from:  当前功能设备名称
      *          举例: 从hid切换到cdc acm
-     *                  switch_from应设置为dev/ttyhidg0
-     *                  switch_to应设置为dev/ttyGS0
+     *                  switch_from应设置为/dev/ttyhidg0
+     *                  switch_to应设置为/dev/ttyGS0
      * Output: 无
      * Return: 0: 成功， -1: 失败
      * Others: 也可以调用deinit释放当前设备，再init初始化新设备，完成切换
@@ -1180,8 +1180,8 @@ struct usb_device_manager {
      * Input:
      *      devname: usb设备名称
      *          共支持2类usb设备
-     *          hid设备: dev/hidg0
-     *          cdc acm设备: dev/ttyGS0
+     *          hid设备: /dev/hidg0
+     *          cdc acm设备: /dev/ttyGS0
      * Output: 无
      * Return: 返回最大传输单元，单位:bytes
      * Others: 读写函数单次读写大小最大值等于最大传输单元大小
@@ -1193,8 +1193,8 @@ struct usb_device_manager {
      * Input:
      *      devname: usb设备名称
      *          共支持2类usb设备
-     *          hid设备: dev/hidg0
-     *          cdc acm设备: dev/ttyGS0
+     *          hid设备: /dev/hidg0
+     *          cdc acm设备: /dev/ttyGS0
      *      buf: 写数据缓冲区
      *      count: 写数据长度，单位:bytes
      *      timeout_ms: 写超时，单位:ms
@@ -1211,8 +1211,8 @@ struct usb_device_manager {
      * Input:
      *      devname: usb设备名称
      *          共支持2类usb设备
-     *          hid设备: dev/hidg0
-     *          cdc acm设备: dev/ttyGS0
+     *          hid设备: /dev/hidg0
+     *          cdc acm设备: /dev/ttyGS0
      *      buf: 读数据缓冲区
      *      count: 读数据长度，单位:bytes
      *      timeout_ms: 读超时，单位:ms

@@ -1,7 +1,7 @@
  #
  #  Copyright (C) 2016, Zhang YanMing <jamincheung@126.com>
  #
- #  Linux recovery updater
+ #  Ingenic QRcode SDK Project
  #
  #  This program is free software; you can redistribute it and/or modify it
  #  under  the terms of the GNU General  Public License as published by the

@@ -11,9 +11,9 @@
  /* driver module: default parser seperator */
  #define USB_DRIVER_MODULE_DEFAULT_SEPRATOR ":"
 /* driver module: switch limits count*/
-#define USB_SWITCH_DEVICE_RETRY_COUNT               5
+#define USB_SWITCH_DEVICE_RETRY_COUNT              5
 /* otg switch wait time in miliseconds */
-#define USB_SWITCH_DEVICE_WAITTIME_MS               500
+#define USB_SWITCH_DEVICE_WAITTIME_MS               100
 /* gadget driver module name */
 #define USB_DEV_BASE_MODULE                                 "libcomposite"
 struct usb_dev_modules {

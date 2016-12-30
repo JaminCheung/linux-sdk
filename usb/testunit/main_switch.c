@@ -90,5 +90,6 @@ int main(int argc, const char *argv[])
     }
 
     device->deinit(DEV_HID);
+    return 0;
 #endif
 }
