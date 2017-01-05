@@ -57,11 +57,11 @@ static struct spi_dev spi_dev[SPI_DEVICE_MAX];
  * Functions
  */
 static int32_t spi_transfer(enum spi id, uint8_t *txbuf, uint8_t *rxbuf, uint32_t length) {
-    assert_die_if(length > SPI_MSG_LENGTH_MAX, "Error: length cannot greater than 4k");
-    assert_die_if((!txbuf || !rxbuf), "Error: %s cannot to 'NULL'\n", !txbuf ? "txbuf":"rxbuf");
     assert_die_if(id >= SPI_DEVICE_MAX, "SPI-%d is invalid!\n", id);
+    assert_die_if(length > SPI_MSG_LENGTH_MAX, "Error: length cannot greater than 4K\n");
+    assert_die_if((!txbuf || !rxbuf), "Error: %s pointer cannot be 'NULL'\n", !txbuf ? "txbuf":"rxbuf");
     if (spi_dev[id].is_init == false) {
-        LOGE("The SPI0-%d is not initialized!\n", id);
+        LOGE("The SPI-%d is not initialized!\n", id);
         return -1;
     }
 
@@ -85,24 +85,24 @@ static int32_t spi_transfer(enum spi id, uint8_t *txbuf, uint8_t *rxbuf, uint32_
 static int32_t spi_operation(enum spi id, uint8_t *buf, uint32_t length, enum operation oprt) {
     int retval;
 
-    assert_die_if(length > SPI_MSG_LENGTH_MAX, "Error: length cannot greater than 4k");
-    assert_die_if(!buf, "Error: %s pointer cannot to 'NULL'\n", oprt == SPI_READ ? "rxbuf":"txbuf");
     assert_die_if(id >= SPI_DEVICE_MAX, "SPI-%d is invalid!\n", id);
+    assert_die_if(length > SPI_MSG_LENGTH_MAX, "Error: length cannot greater than 4K\n");
+    assert_die_if(!buf, "Error: %s pointer cannot be 'NULL'\n", oprt ? "txbuf":"rxbuf");
     if (spi_dev[id].is_init == false) {
         LOGE("The SPI-%d is not initialized!\n", id);
         return -1;
     }
 
-    if (oprt == SPI_READ) {
-        retval = read(spi_dev[id].fd, buf, length);
-        if (retval < 0) {
-            LOGE("Failed to read SPI-%d: %s\n", id, strerror(errno));
-            return -1;
-        }
-    } else {
+    if (oprt) {
         retval = write(spi_dev[id].fd, buf, length);
         if (retval < 0) {
             LOGE("Failed to write SPI-%d: %s\n", id, strerror(errno));
+            return -1;
+        }
+    } else {
+        retval = read(spi_dev[id].fd, buf, length);
+        if (retval < 0) {
+            LOGE("Failed to read SPI-%d: %s\n", id, strerror(errno));
             return -1;
         }
     }
