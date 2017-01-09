@@ -97,7 +97,13 @@ OBJ-y +=  flash/flash_manager.o                         \
 #
 OBJ-y += usb/usb_device_manager.o
 
+#
+# Security
+#
+OBJ-y += security/security_manager.o
+
 OBJS := $(OBJ-y)
+
 #
 # Uart Lib
 #
@@ -152,6 +158,7 @@ testunit:
 	make -C rtc/testunit all
 	make -C spi/testunit all
 	make -C usb/testunit all
+	make -C security/testunit all
 
 testunit_clean:
 	make -C uart/testunit clean
@@ -167,6 +174,7 @@ testunit_clean:
 	make -C rtc/testunit clean
 	make -C spi/testunit clean
 	make -C usb/testunit clean
+	make -C security/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS-OBJS) $(OBJS)
