@@ -35,8 +35,6 @@ uint32_t test_iv[4] = {
 uint32_t test_buf[4];
 uint32_t test_outdata[4];
 
-
-
 struct aes_key aes_key;
 struct aes_data aes_data;
 
@@ -58,6 +56,11 @@ int main(int argc, char* argv[]) {
 #endif
 
     aes_key.bitmode = AES_KEY_128BIT;
+
+    if (security_manager->init() < 0) {
+        LOGE("Failed init security manager\n");
+        return -1;
+    }
 
     error = security_manager->simple_aes_load_key(&aes_key);
     if (error < 0) {
@@ -105,6 +108,8 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < sizeof(test_outdata) / 4; i++)
         LOGI("out data[%d]=0x%x\n", i, test_outdata[i]);
     LOGI("=============================\n");
+
+    security_manager->deinit();
 
     return 0;
 }

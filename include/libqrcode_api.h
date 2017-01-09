@@ -1314,6 +1314,26 @@ struct aes_data {
 
 struct security_manager {
     /**
+     * Function: security_init
+     * Description: security模块初始化
+     * Input:无
+     * Output: 无
+     * Return: 0: 成功， -1: 失败
+     * Others: 无
+     */
+    int32_t (*init)(void);
+
+    /**
+     * Function: security_deinit
+     * Description: security模块释放
+     * Input:无
+     * Output: 无
+     * Return: 无
+     * Others: 无
+     */
+    void (*deinit)(void);
+
+    /**
      * Function: simple_aes_load_key
      * Description: 加载AES key
      * Input:

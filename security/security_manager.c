@@ -32,22 +32,36 @@
 
 #define DRV_NAME    "/dev/jz-aes"
 
-static int32_t security_simple_aes_load_key(struct aes_key* aes_key) {
-    int error = 0;
+static int32_t fd = -1;
 
-    int32_t fd = open(DRV_NAME, O_RDWR);
+static int security_init() {
+    fd = open(DRV_NAME, O_RDWR);
     if (fd < 0) {
         LOGE("Failed to open %s: %s\n", DRV_NAME, strerror(errno));
         return -1;
     }
 
+    return 0;
+}
+
+static void security_deinit() {
+    if (fd > 0)
+        close(fd);
+
+    fd = -1;
+}
+
+static int32_t security_simple_aes_load_key(struct aes_key* aes_key) {
+    int error = 0;
+
+    if (fd < 0)
+        return -1;
+
     error = ioctl(fd, AES_LOAD_KEY, aes_key);
     if (error < 0) {
-        LOGE("Failed to ioctl AES_LOAD_KEY\n");
+        LOGE("Failed to ioctl AES_LOAD_KEY: %d: %s\n", error, strerror(errno));
         return -1;
     }
-
-    close(fd);
 
     return 0;
 }
@@ -55,11 +69,8 @@ static int32_t security_simple_aes_load_key(struct aes_key* aes_key) {
 static int32_t security_simple_aes_crypt(struct aes_data* aes_data) {
     int error = 0;
 
-    int32_t fd = open(DRV_NAME, O_RDWR);
-    if (fd < 0) {
-        LOGE("Failed to open %s: %s\n", DRV_NAME, strerror(errno));
+    if (fd < 0)
         return -1;
-    }
 
     error = ioctl(fd, AES_DO_CRYPT, aes_data);
     if (error < 0) {
@@ -67,12 +78,12 @@ static int32_t security_simple_aes_crypt(struct aes_data* aes_data) {
         return -1;
     }
 
-    close(fd);
-
     return 0;
 }
 
 struct security_manager security_manager = {
+    .init   = security_init,
+    .deinit = security_deinit,
     .simple_aes_load_key = security_simple_aes_load_key,
     .simple_aes_crypt = security_simple_aes_crypt,
 };
