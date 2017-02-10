@@ -5,7 +5,7 @@
  *      如果上述设备存在，任意打开一个记事本文件，等待linux端的数据输入
  *  在linux终端下执行以下命令
  *      启动测试程序
- *           //root/export/test_usb_hid /dev/hidg0 keyboard
+ *           /root/export/test_usb_hid /dev/hidg0 keyboard
  *
  *          开始测试, 请仔细观察输入每条命令序列后的现象
  *          g i s t r --left-shift

@@ -2,7 +2,7 @@
  *  测试方法:
  *  在linux终端下执行以下命令
  *      启动测试程序
- *          //root/export/test_usb_cdc_acm /dev/ttyGS0
+ *          /root/export/test_usb_cdc_acm /dev/ttyGS0
  *
  *  windows下准备工作
  *      安装驱动
@@ -15,7 +15,8 @@
  *              abcd+回车
  *  在windows查看测试结果
  *          在windows终端下查看是否收到abcd,若收到，马上[本测试程序有5s的超时读等待时间]输入dcba回车, 并切换回linux端查看现象
- *          若没有收到abcd,请查看连接是否异常
+ *          若没有收到dcba,请查看连接是否异常
+ *          注意: 由于单次读取数据大小设置为5个字节， 因此测试时终端发送的字节数应该大于等于5， 否则会阻塞读直到超时
  *
  */
 #include <pthread.h>
@@ -31,7 +32,8 @@
 
 /* 传输超时时间 */
 #define TEST_CDC_ACM_WRITE_TIMEOUT    100
-#define TEST_CDC_ACM_READ_TIMEOUT    5000
+#define TEST_CDC_ACM_READ_TIMEOUT     5000
+#define TEST_READ_SIZE                               5
 #define BUF_LEN 512
 
 
@@ -45,7 +47,7 @@ int main(int argc, const char *argv[])
     int i, retval;
 
     struct usb_device_manager *cdc_acm = NULL;
-    unsigned int max_write_size = 0;
+    unsigned int max_read_size = 0;
     if (argc != 2) {
         fprintf(stderr, "Usage: %s devname\n",
             argv[0]);
@@ -61,8 +63,8 @@ int main(int argc, const char *argv[])
         return -1;
     }
      /* 通信测试 */
-    max_write_size = cdc_acm->get_max_transfer_unit(filename);
-
+    max_read_size = TEST_READ_SIZE;
+    printf("read unit size is %d\n", max_read_size);
     while (42) {
 
         FD_ZERO(&rfds);
@@ -93,7 +95,7 @@ int main(int argc, const char *argv[])
             }
             /*若有反馈数据，则读取并打印*/
             printf("waiting %d miliseconds for read\n", TEST_CDC_ACM_READ_TIMEOUT);
-            if ((retval = cdc_acm->read(filename, buf, max_write_size, TEST_CDC_ACM_READ_TIMEOUT)) < 0)  {
+            if ((retval = cdc_acm->read(filename, buf, max_read_size, TEST_CDC_ACM_READ_TIMEOUT)) < 0)  {
                 printf("read faild\n");
                 goto out;
             }
