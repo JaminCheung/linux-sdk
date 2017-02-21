@@ -674,6 +674,10 @@ struct i2c_manager *get_i2c_manager(void);
 
 //////////////////////////////////////////////8 CAMERA//////////////////////////////////////////////////////////////////
 /*
+ * sensor每设置一个寄存器之后的延时时间，单位是us, 可以根据实际要求修改此宏值
+ */
+#define SENSOR_SET_REG_DELAY_US  100
+/*
  * sensor寄存器地址的长度, 以BIT为单位, 有8BIT或16BIT, 应该根据实际使用的sensor修改此宏值
  */
 #define SENSOR_ADDR_LENGTH  8
@@ -790,9 +794,9 @@ struct camera_manager {
 
     /**
      *    Function: sensor_setup_addr
-     * Description: 设置摄像头sensor的I2C地址 (在 probe 失败时,应该调用此函数设置sensor的I2C地址)
+     * Description: 设置摄像头sensor的I2C地址, 应该调用此函数设置sensor的I2C地址
      *       Input:
-     *              chip_addr: 摄像头sensor的I2C地址(不需要右移一位)
+     *              chip_addr: 摄像头sensor的I2C地址, 不包括读写位控制位
      *      Return: 0 --> 成功, -1 --> 失败
      */
     int32_t (*sensor_setup_addr)(int32_t chip_addr);

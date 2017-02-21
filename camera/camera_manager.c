@@ -135,13 +135,9 @@ static int32_t sensor_setup_regs(const struct camera_regval_list *vals) {
             LOGI("Setup sensor registers finish!\n");
             break;
         }
-
-        if (sensor_write_reg(vals->regaddr, vals->regval) < 0) {
-            return -1;
-        }
-
+        sensor_write_reg(vals->regaddr, vals->regval);
+        usleep(SENSOR_SET_REG_DELAY_US);
         vals++;
-        usleep(50);
     }
 
     return 0;
