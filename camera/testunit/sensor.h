@@ -1,7 +1,7 @@
 /*************************************************************************
 	> Filename: sensor.h
-	>   Author: 
-	>    Email: 
+	>   Author: qiuwei.wang
+	>    Email: qiuwei.wang@ingenic.com / panddio@163.com
 	> Datatime: Tue 21 Feb 2017 03:02:27 PM CST
  ************************************************************************/
 
@@ -47,19 +47,19 @@ const struct image_fmt *select_image_fmt(uint32_t *width, uint32_t *height,
 	int index = 0;
     while(supported_image_fmts[index].name &&
           supported_image_fmts[index].regs_val) {
-		if (supported_image_fmts[index].width  >= *width &&
-		    supported_image_fmts[index].height >= *height) {
-			*width = supported_image_fmts[index].width;
-			*height = supported_image_fmts[index].height;
-			return &supported_image_fmts[index];
-		}
+        if (supported_image_fmts[index].width  >= *width &&
+            supported_image_fmts[index].height >= *height) {
+            *width = supported_image_fmts[index].width;
+            *height = supported_image_fmts[index].height;
+            return &supported_image_fmts[index];
+        }
 
         index++;
-	}
+    }
 
-	*width = supported_image_fmts[0].width;
-	*height = supported_image_fmts[0].height;
-	return &supported_image_fmts[0];
+    *width = supported_image_fmts[0].width;
+    *height = supported_image_fmts[0].height;
+    return &supported_image_fmts[0];
 }
 
 #endif /* _SENSOR_H */

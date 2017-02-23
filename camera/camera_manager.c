@@ -132,7 +132,7 @@ static int32_t sensor_setup_regs(const struct camera_regval_list *vals) {
     while(1) {
         if ((vals->regaddr == ADDR_END) && \
             (vals->regval == VAL_END)) {
-            LOGI("Setup sensor registers finish!\n");
+            LOGI("Set sensor registers finished!\n");
             break;
         }
         sensor_write_reg(vals->regaddr, vals->regval);

@@ -11,7 +11,7 @@ const struct camera_regval_list bf3703_init_regs[] = {
     {0x12, 0x00},
     {0x11, 0x80},
     {0x13, 0x07},
-    {0x15, 0x03},
+    {0x15, 0x23},
     {0x69, 0x00},
     //{0xb9, 0x91},//test pattern
 
@@ -169,9 +169,14 @@ const struct camera_regval_list bf3703_qvga_regs[] = {
     ENDMARKER
 };
 
+const struct camera_regval_list bf3703_vga_regs[] = {
+    ENDMARKER
+};
+
 static const struct image_fmt bf3703_supported_fmts[] = {
     /* 分辨率从小到大排列 */
     IMAGE_FMT("QVGA", W_QVGA, H_QVGA, bf3703_qvga_regs),
+    IMAGE_FMT("VGA", W_VGA, H_VGA, bf3703_vga_regs),
     IMAGE_FMT(0, 0, 0, 0),
 };
 

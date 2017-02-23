@@ -796,7 +796,7 @@ struct camera_manager {
      *    Function: sensor_setup_addr
      * Description: 设置摄像头sensor的I2C地址, 应该调用此函数设置sensor的I2C地址
      *       Input:
-     *              chip_addr: 摄像头sensor的I2C地址, 不包括读写位控制位
+     *              chip_addr: 摄像头sensor的I2C地址, 不包括读写控制位
      *      Return: 0 --> 成功, -1 --> 失败
      */
     int32_t (*sensor_setup_addr)(int32_t chip_addr);

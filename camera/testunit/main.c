@@ -199,6 +199,8 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    putchar('\0'); // do nothing
+
     /* 设置控制器时序和mclk频率 */
     timing.mclk_freq = 24000000;
     timing.pclk_active_level  = 0;
@@ -225,9 +227,13 @@ int main(int argc, char *argv[])
     while(1) {
         /* 开始获取图像 */
         ret = cm->camera_read(yuvbuf, img.size);
-        printf("Camera read return value:%d\n", ret);
-        if (ret < 0)
+        LOGE("Camera read return value:%d\n", ret);
+        if (ret < 0) {
+            /**
+             * camera read failed
+             */
             continue;
+        }
 
         /* 处理图像*/
 #if (PRINT_IMAGE_DATA == 1)
