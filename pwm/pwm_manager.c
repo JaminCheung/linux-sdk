@@ -67,7 +67,7 @@ static int32_t pwm_init(enum pwm id, enum pwm_active level) {
     assert_die_if(fd < 0, "Open %s failed: %s\n", node, strerror(errno));
     size = sprintf(temp, "%d", level);
     if (write(fd, temp, size) < 0) {
-        LOGE("Failed to setup PWM%d active level: %s\n", \
+        LOGE("Failed to set PWM%d active level: %s\n", \
              id, strerror(errno));
         return -1;
     }
@@ -102,21 +102,6 @@ static int32_t pwm_init(enum pwm id, enum pwm_active level) {
     return 0;
 }
 
-static void pwm_deinit(enum pwm id) {
-
-    assert_die_if(id >= PWM_CHANNEL_MAX, "PWM%d is invalid!\n", id);
-    if (pwm_dev[id].is_init == false)
-        return;
-
-    close(pwm_dev[id].freq_fd);
-    close(pwm_dev[id].duty_fd);
-    close(pwm_dev[id].ctrl_fd);
-    pwm_dev[id].is_init = false;
-    pwm_dev[id].freq_fd = -1;
-    pwm_dev[id].duty_fd = -1;
-    pwm_dev[id].ctrl_fd = -1;
-}
-
 static int32_t pwm_setup_freq(enum pwm id, uint32_t freq) {
     int size;
     char temp[12] = "";
@@ -129,7 +114,7 @@ static int32_t pwm_setup_freq(enum pwm id, uint32_t freq) {
 
     size = snprintf(temp, sizeof(temp), "%d", freq);
     if (write(pwm_dev[id].freq_fd, temp, size) < 0) {
-        LOGE("Failed to setup PWM%d freq: %s\n", id, strerror(errno));
+        LOGE("Failed to set PWM%d freq: %s\n", id, strerror(errno));
         return -1;
     }
 
@@ -155,7 +140,7 @@ static int32_t pwm_setup_duty(enum pwm id, uint32_t duty) {
     val = duty / 100.0 * pwm_dev[id].max;
     size = snprintf(temp, sizeof(temp), "%d", (int)val);
     if (write(pwm_dev[id].duty_fd, temp, size) < 0) {
-        LOGE("Failed to setup PWM%d duty: %s\n", id, strerror(errno));
+        LOGE("Failed to set PWM%d duty: %s\n", id, strerror(errno));
         return -1;
     }
 
@@ -174,11 +159,24 @@ static int32_t pwm_setup_state(enum pwm id, enum pwm_state state) {
 
     size = snprintf(temp, sizeof(temp), "%d", !!state);
     if (write(pwm_dev[id].ctrl_fd, temp, size) < 0) {
-        LOGE("Failed to setup PWM%d freq: %s\n", id, strerror(errno));
+        LOGE("Failed to set PWM%d state: %s\n", id, strerror(errno));
         return -1;
     }
 
     return 0;
+}
+
+static void pwm_deinit(enum pwm id) {
+    if (!pwm_setup_state(id, PWM_DISABLE)) {
+        close(pwm_dev[id].freq_fd);
+        close(pwm_dev[id].duty_fd);
+        close(pwm_dev[id].ctrl_fd);
+
+        pwm_dev[id].is_init = false;
+        pwm_dev[id].freq_fd = -1;
+        pwm_dev[id].duty_fd = -1;
+        pwm_dev[id].ctrl_fd = -1;
+    }
 }
 
 struct pwm_manager pwm_manager = {
