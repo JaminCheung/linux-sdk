@@ -125,7 +125,7 @@ int fs_unregister(struct list_head *head, struct filesystem* this) {
     list_for_each_safe(cell, next, head) {
         m = list_entry(cell, struct filesystem, list_cell);
         if (!strcmp(m->name,  this->name)) {
-            LOGI("Filesystem \'%s\' is removed successfully\n", m->name);
+            LOGD("Filesystem \'%s\' is removed successfully\n", m->name);
             this->free_params(this);
             list_del(cell);
             return 0;
