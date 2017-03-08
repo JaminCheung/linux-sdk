@@ -1,8 +1,7 @@
 #ifndef __GC2155_H__
 #define __GC2155_H__
 
-
-const struct camera_regval_list gc2155_init_regs[] = {
+static const struct camera_regval_list gc2155_init_regs[] = {
     {0xfe,0xf0},
     {0xfe,0xf0},
     {0xfe,0xf0},
@@ -637,7 +636,7 @@ const struct camera_regval_list gc2155_init_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_sensor_2M_regs[] = {
+static const struct camera_regval_list gc2155_sensor_2M_regs[] = {
     {0xfe, 0x00},
     {0xfa, 0x11},
     {0xfd, 0x00},
@@ -685,7 +684,7 @@ const struct camera_regval_list gc2155_sensor_2M_regs[] = {
 };
 
 
-const struct camera_regval_list gc2155_qvga_regs[] = {
+static const struct camera_regval_list gc2155_qvga_regs[] = {
     {0x95,0x00},// win_size 320 * 240
     {0x96,0xf0},
     {0x97,0x01},
@@ -693,7 +692,7 @@ const struct camera_regval_list gc2155_qvga_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_vga_regs[] = {
+static const struct camera_regval_list gc2155_vga_regs[] = {
     {0x95,0x01},//win_size 640 * 480
     {0x96,0xe0},
     {0x97,0x02},
@@ -701,7 +700,7 @@ const struct camera_regval_list gc2155_vga_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_720P_regs[] = {
+static const struct camera_regval_list gc2155_720P_regs[] = {
     // 720P init
     {0xfe,0x00},
     {0xb6,0x01},
@@ -780,43 +779,43 @@ static const struct image_fmt gc2155_supported_fmts[] = {
     IMAGE_FMT(0, 0, 0, 0),
 };
 
-const struct camera_regval_list gc2155_wb_auto_regs[] = {
+static const struct camera_regval_list gc2155_wb_auto_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_wb_incandescence_regs[] = {
+static const struct camera_regval_list gc2155_wb_incandescence_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_wb_daylight_regs[] = {
+static const struct camera_regval_list gc2155_wb_daylight_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_wb_fluorescent_regs[] = {
+static const struct camera_regval_list gc2155_wb_fluorescent_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_wb_cloud_regs[] = {
+static const struct camera_regval_list gc2155_wb_cloud_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_effect_normal_regs[] = {
+static const struct camera_regval_list gc2155_effect_normal_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_effect_grayscale_regs[] = {
+static const struct camera_regval_list gc2155_effect_grayscale_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_effect_sepia_regs[] = {
+static const struct camera_regval_list gc2155_effect_sepia_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_effect_colorinv_regs[] = {
+static const struct camera_regval_list gc2155_effect_colorinv_regs[] = {
     ENDMARKER,
 };
 
-const struct camera_regval_list gc2155_effect_sepiabluel_regs[] = {
+static const struct camera_regval_list gc2155_effect_sepiabluel_regs[] = {
     ENDMARKER,
 };
 

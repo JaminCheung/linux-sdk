@@ -21,34 +21,24 @@
 #include <libqrcode_api.h>
 
 #include "sensor.h"
-#include "gc2155.h"
-#include "bf3703.h"
 #include "yuv2bmp.h"
+
 /*
- * Macro
+ * Macros
  */
 #define PRINT_IMAGE_DATA    0
 
-#define GC2155_ID           0x2155
-#define BF3703_ID           0x3703
-#define VERSION(pid, ver)   ((pid<<8)|(ver&0xFF))
-
-/*
- * Sensor的I2C地址
- */
-#define GC2155_I2C_ADDR  0x3c
-#define BF3703_I2C_ADDR  0x6e
-
-#define DEFAULT_WIDTH    320
-#define DEFAULT_HEIGHT   240
+#define DEFAULT_WIDTH    640
+#define DEFAULT_HEIGHT   480
 #define DEFAULT_BPP      16
 
-#define LOG_TAG "test_camera"
+#define LOG_TAG   "test_camera"
 
 
 static struct sensor_info sensor_info[] = {
     {GC2155, "gc2155"},
     {BF3703, "bf3703"},
+    {OV7725, "ov7725"},
 };
 
 static const char short_options[] = "hx:y:s:";
@@ -108,9 +98,7 @@ int main(int argc, char *argv[])
     char filename[64] = "";
     uint8_t *yuvbuf = NULL;
     uint8_t *rgbbuf = NULL;
-    uint8_t pid, vid;
-    enum sensor_list sensor = GC2155;
-    const struct image_fmt *fmt;
+    enum sensor_list sensor = BF3703;
     struct camera_img_param img;
     struct camera_timing_param timing;
     struct camera_manager *cm;
@@ -154,52 +142,8 @@ int main(int argc, char *argv[])
         }
     }
 
-    switch(sensor) {
-    case GC2155:
-        fmt = select_image_fmt(&img.width, &img.height, gc2155_supported_fmts);
-
-        /* Set sensor device addr */
-        cm->sensor_setup_addr(GC2155_I2C_ADDR);
-
-        /* Probe sensor ID */
-        pid = cm->sensor_read_reg(0xf0);
-        vid = cm->sensor_read_reg(0xf1);
-        if (VERSION(pid, vid) != GC2155_ID)
-            goto probe_error;
-        LOGE("GC2155 probe successed: pid = 0x%02x, vid = 0x%02x\n", pid, vid);
-
-        /* 配置 sensor 的寄存器 */
-        cm->sensor_setup_regs(gc2155_init_regs);
-        cm->sensor_setup_regs(fmt->regs_val);
-        break;
-
-    case BF3703:
-        fmt = select_image_fmt(&img.width, &img.height, bf3703_supported_fmts);
-
-        /* Set sensor device addr */
-        cm->sensor_setup_addr(BF3703_I2C_ADDR);
-
-        /* Probe sensor ID */
-        pid = cm->sensor_read_reg(0xfc);
-        vid = cm->sensor_read_reg(0xfd);
-        if (VERSION(pid, vid) != BF3703_ID)
-            goto probe_error;
-        LOGE("BF3703 probe successed: pid = 0x%02x, vid = 0x%02x\n", pid, vid);
-
-        /* Reset all registers */
-        cm->sensor_write_reg(0x12, 0x80);
-
-        /* 配置 sensor 的寄存器 */
-        cm->sensor_setup_regs(bf3703_init_regs);
-        cm->sensor_setup_regs(fmt->regs_val);
-        break;
-
-    default:
-        fprintf(stderr, "No support sensor: %d\n", sensor);
-        exit(EXIT_FAILURE);
-    }
-
-    putchar('\0'); // do nothing
+    /* sensor probe and 寄存器配置 */
+    sensor_config(sensor, cm, &img.width, &img.height);
 
     /* 设置控制器时序和mclk频率 */
     timing.mclk_freq = 24000000;
@@ -212,6 +156,7 @@ int main(int argc, char *argv[])
     cm->set_img_param(&img);
     img.size = img.width * img.height * img.bpp / 2;
 
+    /* 内存申请 */
     yuvbuf = (uint8_t *)malloc(img.size);
     if (!yuvbuf) {
         LOGE("Malloc yuvbuf failed: %s\n", strerror(errno));
@@ -250,13 +195,9 @@ int main(int argc, char *argv[])
             break;
     }
 
+    /* 释放内存和摄像头 */
     free(yuvbuf);
     free(rgbbuf);
     cm->camera_deinit();
     return 0;
-
-probe_error:
-    LOGE("Sensor probe failed: pid = 0x%02x, vid = 0x%02x\n", pid, vid);
-    cm->camera_deinit();
-    exit(EXIT_FAILURE);
 }

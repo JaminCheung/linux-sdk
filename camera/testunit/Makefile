@@ -3,7 +3,7 @@ TOPDIR ?= ../..
 include ../../config.mk
 
 TESTUNIT := test_camera
-TESTUNIT_OBJS := main.o yuv2bmp.o
+TESTUNIT_OBJS := main.o sensor.o yuv2bmp.o
 LINK_LIBS := -L$(OUTDIR) -l$(TARGET_NAME)
 
 .PHONY : all clean

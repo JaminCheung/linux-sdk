@@ -47,9 +47,9 @@ static unsigned int yuv2rgb_pixel(int y, int u, int v)
     if(g < 0) g = 0;
     if(b < 0) b = 0;
 
-	pixel[0] = r;
+	pixel[0] = b;
 	pixel[1] = g;
-	pixel[2] = b;
+	pixel[2] = r;
 
 	return rgb_24;
 }
@@ -70,16 +70,18 @@ int yuv2rgb(unsigned char *yuv, unsigned char *rgb, unsigned int width, unsigned
 				   yuv[in + 2] << 16 |
 				   yuv[in + 1] << 8  |
 				   yuv[in + 0];
-#if 0
+#if 1
+        /* Output data mode:Y U Y V */
+		y0 = (pixel_16 & 0x000000ff);
+		u  = (pixel_16 & 0x0000ff00) >> 8;
+		y1 = (pixel_16 & 0x00ff0000) >> 16;
+		v  = (pixel_16 & 0xff000000) >> 24;
+#else
+        /* Output data mode:U Y V Y */
 		u  = (pixel_16 & 0x000000ff);
 		y0 = (pixel_16 & 0x0000ff00) >> 8;
 		v  = (pixel_16 & 0x00ff0000) >> 16;
 		y1 = (pixel_16 & 0xff000000) >> 24;
-#else
-		y0 = (pixel_16 & 0x000000ff);
-		v  = (pixel_16 & 0x0000ff00) >> 8;
-		y1 = (pixel_16 & 0x00ff0000) >> 16;
-		u  = (pixel_16 & 0xff000000) >> 24;
 #endif
 
 		rgb_24 = yuv2rgb_pixel(y0, u, v);

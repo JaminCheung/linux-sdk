@@ -7,7 +7,7 @@
 #ifndef _BF3703_H
 #define _BF3703_H
 
-const struct camera_regval_list bf3703_init_regs[] = {
+static const struct camera_regval_list bf3703_init_regs[] = {
     {0x12, 0x00},
     {0x11, 0x80},
     {0x13, 0x07},
@@ -159,7 +159,7 @@ const struct camera_regval_list bf3703_init_regs[] = {
 /*
  * 320 x 240
  */
-const struct camera_regval_list bf3703_qvga_regs[] = {
+static const struct camera_regval_list bf3703_qvga_regs[] = {
     {0x17, 0x00},
     {0x18, 0xa0},
     {0x19, 0x00},
@@ -169,7 +169,7 @@ const struct camera_regval_list bf3703_qvga_regs[] = {
     ENDMARKER
 };
 
-const struct camera_regval_list bf3703_vga_regs[] = {
+static const struct camera_regval_list bf3703_vga_regs[] = {
     ENDMARKER
 };
 

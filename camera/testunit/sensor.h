@@ -8,9 +8,25 @@
 #ifndef _SENSOR_H
 #define _SENSOR_H
 
+/*
+ * Macros
+ */
+#define VERSION(pid, ver)   ((pid<<8)|(ver&0xFF))
+#define GC2155_ID           0x2155
+#define BF3703_ID           0x3703
+#define OV7725_ID           0x7721
+
+/*
+ * Sensor的I2C地址
+ */
+#define GC2155_I2C_ADDR     0x3c
+#define BF3703_I2C_ADDR     0x6e
+#define OV7725_I2C_ADDR     0x21
+
 enum sensor_list {
     GC2155,
     BF3703,
+    OV7725,
 };
 
 struct sensor_info {
@@ -40,26 +56,9 @@ struct image_fmt {
 #define IMAGE_FMT(n, w, h, r) \
 	{.name = n, .width = w , .height = h, .regs_val = r }
 
-/* Select the nearest higher resolution */
-const struct image_fmt *select_image_fmt(uint32_t *width, uint32_t *height,
-                                         const struct image_fmt supported_image_fmts[])
-{
-	int index = 0;
-    while(supported_image_fmts[index].name &&
-          supported_image_fmts[index].regs_val) {
-        if (supported_image_fmts[index].width  >= *width &&
-            supported_image_fmts[index].height >= *height) {
-            *width = supported_image_fmts[index].width;
-            *height = supported_image_fmts[index].height;
-            return &supported_image_fmts[index];
-        }
-
-        index++;
-    }
-
-    *width = supported_image_fmts[0].width;
-    *height = supported_image_fmts[0].height;
-    return &supported_image_fmts[0];
-}
+const struct image_fmt *select_image_fmt(uint32_t *width, uint32_t *height, \
+                                         const struct image_fmt supported_image_fmts[]);
+void sensor_config(enum sensor_list sensor , struct camera_manager *cm,  \
+                   uint32_t *width, uint32_t *height);
 
 #endif /* _SENSOR_H */
