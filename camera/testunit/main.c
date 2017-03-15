@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
 
     /* 设置分辨率和像素深度 */
     cm->set_img_param(&img);
-    img.size = img.width * img.height * img.bpp / 2;
+    img.size = img.width * img.height * img.bpp / 8;
 
     /* 内存申请 */
     yuvbuf = (uint8_t *)malloc(img.size);
@@ -173,7 +173,7 @@ int main(int argc, char *argv[])
         /* 开始获取图像 */
         ret = cm->camera_read(yuvbuf, img.size);
         LOGE("Camera read return value:%d\n", ret);
-        if (ret < 0) {
+        if (ret != img.size) {
             /**
              * camera read failed
              */
