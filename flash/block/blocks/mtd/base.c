@@ -63,7 +63,7 @@ int64_t mtd_basic_erase(struct filesystem *fs) {
 
     fs_flags_get(fs, &noskipbad);
 
-    offset = MTD_DEV_INFO_TO_START(mtd);
+    offset = fs->params->offset;
     start = MTD_OFFSET_TO_EB_INDEX(mtd, offset);
     end = MTD_OFFSET_TO_EB_INDEX(mtd,
                                  MTD_BLOCK_ALIGN(mtd, offset + fs->params->length + mtd->eb_size - 1));
