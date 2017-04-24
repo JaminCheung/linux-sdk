@@ -676,7 +676,7 @@ struct i2c_manager *get_i2c_manager(void);
 /*
  * sensor每设置一个寄存器之后的延时时间，单位是us, 可以根据实际要求修改此宏值
  */
-#define SENSOR_SET_REG_DELAY_US  100
+#define SENSOR_SET_REG_DELAY_US  50
 /*
  * sensor寄存器地址的长度, 以BIT为单位, 有8BIT或16BIT, 应该根据实际使用的sensor修改此宏值
  */
@@ -687,6 +687,7 @@ struct i2c_manager *get_i2c_manager(void);
 #define ADDR_END    0xff
 #define VAL_END     0xff
 #define ENDMARKER   {0xff, 0xff}
+#define DELAY_FLAG
 
 /*
  * 配置sensor寄存器时, 需传入struct regval_list结构体指针, 以指定配置的寄存器和配置的值
@@ -731,9 +732,9 @@ struct camera_img_param {
 /*
  * 用于设置camera 控制器时序的结构, 每个成员说明如下:
  *            mclk_freq: mclk 的频率
- *    pclk_active_level: pclk 的有效电平, 为0是高电平有效, 为1则是低电平有效
- *   hsync_active_level: hsync 的有效电平, 为0是高电平有效, 为1则是低电平有效
- *   vsync_active_level: vsync 的有效电平, 为0是高电平有效, 为1则是低电平有效
+ *    pclk_active_level: pclk 的有效电平, 为1是高电平有效, 为0则是低电平有效
+ *   hsync_active_level: hsync 的有效电平, 为1是高电平有效, 为0则是低电平有效
+ *   vsync_active_level: vsync 的有效电平, 为1是高电平有效, 为0则是低电平有效
  */
 struct camera_timing_param {
     uint32_t mclk_freq;

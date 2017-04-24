@@ -39,6 +39,7 @@ static struct sensor_info sensor_info[] = {
     {GC2155, "gc2155"},
     {BF3703, "bf3703"},
     {OV7725, "ov7725"},
+    {OV2640, "ov2640"},
 };
 
 static const char short_options[] = "hx:y:s:";
@@ -143,18 +144,17 @@ int main(int argc, char *argv[])
     }
 
     /* sensor probe and 寄存器配置 */
-    sensor_config(sensor, cm, &img.width, &img.height);
-
-    /* 设置控制器时序和mclk频率 */
-    timing.mclk_freq = 24000000;
-    timing.pclk_active_level  = 0;
-    timing.hsync_active_level = 1;
-    timing.vsync_active_level = 1;
-    cm->set_timing_param(&timing);
+    sensor_config(sensor, cm, &img);
 
     /* 设置分辨率和像素深度 */
     cm->set_img_param(&img);
-    img.size = img.width * img.height * img.bpp / 8;
+
+    /* 设置控制器时序和mclk频率 */
+    timing.mclk_freq = 24000000;
+    timing.pclk_active_level  = 1;
+    timing.hsync_active_level = 1;
+    timing.vsync_active_level = 1;
+    cm->set_timing_param(&timing);
 
     /* 内存申请 */
     yuvbuf = (uint8_t *)malloc(img.size);

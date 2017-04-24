@@ -128,7 +128,6 @@ static int32_t sensor_write_reg(uint32_t regaddr, uint8_t regval) {
 }
 
 static int32_t sensor_setup_regs(const struct camera_regval_list *vals) {
-
     while(1) {
         if ((vals->regaddr == ADDR_END) && \
             (vals->regval == VAL_END)) {
@@ -137,6 +136,12 @@ static int32_t sensor_setup_regs(const struct camera_regval_list *vals) {
         }
         sensor_write_reg(vals->regaddr, vals->regval);
         usleep(SENSOR_SET_REG_DELAY_US);
+#if 0
+        uint8_t retval = sensor_read_reg(vals->regaddr);
+        if (retval != vals->regval) {
+            LOGE("Set sensor {0x%02x, 0x%02x} failed, retval: 0x%02x\n", vals->regaddr, vals->regval, retval);
+        }
+#endif
         vals++;
     }
 

@@ -24,6 +24,7 @@
 #include "gc2155.h"
 #include "bf3703.h"
 #include "ov7725.h"
+#include "ov2640.h"
 
 #define LOG_TAG   "sensor"
 
@@ -52,8 +53,7 @@ const struct image_fmt *select_image_fmt(uint32_t *width, uint32_t *height,
     return &supported_image_fmts[0];
 }
 
-void sensor_config(enum sensor_list sensor, struct camera_manager *cm,
-                   uint32_t *width, uint32_t *height)
+void sensor_config(enum sensor_list sensor, struct camera_manager *cm, struct camera_img_param *img)
 {
     uint8_t pid, vid;
     const struct image_fmt *fmt;
@@ -61,7 +61,7 @@ void sensor_config(enum sensor_list sensor, struct camera_manager *cm,
     switch(sensor) {
     /* Only for GC2155 */
     case GC2155:
-        fmt = select_image_fmt(width, height, gc2155_supported_fmts);
+        fmt = select_image_fmt(&img->width, &img->height, gc2155_supported_fmts);
 
         /* Set sensor device addr */
         cm->sensor_setup_addr(GC2155_I2C_ADDR);
@@ -80,7 +80,7 @@ void sensor_config(enum sensor_list sensor, struct camera_manager *cm,
 
     /* Only for BF3703 */
     case BF3703:
-        fmt = select_image_fmt(width, height, bf3703_supported_fmts);
+        fmt = select_image_fmt(&img->width, &img->height, bf3703_supported_fmts);
 
         /* Set sensor device addr */
         cm->sensor_setup_addr(BF3703_I2C_ADDR);
@@ -94,6 +94,7 @@ void sensor_config(enum sensor_list sensor, struct camera_manager *cm,
 
         /* Reset all registers */
         cm->sensor_write_reg(0x12, 0x80);
+        usleep(2000);
 
         /* 配置 sensor 的寄存器 */
         cm->sensor_setup_regs(bf3703_init_regs);
@@ -102,7 +103,7 @@ void sensor_config(enum sensor_list sensor, struct camera_manager *cm,
 
     /* Only for OV7725 */
     case OV7725:
-        fmt = select_image_fmt(width, height, ov7725_supported_fmts);
+        fmt = select_image_fmt(&img->width, &img->height, ov7725_supported_fmts);
 
         /* Set sensor device addr */
         cm->sensor_setup_addr(OV7725_I2C_ADDR);
@@ -116,10 +117,46 @@ void sensor_config(enum sensor_list sensor, struct camera_manager *cm,
 
         /* Reset all registers */
         cm->sensor_write_reg(0x12, 0x80);
+        usleep(2000);
 
         /* 配置 sensor 的寄存器 */
         cm->sensor_setup_regs(ov7725_init_regs);
         cm->sensor_setup_regs(fmt->regs_val);
+        break;
+
+    /* Only for OV2640 */
+    case OV2640:
+        fmt = select_image_fmt(&img->width, &img->height, ov2640_supported_fmts);
+
+        /* Set sensor device addr */
+        cm->sensor_setup_addr(OV2640_I2c_ADDR);
+
+        /* Probe sensor ID */
+        pid = cm->sensor_read_reg(0x0a);
+        vid = cm->sensor_read_reg(0x0b);
+        if (VERSION(pid, vid) != OV2640_ID)
+            goto probe_error;
+        LOGE("OV2640 probe successed: pid = 0x%02x, vid = 0x%02x\n", pid, vid);
+
+        /* Reset all registers */
+        cm->sensor_write_reg(0xff, 0x01);
+        cm->sensor_write_reg(0x12, 0x80);
+        usleep(2000);
+
+        /* Initiates sensor with default data */
+        cm->sensor_setup_regs(ov2640_init_regs);
+
+        /* Select preamble */
+        cm->sensor_setup_regs(ov2640_size_change_preamble_regs);
+
+        /* Set size win */
+        cm->sensor_setup_regs(fmt->regs_val);
+
+        /* cfmt preamble */
+        cm->sensor_setup_regs(ov2640_format_change_preamble_regs);
+
+        /* Set cfmt */
+        cm->sensor_setup_regs(ov2640_yuyv_regs);
         break;
 
     /*Don't match any sensor */
@@ -128,6 +165,7 @@ void sensor_config(enum sensor_list sensor, struct camera_manager *cm,
         exit(EXIT_FAILURE);
     }
 
+    img->size = img->width * img->height * img->bpp / 8;
     putchar('\0'); // do nothing
     return;
 
