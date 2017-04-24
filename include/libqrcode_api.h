@@ -1045,9 +1045,9 @@ enum spi {
 /**
  * 注意：init函数的mode参数有一下几种类型
  * SPI_MODE_0 (0|0)                //SCLK空闲时为低电平，串行同步时钟的前沿（上升）数据被采样
- * SPI_MODE_1 (0|SPI_CPHA)         //SCLK空闲时为高电平，串行同步时钟的前沿（下降）数据被采样
- * SPI_MODE_2 (SPI_CPOL|0)         //SCLK空闲时为低电平，串行同步时钟的后沿（上升）数据被采样
- * SPI_MODE_3 (SPI_CPOL|SPI_CPHA)  //SCLK空闲时为高电平，串行同步时钟的后沿（下降）数据被采样
+ * SPI_MODE_1 (0|SPI_CPHA)         //SCLK空闲时为低电平，串行同步时钟的后沿（下降）数据被采样
+ * SPI_MODE_2 (SPI_CPOL|0)         //SCLK空闲时为高电平，串行同步时钟的前沿（下降）数据被采样
+ * SPI_MODE_3 (SPI_CPOL|SPI_CPHA)  //SCLK空闲时为高电平，串行同步时钟的后沿（上升）数据被采样
  * SPI_CS_HIGH   0x04              //片选为高
  * SPI_LSB_FIRST 0x08              //低位数据先传输
  * SPI_3WIRE     0x10              //三线式，输入输出数据线为一条线 (这里不支持!!）

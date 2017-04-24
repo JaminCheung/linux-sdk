@@ -21,9 +21,9 @@
 /**
  * 注意：init函数的mode参数有一下几种类型
  * SPI_MODE_0 (0|0)                //SCLK空闲时为低电平，串行同步时钟的前沿（上升）数据被采样
- * SPI_MODE_1 (0|SPI_CPHA)         //SCLK空闲时为高电平，串行同步时钟的前沿（下降）数据被采样
- * SPI_MODE_2 (SPI_CPOL|0)         //SCLK空闲时为低电平，串行同步时钟的后沿（上升）数据被采样
- * SPI_MODE_3 (SPI_CPOL|SPI_CPHA)  //SCLK空闲时为高电平，串行同步时钟的后沿（下降）数据被采样
+ * SPI_MODE_1 (0|SPI_CPHA)         //SCLK空闲时为低电平，串行同步时钟的后沿（下降）数据被采样
+ * SPI_MODE_2 (SPI_CPOL|0)         //SCLK空闲时为高电平，串行同步时钟的前沿（下降）数据被采样
+ * SPI_MODE_3 (SPI_CPOL|SPI_CPHA)  //SCLK空闲时为高电平，串行同步时钟的后沿（上升）数据被采样
  * SPI_CS_HIGH   0x04              //片选为高
  * SPI_LSB_FIRST 0x08              //低位数据先传输
  * SPI_3WIRE     0x10              //三线式，输入输出数据线为一条线 (这里不支持!!）
@@ -46,7 +46,7 @@
  */
 int main(int argc, char *argv[])
 {
-    uint32_t i;
+    uint32_t i, cnt;
     uint32_t speed;
     uint8_t mode;
     uint8_t bits;
@@ -60,6 +60,11 @@ int main(int argc, char *argv[])
     };
     uint8_t rx[ARRAY_SIZE(tx)] = {0};
     struct spi_manager *spi;
+
+    if (argc > 1)
+        cnt = atoi(argv[1]);
+    else
+        cnt = 20;
 
     /* 获取操作SPI的句柄 */
     spi = get_spi_manager();
@@ -76,16 +81,19 @@ int main(int argc, char *argv[])
     /* 初始化SPI */
     spi->init(SPI_DEV0, mode, bits, speed);
 
-    /* SPI 发送数据， 同时接收数据 */
-    spi->transfer(SPI_DEV0, tx, rx, ARRAY_SIZE(tx));
+    while(cnt--) {
+        /* SPI 发送数据， 同时接收数据 */
+        spi->transfer(SPI_DEV0, tx, rx, ARRAY_SIZE(tx));
 
-    /* 打印接收的数据 */
-    for (i = 0; i < ARRAY_SIZE(tx); i++) {
-        if (!(i % 6))
-            puts("");
-        printf("%.2X ", rx[i]);
+        /* 打印接收的数据 */
+        for (i = 0; i < ARRAY_SIZE(tx); i++) {
+            if (!(i % 6))
+                puts("");
+            printf("%.2X ", rx[i]);
+        }
+        puts("");
+        usleep(100*1000);
     }
-    puts("");
 
     /* 释放设备 */
     spi->deinit(SPI_DEV0);
