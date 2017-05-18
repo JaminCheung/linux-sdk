@@ -1,5 +1,5 @@
-#ifndef LIBQRCODE_API_H
-#define LIBQRCODE_API_H
+#ifndef INGENIC_API_H
+#define INGENIC_API_H
 
 #include <types.h>
 

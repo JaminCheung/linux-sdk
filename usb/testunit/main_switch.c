@@ -14,7 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 #define  DEV_HID                                   "/dev/hidg0"
 #define  DEV_CDC_ACM                        "/dev/ttyGS0"

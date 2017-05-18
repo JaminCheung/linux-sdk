@@ -15,7 +15,7 @@
  */
 #ifndef UART_MANAGER_H
 #define UART_MANAGER_H
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
  struct uart_port_dev {
     char name[NAME_MAX];
     struct sp_port* sp_port;

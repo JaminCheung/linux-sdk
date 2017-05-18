@@ -19,7 +19,7 @@
 
 #include <utils/thread_pool.h>
 #include <sys/time.h>
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 /* The scheduled policy used for epoll thread */
 #define TIMER_WORK_THREAD_POLICY                      SCHED_RR

@@ -27,5 +27,5 @@ struct  flash_info {
     pthread_mutex_t mutex_lock;
 };
 
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 #endif

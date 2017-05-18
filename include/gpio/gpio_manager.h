@@ -17,7 +17,7 @@
 #ifndef GPIO_MANAGER_H
 #define GPIO_MANAGER_H
 
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 struct gpio_pin {
     uint32_t no;
     gpio_direction direction;

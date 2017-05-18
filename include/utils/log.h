@@ -29,7 +29,7 @@
 
 __attribute__((unused)) static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INITIALIZER;
 
-#define TAG_BASE "libqrcode--->"
+#define TAG_BASE "libingenic--->"
 
 #define LOGV(...)                                                              \
     do {                                                                       \

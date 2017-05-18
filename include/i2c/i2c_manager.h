@@ -16,7 +16,7 @@
 #ifndef I2C_MANAGER_H
 #define I2C_MANAGER_H
 
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 /*
  * Macros

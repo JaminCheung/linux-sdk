@@ -2,7 +2,7 @@
 #define USB_MANAGER_H
 
 #include <limits.h>
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 /**
  * USB basic dependence

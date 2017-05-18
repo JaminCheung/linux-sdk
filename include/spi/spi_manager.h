@@ -16,6 +16,6 @@
 #ifndef SPI_MANAGER_H
 #define SPI_MANAGER_H
 
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 #endif /* SPI_MANAGER_H */

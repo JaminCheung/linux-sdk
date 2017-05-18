@@ -16,6 +16,6 @@
 #ifndef WATCHDOG_MANAGER_H
 #define WATCHDOG_MANAGER_H
 
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 #endif /* WATCHDOG_MANAGER_H */

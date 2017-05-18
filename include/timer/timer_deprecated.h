@@ -18,7 +18,7 @@
 
 #include <utils/thread_pool.h>
 #include <sys/time.h>
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 #define TIMER_WORK_THREAD_POLICY                      SCHED_RR
 #define TIMER_WORK_THREAD_PRIORITY                   1

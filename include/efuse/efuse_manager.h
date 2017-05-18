@@ -16,7 +16,7 @@
 #ifndef EFUSE_MANAGER_H
 #define EFUSE_MANAGER_H
 
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 /*
  * Macros

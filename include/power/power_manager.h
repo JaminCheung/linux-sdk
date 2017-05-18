@@ -16,6 +16,6 @@
 #ifndef POWER_MANAGER_H
 #define POWER_MANAGER_H
 
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 #endif /* POWER_MANAGER_H */

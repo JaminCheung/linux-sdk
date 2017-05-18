@@ -18,7 +18,7 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 #include "sensor.h"
 #include "yuv2bmp.h"

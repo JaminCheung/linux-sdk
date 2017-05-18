@@ -16,7 +16,7 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 /**
  * 注意：init函数的mode参数有一下几种类型

@@ -26,7 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 /* 传输超时时间 */
 #define TEST_HID_TRANSFER_TIMEOUT    100

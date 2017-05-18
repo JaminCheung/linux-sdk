@@ -22,7 +22,7 @@
 #include <sys/ioctl.h>
 
 #include <utils/log.h>
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 #define LOG_TAG "security"
 

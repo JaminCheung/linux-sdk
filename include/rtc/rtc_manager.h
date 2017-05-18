@@ -16,6 +16,6 @@
 #ifndef RTC_MANAGER_H
 #define RTC_MANAGER_H
 
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 #endif /* RTC_MANAGER_H */

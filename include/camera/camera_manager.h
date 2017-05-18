@@ -16,7 +16,7 @@
 #ifndef CAMERA_MANAGER_H
 #define CAMERA_MANAGER_H
 
-#include <libqrcode_api.h>
+#include <ingenic_api.h>
 
 /*
  * Ioctl Commands
