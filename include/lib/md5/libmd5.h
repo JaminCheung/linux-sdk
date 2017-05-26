@@ -14,14 +14,22 @@
  *
  */
 
-#ifndef FILE_OPS_H
-#define FILE_OPS_H
+#ifndef LIB_MD5_H
+#define LIB_MD5_H
 
-int file_exist(const char *path);
-int file_executable(const char *path);
-unsigned int get_file_size(const char *path);
-int dir_exist(const char* path);
-int dir_delete(const char *path);
-int dir_create(const char* path);
+typedef struct
+{
+    unsigned int count[2];
+    unsigned int state[4];
+    unsigned char buffer[64];
 
-#endif /* FILE_OPS_H */
+} MD5_CTX;
+
+void MD5Init(MD5_CTX *context);
+void MD5Update(MD5_CTX *context, unsigned char *input, unsigned int inputlen);
+void MD5Final(MD5_CTX *context, unsigned char digest[16]);
+void MD5Transform(unsigned int state[4], unsigned char block[64]);
+void MD5Encode(unsigned char *output, unsigned int *input, unsigned int len);
+void MD5Decode(unsigned int *output, unsigned char *input, unsigned int len);
+
+#endif

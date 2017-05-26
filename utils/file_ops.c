@@ -62,34 +62,6 @@ int get_file_size(const char *path) {
     return s.st_size;
 }
 
-char* load_file(const char *path) {
-    char *buffer = NULL;
-    unsigned int size;
-    FILE *fp = NULL;
-
-    size = get_file_size(path);
-    if (size < 0) {
-        goto out;
-    }
-    buffer = malloc(size);
-    if (buffer == NULL)
-        goto out;
-
-    fp = fopen(path, "r");
-    if (fp == NULL)
-        goto out;
-    if (fread(buffer, size, 1, fp) != size)
-        goto out;
-
-    if (fp)
-        fclose(fp);
-    return buffer;
-out:
-    if (fp)
-        fclose(fp);
-    return NULL;
-}
-
 int check_file_md5(const char* path, const char* md5) {
     int fd = 0;
     int i;

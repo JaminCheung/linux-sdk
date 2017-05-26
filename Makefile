@@ -23,10 +23,10 @@ include config.mk
 #
 # Netlink
 #
-OBJ-y += netlink/netlink_manager.o                                            \
-          netlink/netlink_listener.o                                           \
-          netlink/netlink_handler.o                                            \
-          netlink/netlink_event.o
+OBJ-y += netlink/netlink_manager.o                                             \
+         netlink/netlink_listener.o                                            \
+         netlink/netlink_handler.o                                             \
+         netlink/netlink_event.o
 
 #
 # Utils
@@ -35,6 +35,7 @@ OBJ-y += utils/signal_handler.o                                                \
          utils/compare_string.o                                                \
          utils/assert.o                                                        \
          utils/common.o                                                        \
+         utils/file_ops.o                                                      \
          utils/thread_pool/thread_pool.o
 
 #
@@ -120,6 +121,16 @@ OBJ-y += input/input_manager.o
 #
 OBJ-y += battery/battery_manager.o
 
+#
+# Alarm
+#
+OBJ-y += alarm/alarm_manager.o
+
+#
+# Mount
+#
+OBJ-y += mount/mount_manager.o
+
 OBJS := $(OBJ-y)
 
 #
@@ -144,6 +155,11 @@ LIBS-OBJ-y += lib/mtd/libmtd_legacy.o                   \
 # lib gpio serving for gpio
 #
 LIBS-OBJ-y += lib/gpio/libgpio.o
+
+#
+# MD5 Lib
+#
+LIBS-OBJ-y += lib/md5/libmd5.o
 
 LIBS-OBJS := $(LIBS-OBJ-y)
 
@@ -179,6 +195,7 @@ testunit:
 	make -C usb/testunit all
 	make -C security/testunit all
 	make -C battery/testunit all
+	make -C mount/testunit all
 
 testunit_clean:
 	make -C uart/testunit clean
@@ -196,6 +213,7 @@ testunit_clean:
 	make -C usb/testunit clean
 	make -C security/testunit clean
 	make -C battery/testunit clean
+	make -C mount/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS-OBJS) $(OBJS)
