@@ -21,12 +21,20 @@ endif
 include config.mk
 
 #
+# Netlink
+#
+OBJ-y += netlink/netlink_manager.o                                            \
+          netlink/netlink_listener.o                                           \
+          netlink/netlink_handler.o                                            \
+          netlink/netlink_event.o
+
+#
 # Utils
 #
-OBJ-y += utils/signal_handler.o                     \
-         utils/compare_string.o                     \
-         utils/assert.o                             \
-         utils/common.o                             \
+OBJ-y += utils/signal_handler.o                                                \
+         utils/compare_string.o                                                \
+         utils/assert.o                                                        \
+         utils/common.o                                                        \
          utils/thread_pool/thread_pool.o
 
 #
@@ -87,10 +95,10 @@ OBJ-y += spi/spi_manager.o
 #
 # Flash
 #
-OBJ-y +=  flash/flash_manager.o                         \
-          flash/block/blocks/mtd/mtd.o                  \
-          flash/block/blocks/mtd/base.o                 \
-          flash/block/fs/fs_manager.o                   \
+OBJ-y +=  flash/flash_manager.o                                                \
+          flash/block/blocks/mtd/mtd.o                                         \
+          flash/block/blocks/mtd/base.o                                        \
+          flash/block/fs/fs_manager.o                                          \
           flash/block/fs/normal.o
 #
 # USB
@@ -101,6 +109,16 @@ OBJ-y += usb/usb_device_manager.o
 # Security
 #
 OBJ-y += security/security_manager.o
+
+#
+# Input
+#
+OBJ-y += input/input_manager.o
+
+#
+# Battery
+#
+OBJ-y += battery/battery_manager.o
 
 OBJS := $(OBJ-y)
 
@@ -141,6 +159,7 @@ $(TARGET): $(OBJS) $(LIBS-OBJS)
 	$(QUIET_LINK)$(LINK_OBJS) $(LDFLAGS) $(LDSHFLAGS) $(OBJS) $(LIBS-OBJS) -o $(OUTDIR)/$@
 	@$(STRIP) $(OUTDIR)/$@
 	@echo -e '\n  sdk: $(shell basename $(OUTDIR))/$@ is ready\n'
+
 #
 # Test unit
 #
@@ -159,6 +178,7 @@ testunit:
 	make -C spi/testunit all
 	make -C usb/testunit all
 	make -C security/testunit all
+	make -C battery/testunit all
 
 testunit_clean:
 	make -C uart/testunit clean
@@ -175,6 +195,7 @@ testunit_clean:
 	make -C spi/testunit clean
 	make -C usb/testunit clean
 	make -C security/testunit clean
+	make -C battery/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS-OBJS) $(OBJS)
