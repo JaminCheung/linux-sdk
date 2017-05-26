@@ -34,6 +34,16 @@
 /*
  * Macros
  */
+#define CHECK_I2C_FUNC(funcs, lable)                \
+    do {                                            \
+            assert_die_if(0 == (funcs & lable),     \
+            #lable " i2c function is required.");   \
+    } while (0);
+
+
+/*
+ * Macros
+ */
 #define LOG_TAG  "i2c"
 
 /*

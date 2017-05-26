@@ -32,6 +32,13 @@
 #include <lib/uart/libserialport_internal.h>
 #include <uart/uart_manager.h>
 
+ struct uart_port_dev {
+    char name[NAME_MAX];
+    struct sp_port* sp_port;
+    struct sp_port_config *sp_config;
+    uint8_t in_use;
+};
+
 #define LOG_TAG "uart"
 
 static struct uart_port_dev port_dev[UART_MAX_CHANNELS];

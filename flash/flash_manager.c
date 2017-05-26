@@ -21,6 +21,17 @@
 #include <flash/block/mtd/mtd.h>
 #include <flash/flash_manager.h>
 
+struct  flash_info {
+    struct block_manager *blk_mgr;
+    uint32_t init_called;
+    struct bm_operation_option operation_option;
+    struct bm_operate_prepare_info*  prepare_info;
+    uint32_t block_size;
+    uint32_t page_size;
+    int64_t capacity;
+    pthread_mutex_t mutex_lock;
+};
+
 #define LOG_TAG "flash_manager"
 
 static struct flash_info flash_info;

@@ -22,7 +22,7 @@
 #include <sys/ioctl.h>
 
 #include <utils/log.h>
-#include <ingenic_api.h>
+#include <security/security_manager.h>
 
 #define LOG_TAG "security"
 

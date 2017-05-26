@@ -16,7 +16,7 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <ingenic_api.h>
+#include <power/power_manager.h>
 
 
 #define LOG_TAG   "test_power"

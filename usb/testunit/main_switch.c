@@ -14,8 +14,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ingenic_api.h>
-
+#include <usb/usb_manager.h>
 #define  DEV_HID                                   "/dev/hidg0"
 #define  DEV_CDC_ACM                        "/dev/ttyGS0"
 #define  METHOD_1                       0

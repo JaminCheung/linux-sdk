@@ -10,7 +10,7 @@
 #include <sys/types.h>
 #include <types.h>
 #include <utils/log.h>
-#include <ingenic_api.h>
+#include <flash/flash_manager.h>
 
 #define LOG_TAG "test_flash"
 

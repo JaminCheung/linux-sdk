@@ -26,7 +26,7 @@
 #include <types.h>
 #include <sys/time.h>
 #include <utils/log.h>
-#include <ingenic_api.h>
+#include <timer/timer_manager.h>
 
 #define LOG_TAG "test_timer"
 

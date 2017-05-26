@@ -28,7 +28,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <ingenic_api.h>
+#include <usb/usb_manager.h>
 
 /* 传输超时时间 */
 #define TEST_CDC_ACM_WRITE_TIMEOUT    100

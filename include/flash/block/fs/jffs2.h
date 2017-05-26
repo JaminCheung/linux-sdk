@@ -1,6 +1,7 @@
 #ifndef JFFS2_H
 #define JFFS2_H
-
+#include <flash/block/fs/fs_manager.h>
+#include <linux/jffs2.h>
 int jffs2_init_cleanmarker(struct filesystem *fs,
                          struct jffs2_unknown_node *maker,
                          int *pos, int *len);

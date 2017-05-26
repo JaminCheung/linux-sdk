@@ -4,7 +4,7 @@
 #include <pthread.h>
 
 #include <utils/log.h>
-#include <ingenic_api.h>
+#include <gpio/gpio_manager.h>
 
 #define LOG_TAG "test_gpio"
 
