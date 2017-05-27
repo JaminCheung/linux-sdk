@@ -11,7 +11,7 @@
 #include <types.h>
 #include <sys/time.h>
 #include <utils/log.h>
-#include <ingenic_api.h>
+#include <timer/timer_manager.h>
 
 #define LOG_TAG  "test_timer"
 /* 每个定时器: 定时周期, 单位:ms  */

@@ -18,7 +18,7 @@
 
 #include <utils/thread_pool.h>
 #include <sys/time.h>
-#include <ingenic_api.h>
+#include <timer/timer_manager.h>
 
 #define TIMER_WORK_THREAD_POLICY                      SCHED_RR
 #define TIMER_WORK_THREAD_PRIORITY                   1

@@ -1,6 +1,8 @@
 #ifndef MTD_H
 #define MTD_H
 
+#include <flash/block/fs/fs_manager.h>
+#include <flash/block/block_manager.h>
 // #define MTD_OPEN_DEBUG
 #define MTD_CHAR_HEAD "/dev/mtd"
 /* normal io unit size is page aligned,  this macro will close the hard restrict */

@@ -15,8 +15,6 @@
 #include <lib/libcommon.h>
 #include <lib/mtd/mtd-user.h>
 #include <utils/list.h>
-#include <flash/block/fs/fs_manager.h>
-#include <flash/block/fs/jffs2.h>
 #include <flash/block/sysinfo/sysinfo_manager.h>
 #include <flash/block/block_manager.h>
 #include <flash/block/mtd/mtd.h>

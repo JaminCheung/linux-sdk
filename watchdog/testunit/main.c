@@ -18,7 +18,7 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <ingenic_api.h>
+#include <watchdog/watchdog_manager.h>
 
 
 #define LOG_TAG      "test_wdt"

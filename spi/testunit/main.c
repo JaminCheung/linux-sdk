@@ -16,7 +16,7 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <ingenic_api.h>
+#include <spi/spi_manager.h>
 
 /**
  * 注意：init函数的mode参数有一下几种类型

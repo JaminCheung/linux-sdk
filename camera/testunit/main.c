@@ -18,7 +18,7 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <ingenic_api.h>
+#include <camera/camera_manager.h>
 
 #include "sensor.h"
 #include "yuv2bmp.h"

@@ -12,7 +12,7 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <ingenic_api.h>
+#include <rtc/rtc_manager.h>
 
 int main(void)
 {

@@ -30,6 +30,25 @@
 /*
  * Macros
  */
+#define CMD_GET_CHIPID     _IOW('E', 0, uint32_t)
+#define CMD_GET_RANDOM     _IOW('E', 1, uint32_t)
+#define CMD_GET_USERID     _IOR('E', 2, uint32_t)
+#define CMD_GET_PROTECTID  _IOR('E', 3, uint32_t)
+#define CMD_WRITE          _IOR('E', 4, uint32_t)
+#define CMD_READ           _IOR('E', 5, uint32_t)
+
+/*
+ * Struct
+ */
+struct efuse_wr_info {
+    uint32_t seg_id;
+    uint32_t data_length;
+    uint32_t *buf;
+};
+
+/*
+ * Macros
+ */
 #define DEFAULT_EFUSE_DEV   "/dev/jz-efuse-v13"
 #define LOG_TAG  "efuse"
 
