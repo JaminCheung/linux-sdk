@@ -196,6 +196,7 @@ testunit:
 	make -C security/testunit all
 	make -C battery/testunit all
 	make -C mount/testunit all
+	make -C alarm/testunit all
 
 testunit_clean:
 	make -C uart/testunit clean
@@ -214,6 +215,7 @@ testunit_clean:
 	make -C security/testunit clean
 	make -C battery/testunit clean
 	make -C mount/testunit clean
+	make -C alarm/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS-OBJS) $(OBJS)

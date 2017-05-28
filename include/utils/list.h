@@ -586,6 +586,16 @@ static inline void list_splice_tail_init(struct list_head *list,
 #define list_safe_reset_next(pos, n, member)				\
 	n = list_entry(pos->member.next, typeof(*pos), member)
 
+static inline size_t get_list_size_locked(struct list_head *list) {
+    struct list_head* pos;
+    size_t count = 0;
+
+    list_for_each(pos, list)
+        count++;
+
+    return count;
+}
+
 /*
  * Double linked lists with a single pointer list head.
  * Mostly useful for hash tables where the two pointer list head is

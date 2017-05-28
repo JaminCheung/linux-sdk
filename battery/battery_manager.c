@@ -154,8 +154,10 @@ static void register_event_listener(battery_event_listener_t listener) {
 
     list_for_each(pos, &listeners) {
         struct listener *l = list_entry(pos, struct listener, head);
-        if (l->cb == listener)
+        if (l->cb == listener) {
+            pthread_mutex_unlock(&listener_lock);
             return;
+        }
     }
 
     struct listener *l = malloc(sizeof(struct listener));
@@ -180,6 +182,8 @@ static void unregister_event_listener(battery_event_listener_t listener) {
             list_del(&l->head);
 
             free(l);
+
+            pthread_mutex_unlock(&listener_lock);
 
             return;
         }

@@ -24,15 +24,6 @@
     #define ARRAY_SIZE(a) ((sizeof(a)) / (sizeof(a[0])))
 #endif
 
-struct global_data {
-    const char* public_key_path;
-    const char* configure_file_path;
-    const char* font_path;
-    uint8_t has_fb;
-};
-
-extern struct global_data g_data;
-
 enum system_platform_t {
     XBURST,
     UNKNOWN,
@@ -60,11 +51,5 @@ int download_file(const char* file, const char* path);
 void msleep(uint64_t msec);
 void cold_boot(const char *path);
 enum system_platform_t get_system_platform(void);
-
-#if 0
-int get_multiplier(const char *str);
-long long get_bytes(const char *str);
-void print_bytes(long long bytes, int bracket);
-#endif
 
 #endif /* COMMON_H */
