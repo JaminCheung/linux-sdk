@@ -27,59 +27,142 @@
 #include <utils/assert.h>
 #include <rtc/rtc_manager.h>
 
+#define LOG_TAG "rtc_manager"
+#define RTC_DEV "/dev/rtc0"
 
-/*
- * Macros
- */
-#define LOG_TAG             "rtc"
-#define RTC_DEV              "/dev/rtc0"
+#define JZ_RTC_HIBERNATE_STATUS _IOR('r', 0x01, int)    /* Hibernate wakeup status  */
 
+static int fd;
+static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 
-static int32_t rtc_read(struct rtc_time *time) {
-    int fd;
-    assert_die_if(time == NULL, "rtc read time , time is null\n");
+static int32_t init(void) {
+    int error = 0;
+
+    pthread_mutex_lock(&init_lock);
+    if (fd > 0) {
+        LOGE("rtc manager already init.\n");
+        goto error;
+    }
 
     fd = open(RTC_DEV, O_RDONLY);
     if(fd < 0) {
-        LOGE("Failed to read rtc time : open errno %s\n", strerror(errno));
-        return -1;
+        LOGE("Failed to open %s: %s\n", RTC_DEV, strerror(errno));
+        goto error;
     }
+
+    error = ioctl(fd, RTC_AIE_OFF, 0);
+    if (error < 0) {
+        LOGE("Failed to disable rtc aie: %s\n", strerror(errno));
+        goto error;
+    }
+
+    pthread_mutex_unlock(&init_lock);
+
+    return 0;
+
+error:
+    if (fd > 0)
+        close(fd);
+    pthread_mutex_unlock(&init_lock);
+
+    return -1;
+}
+
+static int32_t deinit(void) {
+    pthread_mutex_lock(&init_lock);
+    if (fd <= 0) {
+        LOGE("rtc manager already deinit.\n");
+        goto error;
+    }
+
+    if (fd > 0)
+        close(fd);
+
+    pthread_mutex_unlock(&init_lock);
+
+error:
+    pthread_mutex_unlock(&init_lock);
+    return -1;
+}
+
+static int32_t get_rtc(struct rtc_time *time) {
+    assert_die_if(time == NULL, "rtc read time , time is null\n");
 
     memset(time, 0, sizeof(*time));
 
     if (ioctl(fd, RTC_RD_TIME, time) < 0) {
-        close(fd);
         LOGE("Failed to read rtc time : ioctl errno %s\n", strerror(errno));
         return -1;
     }
 
-    close(fd);
     return 0;
 }
 
-static int32_t rtc_write(const struct rtc_time *time) {
-    int fd;
+static int32_t set_rtc(const struct rtc_time *time) {
     assert_die_if(time == NULL, "rtc write time , time is null\n");
 
-    fd = open(RTC_DEV, O_WRONLY);
-    if(fd < 0) {
-        LOGE("Failed to write rtc time : open errno %s\n", strerror(errno));
-        return -1;
-    }
-
     if (ioctl(fd, RTC_SET_TIME, time) < 0) {
-        close(fd);
         LOGE("Failed to write rtc time : ioctl errno %s\n", strerror(errno));
         return -1;
     }
 
-    close(fd);
+    return 0;
+}
+
+int32_t get_hibernate_wakeup_status(void) {
+    int error = 0;
+    int status = 0;
+
+    error = ioctl(fd, JZ_RTC_HIBERNATE_STATUS, &status);
+    if (error < 0) {
+        LOGE("Failed to get hibernate wakeup status: %s\n", strerror(errno));
+        return -1;
+    }
+
+    return status;
+}
+
+int32_t set_bootup_alarm(struct rtc_time* alarm) {
+    assert_die_if(alarm == NULL, "alarm is null\n");
+
+    int error = 0;
+
+    error = ioctl(fd, RTC_ALM_SET, &alarm);
+    if (error < 0) {
+        if (errno == ENOTTY)
+            LOGE("rtc driver not support alarm IRQ\n");
+        LOGE("Failed to set rtc alarm\n");
+        return -1;
+    }
+
+#ifdef LOCAL_DEBUG
+    struct rtc_time alarm_time;
+    error = ioctl(fd, RTC_ALM_READ, &alarm_time);
+    if (error < 0) {
+        LOGE("Failed to read rtc alarm time\n");
+        return -1;
+    }
+
+    LOGD("Bootup alarm time set to: %02d:%02d:%02d.\n", alarm_time.tm_hour,
+            alarm_time.tm_min, alarm_time.tm_sec);
+#endif
+
+    error = ioctl(fd, RTC_AIE_ON, 0);
+    if (error < 0) {
+        LOGE("Failed to enable alarm IRQ\n");
+        return -1;
+    }
+
     return 0;
 }
 
 struct rtc_manager rtc_manager = {
-    .read   = rtc_read,
-    .write  = rtc_write,
+    .init = init,
+    .deinit = deinit,
+    .set_rtc = set_rtc,
+    .get_rtc = get_rtc,
+    .get_hibernate_wakeup_status = get_hibernate_wakeup_status,
+    .set_bootup_alarm = set_bootup_alarm,
 };
 
 struct rtc_manager *get_rtc_manager(void) {

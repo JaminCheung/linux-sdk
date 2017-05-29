@@ -29,12 +29,17 @@ int main(void)
     time.tm_year = 2016-1900;
     time.tm_isdst = 0;
 
-    if(rtc->write(&time) < 0) {
+    if (rtc->init() < 0) {
+        printf("Failed to init rtc manager\n");
+        return -1;
+    }
+
+    if(rtc->set_rtc(&time) < 0) {
         printf("rtc write error\n");
         return -1;
     }
 
-    if(rtc->read(&time) < 0) {
+    if(rtc->get_rtc(&time) < 0) {
         printf("rtc read error\n");
         return -1;
     }
@@ -43,6 +48,8 @@ int main(void)
             time.tm_year + 1900, time.tm_mon + 1, time.tm_mday,
             time.tm_hour, time.tm_min, time.tm_sec,
             time.tm_yday, time.tm_wday);
+
+    rtc->deinit();
 
     return 0;
 }

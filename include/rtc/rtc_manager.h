@@ -17,6 +17,14 @@
 #define RTC_MANAGER_H
 #include <types.h>
 #include <linux/rtc.h>
+
+enum {
+    JZ_HIBERNATE_WKUP_APD = 0x01,
+    JZ_HIBERNATE_WKUP_PPR,
+    JZ_HIBERNATE_WKUP_ALM,
+    JZ_HIBERNATE_WKUP_UNKNOWN = 0xff
+};
+
 /*
  * 用于设置RTC时间的结构体:
  * struct rtc_time {
@@ -35,6 +43,10 @@
  */
 
 struct rtc_manager {
+    int (*init)(void);
+
+    int (*deinit)(void);
+
     /**
      *      Function: read
      *      Description: 读RTC时钟
@@ -43,7 +55,7 @@ struct rtc_manager {
      *      注意：time是struct rtc_time结构体指针
      *      Return: -1 --> 失败, 0 --> 成功
      */
-    int32_t (*read)(struct rtc_time *time);
+    int32_t (*get_rtc)(struct rtc_time *time);
 
      /**
      *      Function: write
@@ -53,7 +65,11 @@ struct rtc_manager {
      *      注意：time是struct rtc_time结构体指针
      *      Return: -1 --> 失败, 0 --> 成功
      */
-    int32_t (*write)(const struct rtc_time *time);
+    int32_t (*set_rtc)(const struct rtc_time *time);
+
+    int32_t (*get_hibernate_wakeup_status)(void);
+
+    int32_t (*set_bootup_alarm)(struct rtc_time* time);
 };
 
 /**
