@@ -132,6 +132,11 @@ OBJ-y += battery/battery_manager.o
 OBJ-y += alarm/alarm_manager.o
 
 #
+# Vibrator
+#
+OBJ-y += vibrator/vibrator_manager.o
+
+#
 # Mount
 #
 OBJ-y += mount/mount_manager.o
@@ -203,6 +208,7 @@ testunit:
 	make -C mount/testunit all
 	make -C 74hc595/testunit all
 	make -C input/testunit all
+	make -C vibrator/testunit all
 
 testunit_clean:
 	make -C uart/testunit clean
@@ -223,6 +229,7 @@ testunit_clean:
 	make -C mount/testunit clean
 	make -C 74hc595/testunit clean
 	make -C input/testunit clean
+	make -C vibrator/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS-OBJS) $(OBJS)
