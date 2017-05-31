@@ -44,7 +44,7 @@ static int32_t init(void) {
         goto error;
     }
 
-    fd = open(RTC_DEV, O_RDONLY);
+    fd = open(RTC_DEV, O_RDWR);
     if(fd < 0) {
         LOGE("Failed to open %s: %s\n", RTC_DEV, strerror(errno));
         goto error;
@@ -79,6 +79,8 @@ static int32_t deinit(void) {
         close(fd);
 
     pthread_mutex_unlock(&init_lock);
+
+    return 0;
 
 error:
     pthread_mutex_unlock(&init_lock);
@@ -127,11 +129,11 @@ int32_t set_bootup_alarm(struct rtc_time* alarm) {
 
     int error = 0;
 
-    error = ioctl(fd, RTC_ALM_SET, &alarm);
+    error = ioctl(fd, RTC_ALM_SET, alarm);
     if (error < 0) {
         if (errno == ENOTTY)
             LOGE("rtc driver not support alarm IRQ\n");
-        LOGE("Failed to set rtc alarm\n");
+        LOGE("Failed to set rtc alarm: %s\n", strerror(errno));
         return -1;
     }
 
