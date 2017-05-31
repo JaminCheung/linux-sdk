@@ -202,6 +202,7 @@ testunit:
 	make -C battery/testunit all
 	make -C mount/testunit all
 	make -C 74hc595/testunit all
+	make -C input/testunit all
 
 testunit_clean:
 	make -C uart/testunit clean
@@ -221,6 +222,7 @@ testunit_clean:
 	make -C battery/testunit clean
 	make -C mount/testunit clean
 	make -C 74hc595/testunit clean
+	make -C input/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS-OBJS) $(OBJS)

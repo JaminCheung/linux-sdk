@@ -17,4 +17,23 @@
 #ifndef INPUT_MANAGER_H
 #define INPUT_MANAGER_H
 
+#include <linux/input.h>
+
+typedef void (*input_event_listener_t)(struct input_event *event);
+
+struct input_manager {
+    int (*init)(void);
+    int (*deinit)(void);
+    int (*start)(void);
+    int (*stop)(void);
+    int (*get_devices_count)(void);
+    void (*register_event_listener)(input_event_listener_t listener);
+    void (*unregister_event_listener)(input_event_listener_t listener);
+    void (*dump_event)(struct input_event* event);
+    const char* (*type2str)(uint32_t event_type);
+    const char* (*code2str)(uint32_t event_type, uint32_t event_code);
+};
+
+struct input_manager* get_input_manager(void);
+
 #endif /* INPUT_MANAGER_H */
