@@ -94,6 +94,11 @@ OBJ-y += rtc/rtc_manager.o
 OBJ-y += spi/spi_manager.o
 
 #
+# 74HC595
+#
+OBJ-y += 74hc595/74hc595_manager.o
+
+#
 # Flash
 #
 OBJ-y +=  flash/flash_manager.o                                                \
@@ -196,7 +201,7 @@ testunit:
 	make -C security/testunit all
 	make -C battery/testunit all
 	make -C mount/testunit all
-	make -C alarm/testunit all
+	make -C 74hc595/testunit all
 
 testunit_clean:
 	make -C uart/testunit clean
@@ -215,7 +220,7 @@ testunit_clean:
 	make -C security/testunit clean
 	make -C battery/testunit clean
 	make -C mount/testunit clean
-	make -C alarm/testunit clean
+	make -C 74hc595/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS-OBJS) $(OBJS)
