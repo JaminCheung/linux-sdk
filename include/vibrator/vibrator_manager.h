@@ -18,10 +18,6 @@
 #include <types.h>
 
 /*
- * 最大的motor操作数量
- */
-#define MAX_MOTOR_NUM 10
-/*
  * motor 状态
  *           MOTOR_COAST    滑行
  *           MOTOR_FORWARD    正转
@@ -36,11 +32,6 @@ typedef enum _motor_status {
     MOTOR_BRAKE = 0x03,
     MOTOR_FAULT = 0xff,
 }motor_status;
-
-struct motor_event {
-    uint32_t id;
-    motor_status state;
-};
 
 typedef void (*motor_event_callback_t)(uint32_t motor_id, motor_status status);
 
@@ -147,15 +138,24 @@ struct vibrator_manager {
       int32_t (*get_cycle)(uint32_t motor_id);
 
       /**
-       * Function: set_event_callback
-       * Description: 设置 motor故障回调函数
+       * Function: register_event_callback
+       * Description: 注册 motor故障回调函数
        * Input:
        *   motor_id:  需要操作的motor编号
        *   callback：回调函数
-       *                    如果想取消回调函数，callback传入NULL。
        *  Return: 0: 成功， -1: 失败
        */
-      int32_t (*set_event_callback)(uint32_t motor_id, motor_event_callback_t callback);
+      int32_t (*register_event_callback)(uint32_t motor_id, motor_event_callback_t callback);
+
+      /**
+       * Function: unregister_event_callback
+       * Description: 注销 motor故障回调函数
+       * Input:
+       *   motor_id:  需要操作的motor编号
+       *   callback：回调函数
+       *  Return: 0: 成功， -1: 失败
+       */
+      int32_t (*unregister_event_callback)(uint32_t motor_id, motor_event_callback_t callback);
 
       /**
        * Function: get_netlink_handler

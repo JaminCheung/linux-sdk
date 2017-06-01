@@ -28,13 +28,14 @@
 #include <utils/assert.h>
 #include <sys/ioctl.h>
 #include <pthread.h>
+#include <utils/list.h>
 #include <netlink/netlink_handler.h>
 #include <netlink/netlink_event.h>
 #include <vibrator/vibrator_manager.h>
 
 #define IOC_MOTOR_MAGIC             'K'
 #define MOTOR_SET_FUNCTION        _IO(IOC_MOTOR_MAGIC, 20)
-#define MOTOR_GET_STATUS            _IO(IOC_MOTOR_MAGIC, 21)
+#define MOTOR_GET_STATUS             _IO(IOC_MOTOR_MAGIC, 21)
 #define MOTOR_SET_SPEED                _IO(IOC_MOTOR_MAGIC, 22)
 #define MOTOR_GET_SPEED               _IO(IOC_MOTOR_MAGIC, 23)
 #define MOTOR_SET_CYCLE                _IO(IOC_MOTOR_MAGIC, 24)
@@ -42,23 +43,36 @@
 
 #define LOG_TAG "vibrator"
 
-struct motor_device {
+typedef enum _motor_ioctl_direction {
+    MOTOR_IOCTL_SET = 0x0,
+    MOTOR_IOCTL_GET = 0x01,
+}motor_ioctl_direction;
+
+struct event_callback_t {
+    motor_event_callback_t callback;
+    struct list_head node;
+};
+
+struct motor_device_t {
     int32_t motor_id;
     int32_t motor_fd;
-    motor_event_callback_t callback;
+    struct list_head callback_head;
+    struct list_head device_node;
 };
-static uint32_t dev_num;
-static uint32_t init_flag;
-static pthread_mutex_t motor_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
-static struct motor_device motor_device[MAX_MOTOR_NUM];
-static struct netlink_handler* nh;
 
+static struct netlink_handler* netlink_handler;
+static LIST_HEAD(device_head);
+
+static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t device_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void handle_switch_event(struct netlink_handler* nh,
         struct netlink_event* event) {
-    int i;
     uint32_t motor_id;
+    struct motor_device_t *motor_device;
+    struct event_callback_t *event_callback;
+    struct list_head* device_pos;
+    struct list_head* callback_pos;
     const int action = event->get_action(event);
     const char* name = event->find_param(event, "SWITCH_NAME");
     const char* state = event->find_param(event, "SWITCH_STATE");
@@ -72,16 +86,20 @@ static void handle_switch_event(struct netlink_handler* nh,
             status = MOTOR_FAULT;
 
         motor_id = atoi(name+5);
-        pthread_mutex_lock(&motor_lock);
-        if(dev_num) {
-            for(i = 0; i < MAX_MOTOR_NUM; i++) {
-                if(motor_device[i].motor_id == motor_id) {
-                    if(motor_device[i].callback)
-                        motor_device[i].callback(motor_id, status);
+
+        pthread_mutex_lock(&device_lock);
+        list_for_each(device_pos, &device_head) {
+            motor_device = list_entry(device_pos, struct motor_device_t, device_node);
+            if (motor_device->motor_id == motor_id) {
+                list_for_each(callback_pos, &motor_device->callback_head) {
+                    event_callback = list_entry(callback_pos, struct event_callback_t, node);
+                    event_callback->callback(motor_id, status);
                 }
+                pthread_mutex_unlock(&device_lock);
+                return;
             }
         }
-        pthread_mutex_unlock(&motor_lock);
+        pthread_mutex_unlock(&device_lock);
     }
 }
 
@@ -98,309 +116,239 @@ static void handle_event(struct netlink_handler* nh,
 }
 
 static int32_t motor_init(void) {
-    int i;
-
     pthread_mutex_lock(&init_lock);
-    if(init_flag) {
-        pthread_mutex_unlock(&init_lock);
-        return 0;
+
+    if(netlink_handler == NULL) {
+        netlink_handler = (struct netlink_handler *) calloc(1, sizeof(struct netlink_handler));
+        if(netlink_handler == NULL){
+            LOGE("vibrator manager init error\n");
+            pthread_mutex_unlock(&init_lock);
+            return -1;
+        }
+        netlink_handler->construct = construct_netlink_handler;
+        netlink_handler->deconstruct = destruct_netlink_handler;
+        netlink_handler->construct(netlink_handler, "all sub-system", 0, handle_event, NULL);
     }
 
-    nh = (struct netlink_handler *) calloc(1, sizeof(struct netlink_handler));
-    if(nh == NULL){
-        LOGE("motor calloc netlink_handler error\n");
-        pthread_mutex_unlock(&init_lock);
-        return -1;
-    }
-    nh->construct = construct_netlink_handler;
-    nh->deconstruct = destruct_netlink_handler;
-    nh->construct(nh, "all sub-system", 0, handle_event, NULL);
-
-    pthread_mutex_lock(&motor_lock);
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        motor_device[i].motor_id = -1;
-        motor_device[i].motor_fd = -1;
-        motor_device[i].callback = NULL;
-    }
-    dev_num = 0;
-    pthread_mutex_unlock(&motor_lock);
-
-    init_flag = 1;
     pthread_mutex_unlock(&init_lock);
     return 0;
 }
 
 static void motor_deinit(void) {
-    int i;
+    struct list_head* device_pos;
+    struct list_head* device_next_pos;
+    struct list_head* callback_pos;
+    struct list_head* callback_next_pos;
+    struct motor_device_t *motor_device;
+    struct event_callback_t *event_callback;
+
+    pthread_mutex_lock(&device_lock);
+    list_for_each_safe(device_pos, device_next_pos, &device_head) {
+        motor_device = list_entry(device_pos, struct motor_device_t, device_node);
+
+        list_for_each_safe(callback_pos, callback_next_pos, &motor_device->callback_head) {
+            event_callback = list_entry(callback_pos, struct event_callback_t, node);
+            list_del(&event_callback->node);
+            free(event_callback);
+        }
+        close(motor_device->motor_fd);
+        list_del(&motor_device->device_node);
+        free(motor_device);
+    }
+    pthread_mutex_unlock(&device_lock);
 
     pthread_mutex_lock(&init_lock);
-    if(init_flag == 0) {
-        pthread_mutex_unlock(&init_lock);
-        return;
-    }
-
-    pthread_mutex_lock(&motor_lock);
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        if(motor_device[i].motor_id != -1) {
-            close(motor_device[i].motor_fd);
-            motor_device[i].motor_id = -1;
-            motor_device[i].motor_fd = -1;
-            motor_device[i].callback = NULL;
-        }
-    }
-    dev_num = 0;
-    pthread_mutex_unlock(&motor_lock);
-
-    nh->deconstruct(nh);
-    free(nh);
-    nh = NULL;
-    init_flag = 0;
+    netlink_handler->deconstruct(netlink_handler);
+    free(netlink_handler);
+    netlink_handler = NULL;
     pthread_mutex_unlock(&init_lock);
 }
 
 static int32_t motor_open(uint32_t motor_id) {
-    int i, fd;
+    int fd;
     char node[64] = "";
+    struct list_head* pos;
+    struct motor_device_t *motor_device;
 
-    pthread_mutex_lock(&motor_lock);
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        if(motor_device[i].motor_id == motor_id) {
-            pthread_mutex_unlock(&motor_lock);
+    pthread_mutex_lock(&device_lock);
+    list_for_each(pos, &device_head) {
+        motor_device = list_entry(pos, struct motor_device_t, device_node);
+        if (motor_device->motor_id == motor_id) {
+            pthread_mutex_unlock(&device_lock);
             return 0;
         }
-    }
-
-    if(dev_num == (MAX_MOTOR_NUM)) {
-        LOGE("Open motor num more than the (MAX_MOTOR_NUM : %d)!\n", MAX_MOTOR_NUM);
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
     }
 
     snprintf(node, sizeof(node), "/dev/motor%d", motor_id);
     fd = open(node, O_RDWR);
     if(fd < 0) {
         LOGE("Open %s failed: %s\n", node, strerror(errno));
-        pthread_mutex_unlock(&motor_lock);
+        pthread_mutex_unlock(&device_lock);
         return -1;
     }
 
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        if(motor_device[i].motor_id == -1) {
-            motor_device[i].motor_id = motor_id;
-            motor_device[i].motor_fd = fd;
-            dev_num++;
-            pthread_mutex_unlock(&motor_lock);
-            return 0;
-        }
+    motor_device = malloc(sizeof(struct motor_device_t));
+    if(motor_device == NULL) {
+        LOGE("motor_open: malloc motor_device fail\n");
+        close(fd);
+        pthread_mutex_unlock(&device_lock);
+        return -1;
     }
 
-    close(fd);
-    LOGE("No space to store motor device!\n");
-    pthread_mutex_unlock(&motor_lock);
-    return -1;
+    motor_device->motor_id = motor_id;
+    motor_device->motor_fd = fd;
+    INIT_LIST_HEAD(&motor_device->callback_head);
+    list_add_tail(&motor_device->device_node, &device_head);
+
+    pthread_mutex_unlock(&device_lock);
+    return 0;
 }
 
 static void motor_close(uint32_t motor_id) {
-    int i;
+    struct list_head* device_pos;
+    struct list_head* device_next_pos;
+    struct list_head* callback_pos;
+    struct list_head* callback_next_pos;
+    struct motor_device_t *motor_device;
+    struct event_callback_t *event_callback;
 
-    pthread_mutex_lock(&motor_lock);
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        if(motor_device[i].motor_id == motor_id) {
-            close(motor_device[i].motor_fd);
-            motor_device[i].callback = NULL;
-            motor_device[i].motor_id = -1;
-            motor_device[i].motor_fd = -1;
-            dev_num--;
-            pthread_mutex_unlock(&motor_lock);
+    pthread_mutex_lock(&device_lock);
+    list_for_each_safe(device_pos, device_next_pos, &device_head) {
+        motor_device = list_entry(device_pos, struct motor_device_t, device_node);
+        if(motor_device->motor_id == motor_id) {
+            list_for_each_safe(callback_pos, callback_next_pos, &motor_device->callback_head) {
+                event_callback = list_entry(callback_pos, struct event_callback_t, node);
+                list_del(&event_callback->node);
+                free(event_callback);
+            }
+            close(motor_device->motor_fd);
+            list_del(&motor_device->device_node);
+            free(motor_device);
+            pthread_mutex_unlock(&device_lock);
             return;
         }
     }
-    pthread_mutex_unlock(&motor_lock);
+
+    pthread_mutex_unlock(&device_lock);
+}
+
+static int32_t motor_ioctl(uint32_t motor_id, int32_t command,
+        motor_ioctl_direction dir, int function) {
+    int error;
+    int data = 0;
+    struct list_head* pos;
+    struct motor_device_t *motor_device;
+
+    pthread_mutex_lock(&device_lock);
+    list_for_each(pos, &device_head) {
+        motor_device = list_entry(pos, struct motor_device_t, device_node);
+        if (motor_device->motor_id == motor_id) {
+            if(dir == MOTOR_IOCTL_SET)
+                error = ioctl(motor_device->motor_fd, command, function);
+            else
+                error = ioctl(motor_device->motor_fd, command, &data);
+
+            if(error) {
+                LOGE("motor%d %X ioctl failed: %s\n", motor_id, command, strerror(errno));
+                pthread_mutex_unlock(&device_lock);
+                return -1;
+            }
+            pthread_mutex_unlock(&device_lock);
+            return data;
+        }
+    }
+
+    LOGE("motor%d device is not open!\n",motor_id);
+    pthread_mutex_unlock(&device_lock);
+    return -1;
 }
 
 static int32_t motor_set_function(uint32_t motor_id, motor_status function) {
-    int i,fd = -1;
-    int ret;
-
-    pthread_mutex_lock(&motor_lock);
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        if(motor_device[i].motor_id == motor_id)
-            fd = motor_device[i].motor_fd;
-    }
-    if(fd == -1) {
-        LOGE("motor%d device is not open!\n",motor_id);
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    ret = ioctl(fd, MOTOR_SET_FUNCTION, function);
-    if(ret < 0) {
-        LOGE("motor%d set function ioctl failed: %s\n", motor_id, strerror(errno));
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    pthread_mutex_unlock(&motor_lock);
-    return 0;
+    return motor_ioctl(motor_id, MOTOR_SET_FUNCTION, MOTOR_IOCTL_SET, function);
 }
 
 static int32_t motor_get_status(uint32_t motor_id) {
-    int i,fd = -1;
-    int ret;
-    int function;
-
-    pthread_mutex_lock(&motor_lock);
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        if(motor_device[i].motor_id == motor_id)
-            fd = motor_device[i].motor_fd;
-    }
-    if(fd == -1) {
-        LOGE("motor%d device is not open!\n",motor_id);
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    ret = ioctl(fd, MOTOR_GET_STATUS, &function);
-    if(ret < 0) {
-        LOGE("motor%d get status ioctl failed: %s\n", motor_id, strerror(errno));
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    pthread_mutex_unlock(&motor_lock);
-    return function;
+    return motor_ioctl(motor_id, MOTOR_GET_STATUS, MOTOR_IOCTL_GET, 0);
 }
 
 static int32_t motor_set_speed(uint32_t motor_id, uint32_t speed) {
-    int i,fd = -1;
-    int ret;
-
-    pthread_mutex_lock(&motor_lock);
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        if(motor_device[i].motor_id == motor_id)
-            fd = motor_device[i].motor_fd;
-    }
-    if(fd == -1) {
-        LOGE("motor%d device is not open!\n",motor_id);
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    ret = ioctl(fd, MOTOR_SET_SPEED, speed);
-    if(ret < 0) {
-        LOGE("motor%d set speed ioctl failed: %s\n", motor_id, strerror(errno));
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    pthread_mutex_unlock(&motor_lock);
-    return 0;
+    return motor_ioctl(motor_id, MOTOR_SET_SPEED, MOTOR_IOCTL_SET, speed);
 }
 
 static int32_t motor_get_speed(uint32_t motor_id) {
-    int i,fd = -1;
-    int ret;
-    int speed;
-
-    pthread_mutex_lock(&motor_lock);
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        if(motor_device[i].motor_id == motor_id)
-            fd = motor_device[i].motor_fd;
-    }
-    if(fd == -1) {
-        LOGE("motor%d device is not open!\n",motor_id);
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    ret = ioctl(fd, MOTOR_GET_SPEED, &speed);
-    if(ret < 0) {
-        LOGE("motor%d get speed ioctl failed: %s\n", motor_id, strerror(errno));
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    pthread_mutex_unlock(&motor_lock);
-    return speed;
+    return motor_ioctl(motor_id, MOTOR_GET_SPEED, MOTOR_IOCTL_GET, 0);
 }
 
 static int32_t motor_set_cycle(uint32_t motor_id, uint32_t cycle) {
-    int i,fd = -1;
-    int ret;
-
-    pthread_mutex_lock(&motor_lock);
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        if(motor_device[i].motor_id == motor_id)
-            fd = motor_device[i].motor_fd;
-    }
-    if(fd == -1) {
-        LOGE("motor%d device is not open!\n",motor_id);
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    ret = ioctl(fd, MOTOR_SET_CYCLE, cycle);
-    if(ret < 0) {
-        LOGE("motor%d set cycle ioctl failed: %s\n", motor_id, strerror(errno));
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    pthread_mutex_unlock(&motor_lock);
-    return 0;
+    return motor_ioctl(motor_id, MOTOR_SET_CYCLE, MOTOR_IOCTL_SET, cycle);
 }
 
 static int32_t motor_get_cycle(uint32_t motor_id) {
-    int i,fd = -1;
-    int ret;
-    int cycle;
-
-    pthread_mutex_lock(&motor_lock);
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        if(motor_device[i].motor_id == motor_id)
-            fd = motor_device[i].motor_fd;
-    }
-    if(fd == -1) {
-        LOGE("motor%d device is not open!\n",motor_id);
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    ret = ioctl(fd, MOTOR_GET_CYCLE, &cycle);
-    if(ret < 0) {
-        LOGE("motor%d get cycle ioctl failed: %s\n", motor_id, strerror(errno));
-        pthread_mutex_unlock(&motor_lock);
-        return -1;
-    }
-
-    pthread_mutex_unlock(&motor_lock);
-    return cycle;
+    return motor_ioctl(motor_id, MOTOR_GET_CYCLE, MOTOR_IOCTL_GET, 0);
 }
 
-static int32_t set_event_callback(uint32_t motor_id, motor_event_callback_t callback) {
-    int i;
+static int32_t register_event_callback(uint32_t motor_id, motor_event_callback_t callback) {
+    struct list_head* pos;
+    struct motor_device_t *motor_device;
+    struct event_callback_t *event_callback;
+    assert_die_if(callback == NULL, "callback is NULL\n");
 
-    pthread_mutex_lock(&motor_lock);
-    for(i = 0; i < MAX_MOTOR_NUM; i++) {
-        if(motor_device[i].motor_id == motor_id)
-            motor_device[i].callback = callback;
-            pthread_mutex_unlock(&motor_lock);
+    pthread_mutex_lock(&device_lock);
+    list_for_each(pos, &device_head) {
+        motor_device = list_entry(pos, struct motor_device_t, device_node);
+        if (motor_device->motor_id == motor_id) {
+            event_callback = malloc(sizeof(struct event_callback_t));
+            if(event_callback == NULL) {
+                LOGE("register_event_callback: malloc event_callback fail\n");
+                pthread_mutex_unlock(&device_lock);
+                return -1;
+            }
+            event_callback->callback = callback;
+            list_add_tail(&event_callback->node, &motor_device->callback_head);
+            pthread_mutex_unlock(&device_lock);
             return 0;
+        }
     }
+
     LOGE("motor%d device is not open!\n",motor_id);
-    pthread_mutex_unlock(&motor_lock);
+    pthread_mutex_unlock(&device_lock);
+    return -1;
+}
+
+static int32_t unregister_event_callback(uint32_t motor_id, motor_event_callback_t callback) {
+    struct list_head* device_pos;
+    struct list_head* callback_pos;
+    struct list_head* callback_next_pos;
+    struct motor_device_t *motor_device;
+    struct event_callback_t *event_callback;
+    assert_die_if(callback == NULL, "callback is NULL\n");
+
+    pthread_mutex_lock(&device_lock);
+    list_for_each(device_pos, &device_head) {
+        motor_device = list_entry(device_pos, struct motor_device_t, device_node);
+        if (motor_device->motor_id == motor_id) {
+            list_for_each_safe(callback_pos, callback_next_pos, &motor_device->callback_head) {
+                event_callback = list_entry(callback_pos, struct event_callback_t, node);
+                if(event_callback->callback == callback) {
+                    list_del(&event_callback->node);
+                    free(event_callback);
+                    pthread_mutex_unlock(&device_lock);
+                    return 0;
+                }
+            }
+            LOGE("motor%d: not find callback!\n", motor_id);
+            pthread_mutex_unlock(&device_lock);
+            return -1;
+        }
+    }
+
+    LOGE("motor%d device is not open!\n", motor_id);
+    pthread_mutex_unlock(&device_lock);
     return -1;
 }
 
 static struct netlink_handler* get_netlink_handler(void) {
-    pthread_mutex_lock(&init_lock);
-    if(init_flag == 0) {
-        LOGE("vibrator_manager Uninitialized !\n");
-        pthread_mutex_unlock(&init_lock);
-        return NULL;
-    }
-    pthread_mutex_unlock(&init_lock);
-    return nh;
+    return netlink_handler;
 }
 
 static struct vibrator_manager vibrator_manager = {
@@ -414,7 +362,8 @@ static struct vibrator_manager vibrator_manager = {
     .get_speed = motor_get_speed,
     .set_cycle = motor_set_cycle,
     .get_cycle = motor_get_cycle,
-    .set_event_callback = set_event_callback,
+    .register_event_callback = register_event_callback,
+    .unregister_event_callback = unregister_event_callback,
     .get_netlink_handler = get_netlink_handler,
 };
 

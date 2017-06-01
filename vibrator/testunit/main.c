@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    if(vibrator_manager->set_event_callback(id, motor_event_callback)) {
+    if(vibrator_manager->register_event_callback(id, motor_event_callback)) {
         LOGE("motor%d set_event_callback error\n", id);
     }
 
