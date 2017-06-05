@@ -87,7 +87,7 @@ __attribute__((unused)) static void dump_alarm_list_locked(void) {
     LOGI("========================================\n");
 }
 
-static uint64_t get_current_time_ms(void) {
+static uint64_t get_sys_time_ms(void) {
     struct timeval tv;
     struct timespec ts;
     int error = 0;
@@ -271,7 +271,7 @@ static void set_locked(struct alarm* alarm) {
 #ifdef LOCAL_DEBUG
     char buf[64];
     struct tm tm;
-    uint64_t now = get_current_time_ms();
+    uint64_t now = get_sys_time_ms();
 
     time_t now_s = now / 1000;
     gmtime_r(&now_s, &tm);
@@ -318,7 +318,7 @@ static struct alarm* create_triggered_alarm(struct alarm* alarm) {
 }
 
 static void trigger_alarm_locked(void) {
-    uint64_t now = get_current_time_ms();
+    uint64_t now = get_sys_time_ms();
 
     struct list_head* pos;
     struct list_head* next_pos;
@@ -406,7 +406,7 @@ static struct alarm_manager this = {
         .deinit = deinit,
         .set = set,
         .cancel = cancel,
-        .get_current_time_ms = get_current_time_ms,
+        .get_sys_time_ms = get_sys_time_ms,
 };
 
 struct alarm_manager* get_alarm_manager(void) {

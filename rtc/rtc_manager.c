@@ -124,12 +124,17 @@ int32_t get_hibernate_wakeup_status(void) {
     return status;
 }
 
-int32_t set_bootup_alarm(struct rtc_time* alarm) {
+int32_t set_bootup_alarm(struct rtc_time* time) {
     assert_die_if(alarm == NULL, "alarm is null\n");
 
+    struct rtc_wkalrm alarm;
     int error = 0;
 
-    error = ioctl(fd, RTC_ALM_SET, alarm);
+    alarm.enabled = 0;
+    alarm.pending = 0;
+    alarm.time = *time;
+
+    error = ioctl(fd, RTC_WKALM_SET, &alarm);
     if (error < 0) {
         if (errno == ENOTTY)
             LOGE("rtc driver not support alarm IRQ\n");
@@ -138,15 +143,18 @@ int32_t set_bootup_alarm(struct rtc_time* alarm) {
     }
 
 #ifdef LOCAL_DEBUG
-    struct rtc_time alarm_time;
-    error = ioctl(fd, RTC_ALM_READ, &alarm_time);
+    struct rtc_wkalrm alarm_time;
+    struct rtc_time* tm = &alarm_time.time;
+
+    error = ioctl(fd, RTC_WKALM_RD, &alarm_time);
     if (error < 0) {
         LOGE("Failed to read rtc alarm time\n");
         return -1;
     }
 
-    LOGD("Bootup alarm time set to: %02d:%02d:%02d.\n", alarm_time.tm_hour,
-            alarm_time.tm_min, alarm_time.tm_sec);
+    LOGD("Bootup alarm time set to: %04d-%02d-%02d %02d:%02d:%02d.\n",
+            tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday, tm->tm_hour, tm->tm_min,
+            tm->tm_sec);
 #endif
 
     error = ioctl(fd, RTC_AIE_ON, 0);

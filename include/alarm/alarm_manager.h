@@ -21,7 +21,7 @@ struct alarm_manager {
     int (*deinit)(void);
     void (*set)(uint64_t when, alarm_listener_t listener);
     void (*cancel)(alarm_listener_t listener);
-    uint64_t (*get_current_time_ms)(void);
+    uint64_t (*get_sys_time_ms)(void);
 };
 
 struct alarm_manager* get_alarm_manager(void);
