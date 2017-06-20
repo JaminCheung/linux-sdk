@@ -124,8 +124,8 @@ int32_t get_hibernate_wakeup_status(void) {
     return status;
 }
 
-int32_t set_bootup_alarm(struct rtc_time* time) {
-    assert_die_if(alarm == NULL, "alarm is null\n");
+int32_t set_bootup_alarm(struct rtc_time *time) {
+    assert_die_if(time == NULL, "bootup alarm, time is null\n");
 
     struct rtc_wkalrm alarm;
     int error = 0;

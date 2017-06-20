@@ -130,7 +130,7 @@ static int32_t spi_init(enum spi id, uint8_t mode, uint8_t bits, uint32_t speed)
 
     snprintf(node, sizeof(node), "/dev/spidev0.%d", id);
     fd = open(node, O_RDWR);
-    assert_die_if(fd < 0, "Open %s failed: %s\n", strerror(errno));
+    assert_die_if(fd < 0, "Open %s failed: %s\n", node, strerror(errno));
 
     /*
      * spi mode
