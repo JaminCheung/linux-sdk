@@ -141,14 +141,21 @@ OBJ-y += vibrator/vibrator_manager.o
 #
 OBJ-y += mount/mount_manager.o
 
+#
+# Fingerprint
+#
+OBJ-y += fingerprint/fingerprint_manager.o                                     \
+         fingerprint/fingerprint.o                                             \
+         fingerprint/hardware/fingerprint_hal.o
+
 OBJS := $(OBJ-y)
 
 #
 # Uart Lib
 #
-LIBS-OBJ-y += lib/uart/libserialport/linux_termios.o    \
-          lib/uart/libserialport/linux.o                \
-          lib/uart/libserialport/serialport.o           \
+LIBS-OBJ-y += lib/uart/libserialport/linux_termios.o                           \
+              lib/uart/libserialport/linux.o                                   \
+              lib/uart/libserialport/serialport.o
 
 #
 # I2c Lib
@@ -158,7 +165,7 @@ LIBS-OBJ-y += lib/i2c/libsmbus.o
 #
 # MTD Lib
 #
-LIBS-OBJ-y += lib/mtd/libmtd_legacy.o                   \
+LIBS-OBJ-y += lib/mtd/libmtd_legacy.o                                          \
               lib/mtd/libmtd.o
 
 #
