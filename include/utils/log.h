@@ -31,6 +31,10 @@ __attribute__((unused)) static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INI
 
 #define TAG_BASE "libingenic--->"
 
+#ifndef CONDITION
+#define CONDITION(exp) __builtin_expect((exp) != 0, 0)
+#endif
+
 #define LOGV(...)                                                              \
     do {                                                                       \
       int save_errno = errno;                                                  \
@@ -92,4 +96,25 @@ __attribute__((unused)) static pthread_mutex_t log_init_lock = PTHREAD_MUTEX_INI
       pthread_mutex_unlock(&log_init_lock);                                    \
       errno = save_errno;                                                      \
     } while (0)
+
+#define LOGV_IF(cond, ...)                                                     \
+    if (CONDITION(cond))                                                       \
+        LOGV(__VA_ARGS__)
+
+#define LOGD_IF(cond, ...)                                                     \
+    if (CONDITION(cond))                                                       \
+        LOGD(__VA_ARGS__)
+
+#define LOGI_IF(cond, ...)                                                     \
+    if (CONDITION(cond))                                                       \
+        LOGI(__VA_ARGS__)
+
+#define LOGW_IF(cond, ...)                                                     \
+    if (CONDITION(cond))                                                       \
+        LOGW(__VA_ARGS__)
+
+#define LOGE_IF(cond, ...)                                                     \
+    if (CONDITION(cond))                                                       \
+        LOGE(__VA_ARGS__)
+
 #endif /* LOG_H_ */

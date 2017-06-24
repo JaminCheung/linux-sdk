@@ -53,7 +53,7 @@ INCLUDES := -I$(TOPDIR)/include                                                \
 
 CFLAGS := -std=gnu11 $(INCLUDES) -fPIC
 CHECKFLAGS := -Wall -Wuninitialized -Wundef
-LDFLAGS := -lpthread -lrt -Wl,-rpath,/usr/lib
+LDFLAGS := -pthread -lrt -Wl,-rpath,/usr/lib
 LDSHFLAGS := -shared -Wl,-Bsymbolic
 
 ifndef DEBUG

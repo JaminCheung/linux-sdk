@@ -20,27 +20,6 @@
 #include <types.h>
 #include <fingerprint/fingerprint.h>
 
-enum {
-    FINGERPRINT_ERROR_HW_UNAVAILABLE = 1,
-    FINGERPRINT_ERROR_UNABLE_TO_PROCESS = 2,
-    FINGERPRINT_ERROR_TIMEOUT = 3,
-    FINGERPRINT_ERROR_NO_SPACE = 4,
-    FINGERPRINT_ERROR_CANCELED = 5,
-    FINGERPRINT_ERROR_UNABLE_TO_REMOVE = 6,
-    FINGERPRINT_ERROR_LOCKOUT = 7,
-    FINGERPRINT_ERROR_VENDOR_BASE = 1000,
-};
-
-enum {
-    FINGERPRINT_ACQUIRED_GOOD = 0,
-    FINGERPRINT_ACQUIRED_PARTIAL = 1,
-    FINGERPRINT_ACQUIRED_INSUFFICIENT = 2,
-    FINGERPRINT_ACQUIRED_IMAGER_DIRTY = 3,
-    FINGERPRINT_ACQUIRED_TOO_SLOW = 4,
-    FINGERPRINT_ACQUIRED_TOO_FAST = 5,
-    FINGERPRINT_ACQUIRED_VENDOR_BASE = 1000,
-};
-
 struct authentication_result {
     struct fingerprint *fingerprint;
 };
@@ -70,6 +49,8 @@ struct lockout_reset_callback {
 };
 
 struct fingerprint_manager {
+    int (*init)(void);
+    int (*deinit)(void);
     int (*is_hardware_detected)(void);
     int (*has_enrolled_fingerprints)(void);
     void (*authenticate)(struct authentication_callback *callback);
@@ -86,5 +67,7 @@ struct fingerprint_manager {
     void (*reset_timeout)(char* token, int len);
     void (*add_lockout_reset_callback)(struct lockout_reset_callback* callback);
 };
+
+struct fingerprint_manager* get_fingerprint_manager(void);
 
 #endif /* FINGERPRINT_MANAGER_H */

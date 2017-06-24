@@ -16,10 +16,27 @@
 
 #include <utils/log.h>
 #include <fingerprint/fingerprint_manager.h>
+#include <fingerprint/fingerprint_error_code.h>
 
 #define LOG_TAG "fingerprint_manager"
 
+static const char* error_strings[] = {
+        [FINGERPRINT_ERROR_HW_UNAVAILABLE] = "Fingerprint hardware not available.",
+        [FINGERPRINT_ERROR_UNABLE_TO_PROCESS] = "Try again.",
+        [FINGERPRINT_ERROR_TIMEOUT] = "Fingerprint time out reached. Try again.",
+        [FINGERPRINT_ERROR_NO_SPACE] = "Fingerprint can\'t be stored. Please remove an existing fingerprint.",
+        [FINGERPRINT_ERROR_CANCELED] = "Fingerprint operation canceled.",
+        [FINGERPRINT_ERROR_UNABLE_TO_REMOVE] = "Fingerprint can\'t be removed",
+        [FINGERPRINT_ERROR_LOCKOUT] = "Too many attempts. Try again later.",
+};
 
+static const char* acquired_strings[] = {
+        [FINGERPRINT_ACQUIRED_PARTIAL] = "Partial fingerprint detected. Please try again.",
+        [FINGERPRINT_ACQUIRED_INSUFFICIENT] = "Couldn\'t process fingerprint. Please try again.",
+        [FINGERPRINT_ACQUIRED_IMAGER_DIRTY] = "Fingerprint sensor is dirty. Please clean and try again.",
+        [FINGERPRINT_ACQUIRED_TOO_SLOW] = "Finger moved too slow. Please try again.",
+        [FINGERPRINT_ACQUIRED_TOO_FAST] = "Finger moved too fast. Please try again.",
+};
 
 static void cancel_enrollment(void) {
 
@@ -32,22 +49,22 @@ static void cancel_authentication(void) {
 static const char* get_error_string(int error_code) {
     switch (error_code) {
     case FINGERPRINT_ERROR_UNABLE_TO_PROCESS:
-        return NULL;
+        return error_strings[FINGERPRINT_ERROR_UNABLE_TO_PROCESS];
 
     case FINGERPRINT_ERROR_HW_UNAVAILABLE:
-        return NULL;
+        return error_strings[FINGERPRINT_ERROR_HW_UNAVAILABLE];
 
     case FINGERPRINT_ERROR_NO_SPACE:
-        return NULL;
+        return error_strings[FINGERPRINT_ERROR_NO_SPACE];
 
     case FINGERPRINT_ERROR_TIMEOUT:
-        return NULL;
+        return error_strings[FINGERPRINT_ERROR_TIMEOUT];
 
     case FINGERPRINT_ERROR_CANCELED:
-        return NULL;
+        return error_strings[FINGERPRINT_ERROR_CANCELED];
 
     case FINGERPRINT_ERROR_LOCKOUT:
-        return NULL;
+        return error_strings[FINGERPRINT_ERROR_LOCKOUT];
 
     default:
         return NULL;
@@ -58,16 +75,22 @@ static const char* get_acquired_string(int acquire_info) {
     switch(acquire_info) {
     case FINGERPRINT_ACQUIRED_GOOD:
         return NULL;
+
     case FINGERPRINT_ACQUIRED_PARTIAL:
-        return NULL;
+        return acquired_strings[FINGERPRINT_ACQUIRED_PARTIAL];
+
     case FINGERPRINT_ACQUIRED_INSUFFICIENT:
-        return NULL;
+        return acquired_strings[FINGERPRINT_ACQUIRED_INSUFFICIENT];
+
     case FINGERPRINT_ACQUIRED_IMAGER_DIRTY:
-        return NULL;
+        return acquired_strings[FINGERPRINT_ACQUIRED_IMAGER_DIRTY];
+
     case FINGERPRINT_ACQUIRED_TOO_SLOW:
-        return NULL;
+        return acquired_strings[FINGERPRINT_ACQUIRED_TOO_SLOW];
+
     case FINGERPRINT_ACQUIRED_TOO_FAST:
-        return NULL;
+        return acquired_strings[FINGERPRINT_ACQUIRED_TOO_FAST];
+
     default:
         return NULL;
     }
@@ -123,9 +146,19 @@ static void add_lockout_reset_callback(struct lockout_reset_callback* callback) 
 
 }
 
+static int init(void) {
+    return 0;
+}
+
+static int deinit(void) {
+    return 0;
+}
+
 /* ============================== Public API end ============================ */
 
 static struct fingerprint_manager this = {
+        .init = init,
+        .deinit = deinit,
         .is_hardware_detected = is_hardware_detected,
         .has_enrolled_fingerprints = has_enrolled_fingerprints,
         .authenticate = authenticate,

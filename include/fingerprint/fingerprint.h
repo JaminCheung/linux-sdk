@@ -19,6 +19,8 @@
 
 #include <limits.h>
 
+#include <utils/list.h>
+
 struct fingerprint {
     void (*construct)(struct fingerprint* this);
     void (*destruct)(struct fingerprint* this);
@@ -27,6 +29,8 @@ struct fingerprint {
     int group_id;
     int finger_id;
     int device_id;
+
+    struct list_head node;
 };
 
 void construct_fingerprint(struct fingerprint* this);

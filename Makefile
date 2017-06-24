@@ -23,85 +23,85 @@ include config.mk
 #
 # Netlink
 #
-OBJ-y += netlink/netlink_manager.o                                             \
-         netlink/netlink_listener.o                                            \
-         netlink/netlink_handler.o                                             \
-         netlink/netlink_event.o
+OBJS-y += netlink/netlink_manager.o                                            \
+          netlink/netlink_listener.o                                           \
+          netlink/netlink_handler.o                                            \
+          netlink/netlink_event.o
 
 #
 # Utils
 #
-OBJ-y += utils/signal_handler.o                                                \
-         utils/compare_string.o                                                \
-         utils/assert.o                                                        \
-         utils/common.o                                                        \
-         utils/file_ops.o                                                      \
-         utils/thread_pool/thread_pool.o
+OBJS-y += utils/signal_handler.o                                               \
+          utils/compare_string.o                                               \
+          utils/assert.o                                                       \
+          utils/common.o                                                       \
+          utils/file_ops.o                                                     \
+          utils/thread_pool/thread_pool.o
 
 #
 # Timer
 #
-OBJ-y += timer/timer_manager.o
+OBJS-y += timer/timer_manager.o
 
 #
 # Uart
 #
-OBJ-y += uart/uart_manager.o
+OBJS-y += uart/uart_manager.o
 
 #
 # GPIO
 #
-OBJ-y += gpio/gpio_manager.o
+OBJS-y += gpio/gpio_manager.o
 
 #
 # Camera
 #
-OBJ-y += camera/camera_manager.o
+OBJS-y += camera/camera_manager.o
 
 #
 # PWM
 #
-OBJ-y += pwm/pwm_manager.o
+OBJS-y += pwm/pwm_manager.o
 
 #
 # Watchdog
 #
-OBJ-y += watchdog/watchdog_manager.o
+OBJS-y += watchdog/watchdog_manager.o
 
 #
 # Power
 #
-OBJ-y += power/power_manager.o
+OBJS-y += power/power_manager.o
 
 #
 # I2C
 #
-OBJ-y += i2c/i2c_manager.o
+OBJS-y += i2c/i2c_manager.o
 
 #
 # Efuse
 #
-OBJ-y += efuse/efuse_manager.o
+OBJS-y += efuse/efuse_manager.o
 
 #
 # RTC
 #
-OBJ-y += rtc/rtc_manager.o
+OBJS-y += rtc/rtc_manager.o
 
 #
 # SPI
 #
-OBJ-y += spi/spi_manager.o
+OBJS-y += spi/spi_manager.o
 
 #
 # 74HC595
 #
-OBJ-y += 74hc595/74hc595_manager.o
+OBJS-y += 74hc595/74hc595_manager.o
 
 #
 # Flash
 #
-OBJ-y +=  flash/flash_manager.o                                                \
+OBJS-y += flash/flash_manager.o                                                \
           flash/block/blocks/mtd/mtd.o                                         \
           flash/block/blocks/mtd/base.o                                        \
           flash/block/fs/fs_manager.o                                          \
@@ -109,76 +109,121 @@ OBJ-y +=  flash/flash_manager.o                                                \
 #
 # USB
 #
-OBJ-y += usb/usb_device_manager.o
+OBJS-y += usb/usb_device_manager.o
 
 #
 # Security
 #
-OBJ-y += security/security_manager.o
+OBJS-y += security/security_manager.o
 
 #
 # Input
 #
-OBJ-y += input/input_manager.o
+OBJS-y += input/input_manager.o
 
 #
 # Battery
 #
-OBJ-y += battery/battery_manager.o
+OBJS-y += battery/battery_manager.o
 
 #
 # Alarm
 #
-OBJ-y += alarm/alarm_manager.o
+OBJS-y += alarm/alarm_manager.o
 
 #
 # Vibrator
 #
-OBJ-y += vibrator/vibrator_manager.o
+OBJS-y += vibrator/vibrator_manager.o
 
 #
 # Mount
 #
-OBJ-y += mount/mount_manager.o
+OBJS-y += mount/mount_manager.o
 
 #
 # Fingerprint
 #
-OBJ-y += fingerprint/fingerprint_manager.o                                     \
-         fingerprint/fingerprint.o                                             \
-         fingerprint/hardware/fingerprint_hal.o
+OBJS-y += fingerprint/fingerprint_manager.o                                    \
+          fingerprint/fingerprint.o                                            \
+          fingerprint/fingerprint_list.o                                       \
+          fingerprint/hardware/fingerprint_hal.o
 
-OBJS := $(OBJ-y)
-
-#
-# Uart Lib
-#
-LIBS-OBJ-y += lib/uart/libserialport/linux_termios.o                           \
-              lib/uart/libserialport/linux.o                                   \
-              lib/uart/libserialport/serialport.o
+OBJS := $(OBJS-y)
 
 #
-# I2c Lib
+# XML Lib
 #
-LIBS-OBJ-y += lib/i2c/libsmbus.o
+LIBS-y += lib/mxml/mxml-2.10/mxml-attr.o                                       \
+          lib/mxml/mxml-2.10/mxml-entity.o                                     \
+          lib/mxml/mxml-2.10/mxml-file.o                                       \
+          lib/mxml/mxml-2.10/mxml-get.o                                        \
+          lib/mxml/mxml-2.10/mxml-index.o                                      \
+          lib/mxml/mxml-2.10/mxml-node.o                                       \
+          lib/mxml/mxml-2.10/mxml-search.o                                     \
+          lib/mxml/mxml-2.10/mxml-set.o                                        \
+          lib/mxml/mxml-2.10/mxml-private.o                                    \
+          lib/mxml/mxml-2.10/mxml-string.o
 
 #
-# MTD Lib
+# ZLib & Mini-zip Lib
 #
-LIBS-OBJ-y += lib/mtd/libmtd_legacy.o                                          \
-              lib/mtd/libmtd.o
-
-#
-# lib gpio serving for gpio
-#
-LIBS-OBJ-y += lib/gpio/libgpio.o
+LIBS-y += lib/zlib/zlib-1.2.8/adler32.o                                        \
+          lib/zlib/zlib-1.2.8/crc32.o                                          \
+          lib/zlib/zlib-1.2.8/deflate.o                                        \
+          lib/zlib/zlib-1.2.8/infback.o                                        \
+          lib/zlib/zlib-1.2.8/inffast.o                                        \
+          lib/zlib/zlib-1.2.8/inflate.o                                        \
+          lib/zlib/zlib-1.2.8/inftrees.o                                       \
+          lib/zlib/zlib-1.2.8/trees.o                                          \
+          lib/zlib/zlib-1.2.8/zutil.o                                          \
+          lib/zlib/zlib-1.2.8/compress.o                                       \
+          lib/zlib/zlib-1.2.8/uncompr.o                                        \
+          lib/zlib/zlib-1.2.8/gzclose.o                                        \
+          lib/zlib/zlib-1.2.8/gzlib.o                                          \
+          lib/zlib/zlib-1.2.8/gzread.o                                         \
+          lib/zlib/zlib-1.2.8/gzwrite.o                                        \
 
 #
 # MD5 Lib
 #
-LIBS-OBJ-y += lib/md5/libmd5.o
+LIBS-y += lib/md5/libmd5.o
 
-LIBS-OBJS := $(LIBS-OBJ-y)
+#
+# CRC Lib
+#
+LIBS-y += lib/crc/libcrc.o
+
+#
+# Base64 Lib
+#
+LIBS-y += lib/b64/libb64-1.2/src/cencode.o                                     \
+          lib/b64/libb64-1.2/src/cdecode.o
+
+#
+# Uart Lib
+#
+LIBS-y += lib/uart/libserialport/linux_termios.o                               \
+          lib/uart/libserialport/linux.o                                       \
+          lib/uart/libserialport/serialport.o
+
+#
+# I2c Lib
+#
+LIBS-y += lib/i2c/libsmbus.o
+
+#
+# MTD Lib
+#
+LIBS-y += lib/mtd/libmtd_legacy.o                                              \
+          lib/mtd/libmtd.o
+
+#
+# lib gpio serving for gpio
+#
+LIBS-y += lib/gpio/libgpio.o
+
+LIBS := $(LIBS-y)
 
 
 all: $(TARGET) testunit
@@ -188,8 +233,8 @@ all: $(TARGET) testunit
 #
 # Targets
 #
-$(TARGET): $(OBJS) $(LIBS-OBJS)
-	$(QUIET_LINK)$(LINK_OBJS) $(LDFLAGS) $(LDSHFLAGS) $(OBJS) $(LIBS-OBJS) -o $(OUTDIR)/$@
+$(TARGET): $(OBJS) $(LIBS)
+	$(QUIET_LINK)$(LINK_OBJS) $(LDFLAGS) $(LDSHFLAGS) $(OBJS) $(LIBS) -o $(OUTDIR)/$@
 	@$(STRIP) $(OUTDIR)/$@
 	@echo -e '\n  sdk: $(shell basename $(OUTDIR))/$@ is ready\n'
 
@@ -216,6 +261,7 @@ testunit:
 	make -C 74hc595/testunit all
 	make -C input/testunit all
 	make -C vibrator/testunit all
+	make -C fingerprint/testunit all
 
 testunit_clean:
 	make -C uart/testunit clean
@@ -237,9 +283,10 @@ testunit_clean:
 	make -C 74hc595/testunit clean
 	make -C input/testunit clean
 	make -C vibrator/testunit clean
+	make -C fingerprint/testunit clean
 
 clean: testunit_clean
-	@rm -rf $(LIBS-OBJS) $(OBJS)
+	@rm -rf $(LIBS) $(OBJS)
 	@rm -rf $(OUTDIR)
 
 distclean: clean
