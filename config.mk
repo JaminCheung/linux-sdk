@@ -74,6 +74,9 @@ ifndef V
 QUIET_AR        = @echo -e "  AR\t$@";
 QUIET_CC        = @echo -e "  CC\t$@";
 QUIET_LINK      = @echo -e "  LINK\t$@";
+
+QUITE_TEST_BUILD = @echo -e "  BUILD\t"
+QUITE_TEST_CLEAN = @echo -e "  CLEAN\t"
 endif
 
 %.o:%.c

@@ -236,54 +236,56 @@ all: $(TARGET) testunit
 $(TARGET): $(OBJS) $(LIBS)
 	$(QUIET_LINK)$(LINK_OBJS) $(LDFLAGS) $(LDSHFLAGS) $(OBJS) $(LIBS) -o $(OUTDIR)/$@
 	@$(STRIP) $(OUTDIR)/$@
-	@echo -e '\n  sdk: $(shell basename $(OUTDIR))/$@ is ready\n'
+	@echo -e '\n  SDK: $(shell basename $(OUTDIR))/$@ is ready\n'
 
 #
 # Test unit
 #
 testunit:
-	make -C uart/testunit all
-	make -C gpio/testunit all
-	make -C camera/testunit all
-	make -C pwm/testunit all
-	make -C timer/testunit all
-	make -C watchdog/testunit all
-	make -C power/testunit all
-	make -C i2c/testunit all
-	make -C flash/testunit all
-	make -C efuse/testunit all
-	make -C rtc/testunit all
-	make -C spi/testunit all
-	make -C usb/testunit all
-	make -C security/testunit all
-	make -C battery/testunit all
-	make -C mount/testunit all
-	make -C 74hc595/testunit all
-	make -C input/testunit all
-	make -C vibrator/testunit all
-	make -C fingerprint/testunit all
+	$(QUITE_TEST_BUILD)test_uart;make -sC uart/testunit all
+	$(QUITE_TEST_BUILD)test_gpio;make -sC gpio/testunit all
+	$(QUITE_TEST_BUILD)test_camera;make -sC camera/testunit all
+	$(QUITE_TEST_BUILD)test_pwm;make -sC pwm/testunit all
+	$(QUITE_TEST_BUILD)test_timer;make -sC timer/testunit all
+	$(QUITE_TEST_BUILD)test_watchdog;make -sC watchdog/testunit all
+	$(QUITE_TEST_BUILD)test_power;make -sC power/testunit all
+	$(QUITE_TEST_BUILD)test_i2c;make -sC i2c/testunit all
+	$(QUITE_TEST_BUILD)test_flash;make -sC flash/testunit all
+	$(QUITE_TEST_BUILD)test_efuse;make -sC efuse/testunit all
+	$(QUITE_TEST_BUILD)test_rtc;make -sC rtc/testunit all
+	$(QUITE_TEST_BUILD)test_spi;make -sC spi/testunit all
+	$(QUITE_TEST_BUILD)test_usb;make -sC usb/testunit all
+	$(QUITE_TEST_BUILD)test_security;make -sC security/testunit all
+	$(QUITE_TEST_BUILD)test_battery;make -sC battery/testunit all
+	$(QUITE_TEST_BUILD)test_mount;make -sC mount/testunit all
+	$(QUITE_TEST_BUILD)test_74hc595;make -sC 74hc595/testunit all
+	$(QUITE_TEST_BUILD)test_input;make -sC input/testunit all
+	$(QUITE_TEST_BUILD)test_vibrator;make -sC vibrator/testunit all
+	$(QUITE_TEST_BUILD)test_fingerprint;make -sC fingerprint/testunit all
+
+	@echo -e '\n  $@: $(shell basename $(OUTDIR))/test_xxx is ready\n'
 
 testunit_clean:
-	make -C uart/testunit clean
-	make -C gpio/testunit clean
-	make -C camera/testunit clean
-	make -C pwm/testunit clean
-	make -C timer/testunit clean
-	make -C watchdog/testunit clean
-	make -C power/testunit clean
-	make -C i2c/testunit clean
-	make -C flash/testunit clean
-	make -C efuse/testunit clean
-	make -C rtc/testunit clean
-	make -C spi/testunit clean
-	make -C usb/testunit clean
-	make -C security/testunit clean
-	make -C battery/testunit clean
-	make -C mount/testunit clean
-	make -C 74hc595/testunit clean
-	make -C input/testunit clean
-	make -C vibrator/testunit clean
-	make -C fingerprint/testunit clean
+	$(QUITE_TEST_CLEAN)test_uart;make -sC uart/testunit clean
+	$(QUITE_TEST_CLEAN)test_gpio;make -sC gpio/testunit clean
+	$(QUITE_TEST_CLEAN)test_camera;make -sC camera/testunit clean
+	$(QUITE_TEST_CLEAN)test_pwm;make -sC pwm/testunit clean
+	$(QUITE_TEST_CLEAN)test_timer;make -sC timer/testunit clean
+	$(QUITE_TEST_CLEAN)test_watchdog;make -sC watchdog/testunit clean
+	$(QUITE_TEST_CLEAN)test_power;make -sC power/testunit clean
+	$(QUITE_TEST_CLEAN)test_i2c;make -sC i2c/testunit clean
+	$(QUITE_TEST_CLEAN)test_flash;make -sC flash/testunit clean
+	$(QUITE_TEST_CLEAN)test_efuse;make -sC efuse/testunit clean
+	$(QUITE_TEST_CLEAN)test_rtc;make -sC rtc/testunit clean
+	$(QUITE_TEST_CLEAN)test_spi;make -sC spi/testunit clean
+	$(QUITE_TEST_CLEAN)test_usb;make -sC usb/testunit clean
+	$(QUITE_TEST_CLEAN)test_security;make -sC security/testunit clean
+	$(QUITE_TEST_CLEAN)test_battery;make -sC battery/testunit clean
+	$(QUITE_TEST_CLEAN)test_mount;make -sC mount/testunit clean
+	$(QUITE_TEST_CLEAN)test_74hc595;make -sC 74hc595/testunit clean
+	$(QUITE_TEST_CLEAN)test_input;make -sC input/testunit clean
+	$(QUITE_TEST_CLEAN)test_vibrator;make -sC vibrator/testunit clean
+	$(QUITE_TEST_CLEAN)test_fingerprint;make -sC fingerprint/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS) $(OBJS)
