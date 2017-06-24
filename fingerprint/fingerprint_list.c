@@ -21,11 +21,39 @@
 
 #define LOG_TAG "fingerprint_list"
 
-static void insert(struct fingerprint_list* this, struct fingerprint* fp) {
+static void dump(struct fingerprint_list* this) {
     pthread_mutex_lock(&this->lock);
 
-    list_add_tail(&fp->node, &this->list);
+    LOGI("========================================\n");
+    LOGI("Dump fingers.\n");
 
+    struct fingerprint* fp;
+    list_for_each_entry(fp, &this->list, node) {
+        LOGI("----------------------------------------\n");
+        LOGI("name:       %s\n", fp->get_name(fp));
+        LOGI("finger id:  0x%x\n", fp->get_finger_id(fp));
+        LOGI("group  id:  0x%x\n", fp->get_group_id(fp));
+        LOGI("device id:  0x%x\n", fp->get_device_id(fp));
+    }
+
+    LOGI("========================================\n");
+
+    pthread_mutex_unlock(&this->lock);
+}
+
+static void insert(struct fingerprint_list* this, struct fingerprint* new_fp) {
+    struct fingerprint* fp = NULL;
+
+    pthread_mutex_lock(&this->lock);
+
+    list_for_each_entry(fp, &this->list, node) {
+        if (fp->equal(fp, new_fp))
+            goto out;
+    }
+
+    list_add_tail(&new_fp->node, &this->list);
+
+out:
     pthread_mutex_unlock(&this->lock);
 }
 
@@ -122,6 +150,7 @@ void construct_fingerprint_list(struct fingerprint_list* this) {
     this->size = size;
     this->get = get;
     this->the_size = 0;
+    this->dump = dump;
 
     INIT_LIST_HEAD(&this->list);
 

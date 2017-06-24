@@ -25,6 +25,20 @@ struct fingerprint {
     void (*construct)(struct fingerprint* this);
     void (*destruct)(struct fingerprint* this);
 
+    void (*set_name)(struct fingerprint* this, const char* name);
+    void (*set_group_id)(struct fingerprint* this, const int group_id);
+    void (*set_finger_id)(struct fingerprint* this, const int finger_id);
+    void (*set_device_id)(struct fingerprint* this, const int device_id);
+
+    const char* (*get_name)(struct fingerprint* this);
+    const int (*get_group_id)(struct fingerprint* this);
+    const int (*get_finger_id)(struct fingerprint* this);
+    const int (*get_device_id)(struct fingerprint* this);
+
+    const int (*equal)(struct fingerprint* this, struct fingerprint* other);
+
+    void (*dump)(struct fingerprint* this);
+
     char name[NAME_MAX];
     int group_id;
     int finger_id;

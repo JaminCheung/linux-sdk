@@ -18,7 +18,7 @@
 #define FINGERPRINT_HAL_H
 
 #include "hw_auth_token.h"
-#include <fingerprint/fingerprint_error_code.h>
+#include <fingerprint/fingerprint_errorcode.h>
 
 typedef enum fingerprint_msg_type {
     FINGERPRINT_ERROR = -1,

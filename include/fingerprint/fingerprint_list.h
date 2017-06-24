@@ -14,6 +14,9 @@
  *
  */
 
+#ifndef FINGERPRINT_LIST_H
+#define FINGERPRINT_LIST_H
+
 #include <utils/list.h>
 #include <fingerprint/fingerprint.h>
 
@@ -28,10 +31,13 @@ struct fingerprint_list {
     int (*empty)(struct fingerprint_list* this);
     struct fingerprint* (*get)(struct fingerprint_list* this, int index);
 
+    void (*dump)(struct fingerprint_list* this);
     struct list_head list;
     int the_size;
     pthread_mutex_t lock;
 };
 
 void construct_fingerprint_list(struct fingerprint_list* this);
-void deconstruct_fingerprint_list(struct fingerprint_list* this);
+void destruct_fingerprint_list(struct fingerprint_list* this);
+
+#endif /* FINGERPRINT_LIST_H */

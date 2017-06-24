@@ -17,6 +17,8 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stdlib.h>
+
 #include <types.h>
 #include <lib/libcommon.h>
 

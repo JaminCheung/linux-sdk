@@ -15,10 +15,13 @@
  */
 
 #include <utils/log.h>
+#include <utils/common.h>
 #include <fingerprint/fingerprint_manager.h>
-#include <fingerprint/fingerprint_error_code.h>
+#include <fingerprint/fingerprint_errorcode.h>
 
 #define LOG_TAG "fingerprint_manager"
+
+static struct fingerprint_list* fingerprint_list;
 
 static const char* error_strings[] = {
         [FINGERPRINT_ERROR_HW_UNAVAILABLE] = "Fingerprint hardware not available.",
@@ -130,8 +133,8 @@ static void rename_fingerprint(int fp_id, const char* new_name) {
 
 }
 
-static void get_enrolled_fingerprints(void) {
-
+static struct fingerprint_list* get_enrolled_fingerprints(void) {
+    return fingerprint_list;
 }
 
 static uint64_t get_authenticator_id(void) {
@@ -147,10 +150,14 @@ static void add_lockout_reset_callback(struct lockout_reset_callback* callback) 
 }
 
 static int init(void) {
+    fingerprint_list = _new(struct fingerprint_list, fingerprint_list);
+
     return 0;
 }
 
 static int deinit(void) {
+    _delete(fingerprint_list);
+
     return 0;
 }
 

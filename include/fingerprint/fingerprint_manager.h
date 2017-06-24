@@ -19,6 +19,7 @@
 
 #include <types.h>
 #include <fingerprint/fingerprint.h>
+#include <fingerprint/fingerprint_list.h>
 
 struct authentication_result {
     struct fingerprint *fingerprint;
@@ -60,8 +61,7 @@ struct fingerprint_manager {
     void (*remove_fingerprint)(struct fingerprint *fp, struct remove_callback* callabck);
     void (*rename_fingerprint)(int fp_id, const char* new_name);
 
-    //TODO: fixme
-    void (*get_enrolled_fingerprints)(void);
+    struct fingerprint_list* (*get_enrolled_fingerprints)(void);
 
     uint64_t (*get_authenticator_id)(void);
     void (*reset_timeout)(char* token, int len);
