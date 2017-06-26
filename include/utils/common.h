@@ -46,10 +46,6 @@ enum system_platform_t {
     free((void *)(P));                      \
 })
 
-extern const char* public_key_path;
-
-void msleep(uint64_t msec);
-int download_file(const char* file, const char* path);
 void msleep(uint64_t msec);
 void cold_boot(const char *path);
 enum system_platform_t get_system_platform(void);

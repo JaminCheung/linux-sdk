@@ -22,13 +22,9 @@
 #include <utils/list.h>
 
 struct fingerprint {
-    void (*construct)(struct fingerprint* this);
+    void (*construct)(struct fingerprint* this, const char* name, int group_id,
+            int finger_id, int64_t device_id);
     void (*destruct)(struct fingerprint* this);
-
-    void (*set_name)(struct fingerprint* this, const char* name);
-    void (*set_group_id)(struct fingerprint* this, const int group_id);
-    void (*set_finger_id)(struct fingerprint* this, const int finger_id);
-    void (*set_device_id)(struct fingerprint* this, const int device_id);
 
     const char* (*get_name)(struct fingerprint* this);
     const int (*get_group_id)(struct fingerprint* this);
@@ -36,18 +32,20 @@ struct fingerprint {
     const int (*get_device_id)(struct fingerprint* this);
 
     const int (*equal)(struct fingerprint* this, struct fingerprint* other);
+    void (*set_name)(struct fingerprint* this, const char* name);
 
     void (*dump)(struct fingerprint* this);
 
     char name[NAME_MAX];
     int group_id;
     int finger_id;
-    int device_id;
+    int64_t device_id;
 
     struct list_head node;
 };
 
-void construct_fingerprint(struct fingerprint* this);
+void construct_fingerprint(struct fingerprint* this, const char* name,
+        int group_id, int finger_id, int64_t device_id);
 void destruct_fingerprint(struct fingerprint* this);
 
 #endif /* FINGERPRINT_H */

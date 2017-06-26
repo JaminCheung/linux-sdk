@@ -28,7 +28,7 @@ static void dump(struct fingerprint* this) {
     LOGI("name:       %s\n", this->name);
     LOGI("finger id:  0x%x\n", this->finger_id);
     LOGI("group  id:  0x%x\n", this->group_id);
-    LOGI("device id:  0x%x\n", this->device_id);
+    LOGI("device id:  0x%llx\n", this->device_id);
     LOGI("========================================\n");
 }
 
@@ -36,19 +36,9 @@ static void set_name(struct fingerprint* this, const char* name) {
     assert_die_if(name == NULL, "name is NULL\n");
     assert_die_if(strlen(name) > NAME_MAX, "name length too long\n");
 
+    memset(this->name, 0, sizeof(this->name));
+
     strncpy(this->name, name, strlen(name));
-}
-
-static void set_group_id(struct fingerprint* this, const int group_id) {
-    this->group_id = group_id;
-}
-
-static void set_finger_id(struct fingerprint* this, const int finger_id) {
-    this->finger_id = finger_id;
-}
-
-static void set_device_id(struct fingerprint* this, const int device_id) {
-    this->device_id = device_id;
 }
 
 static const char* get_name(struct fingerprint* this) {
@@ -77,11 +67,16 @@ static const int equal(struct fingerprint* this, struct fingerprint* other) {
     return 0;
 }
 
-void construct_fingerprint(struct fingerprint* this) {
-    this->set_name = set_name;
-    this->set_group_id = set_group_id;
-    this->set_finger_id = set_finger_id;
-    this->set_device_id = set_device_id;
+void construct_fingerprint(struct fingerprint* this, const char* name,
+        int group_id, int finger_id, int64_t device_id) {
+
+    assert_die_if(name == NULL, "name is NULL\n");
+    assert_die_if(strlen(name) > NAME_MAX, "name length too long\n");
+
+    strncpy(this->name, name, strlen(name));
+    this->group_id = group_id;
+    this->finger_id = finger_id;
+    this->device_id = device_id;
 
     this->get_name = get_name;
     this->get_group_id = get_group_id;
@@ -90,19 +85,10 @@ void construct_fingerprint(struct fingerprint* this) {
 
     this->dump = dump;
     this->equal = equal;
-
-    memset(this->name, 0, sizeof(this->name));
-    this->group_id = -1;
-    this->finger_id = -1;
-    this->device_id = -1;
+    this->set_name = set_name;
 }
 
 void destruct_fingerprint(struct fingerprint* this) {
-    this->set_name = NULL;
-    this->set_group_id = NULL;
-    this->set_finger_id = NULL;
-    this->set_device_id = NULL;
-
     this->get_name = NULL;
     this->get_group_id = NULL;
     this->get_device_id = NULL;
@@ -110,6 +96,7 @@ void destruct_fingerprint(struct fingerprint* this) {
 
     this->dump = NULL;
     this->equal = NULL;
+    this->set_name = NULL;
 
     memset(this->name, 0, sizeof(this->name));
     this->group_id = -1;

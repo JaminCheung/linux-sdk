@@ -158,5 +158,7 @@ void construct_fingerprint_list(struct fingerprint_list* this) {
 }
 
 void destruct_fingerprint_list(struct fingerprint_list* this) {
+    erase_all(this);
+
     pthread_mutex_destroy(&this->lock);
 }

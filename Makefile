@@ -147,7 +147,7 @@ OBJS-y += mount/mount_manager.o
 OBJS-y += fingerprint/fingerprint_manager.o                                    \
           fingerprint/fingerprint.o                                            \
           fingerprint/fingerprint_list.o                                       \
-          fingerprint/fingerprint_userstate.o                                  \
+          fingerprint/fingerprints_userstate.o                                 \
           fingerprint/fingerprint_utils.o                                      \
           fingerprint/hardware/fingerprint_hal.o
 

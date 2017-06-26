@@ -21,8 +21,6 @@
 
 #define LOG_TAG "fingerprint_manager"
 
-static struct fingerprint_list* fingerprint_list;
-
 static const char* error_strings[] = {
         [FINGERPRINT_ERROR_HW_UNAVAILABLE] = "Fingerprint hardware not available.",
         [FINGERPRINT_ERROR_UNABLE_TO_PROCESS] = "Try again.",
@@ -150,13 +148,11 @@ static void add_lockout_reset_callback(struct lockout_reset_callback* callback) 
 }
 
 static int init(void) {
-    fingerprint_list = _new(struct fingerprint_list, fingerprint_list);
 
     return 0;
 }
 
 static int deinit(void) {
-    _delete(fingerprint_list);
 
     return 0;
 }
