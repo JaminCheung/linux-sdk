@@ -132,7 +132,7 @@ static void rename_fingerprint(int fp_id, const char* new_name) {
 }
 
 static struct fingerprint_list* get_enrolled_fingerprints(void) {
-    return fingerprint_list;
+    return NULL;
 }
 
 static uint64_t get_authenticator_id(void) {
