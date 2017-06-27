@@ -29,7 +29,11 @@
 #include <utils/log.h>
 #include <utils/list.h>
 #include <utils/assert.h>
+#include <utils/common.h>
 #include <input/input_manager.h>
+
+#include "input_event_callback.h"
+#include "input_event_callback_list.h"
 
 #define LOG_TAG "input_manager"
 
@@ -59,9 +63,10 @@
 
 #define NAME_ELEMENT(element) [element] = #element
 
-struct listener {
-    input_event_listener_t cb;
-    struct list_head head;
+struct listeners {
+    struct input_event_callback_list* callbacks;
+    input_event_listener_t listener;
+    struct list_head node;
 };
 
 struct input_device {
@@ -770,14 +775,20 @@ static void dump_event(struct input_event* event) {
     LOGI("========================================\n");
 }
 
-static void on_event(struct input_event* event) {
+static void on_event(const char* name, struct input_event* event) {
     struct list_head* pos;
 
     pthread_mutex_lock(&listener_lock);
 
     list_for_each(pos, &listener_list) {
-        struct listener* l = list_entry(pos, struct listener, head);
-        l->cb(event);
+        struct listeners* l = list_entry(pos, struct listeners, node);
+        struct input_event_callback_list* callbacks = l->callbacks;
+
+        for (int i = 0; i < callbacks->size(callbacks); i++) {
+            struct input_event_callback* cb = callbacks->get(callbacks, i);
+            if (!strcmp(cb->name, name))
+                cb->listener(name, event);
+        }
     }
 
     pthread_mutex_unlock(&listener_lock);
@@ -821,7 +832,7 @@ static void* thread_loop(void *param) {
                 }
 
                 for (int i = 0; i < readed / sizeof(struct input_event); i++)
-                    on_event(&ev[i]);
+                    on_event(device->name, &ev[i]);
             }
         }
         pthread_mutex_unlock(&device_list_lock);
@@ -840,6 +851,30 @@ static void* thread_loop(void *param) {
     }
 
     return NULL;
+}
+
+static void unregister_all_listeners(void) {
+    struct list_head* pos;
+    struct list_head* next_pos;
+
+    pthread_mutex_lock(&listener_lock);
+
+    list_for_each_safe(pos, next_pos, &listener_list) {
+        struct listeners* l = list_entry(pos, struct listeners, node);
+        struct input_event_callback_list* callbacks = l->callbacks;
+
+        for (int i = 0; i < callbacks->size(callbacks); i++) {
+            struct input_event_callback* cb = callbacks->get(callbacks, i);
+            callbacks->remove_callback(callbacks, cb);
+        }
+
+        _delete(callbacks);
+
+        list_del(&l->node);
+        free(l);
+    }
+
+    pthread_mutex_unlock(&listener_lock);
 }
 
 static int start(void) {
@@ -955,6 +990,7 @@ static int deinit(void) {
         list_del(&device->head);
         free(device);
     }
+
     pthread_mutex_unlock(&device_list_lock);
 
     if (local_pipe[0] > 0)
@@ -962,6 +998,8 @@ static int deinit(void) {
 
     if (local_pipe[1] > 0)
         close(local_pipe[1]);
+
+    unregister_all_listeners();
 
     pthread_mutex_unlock(&init_lock);
 
@@ -978,49 +1016,87 @@ static int get_device_count(void) {
     return size;
 }
 
-static void register_event_listener(input_event_listener_t listener) {
+static void register_event_listener(const char* name,
+        input_event_listener_t listener) {
+    assert_die_if(name == NULL, "name is NULL\n");
     assert_die_if(listener == NULL, "listener is NULL\n");
 
+    struct input_event_callback_list* callbacks = NULL;
     struct list_head* pos;
+
     pthread_mutex_lock(&listener_lock);
 
     list_for_each(pos, &listener_list) {
-        struct listener *l = list_entry(pos, struct listener, head);
-        if (l->cb == listener) {
-            pthread_mutex_unlock(&listener_lock);
-            return;
+        struct listeners *l = list_entry(pos, struct listeners, node);
+        if (l->listener == listener) {
+            callbacks = l->callbacks;
+            for (int i = 0; i < callbacks->size(callbacks); i++) {
+                struct input_event_callback* cb = callbacks->get(callbacks, i);
+                if (!strcmp(cb->name, name))
+                    goto out;
+            }
         }
     }
 
-    struct listener *l = malloc(sizeof(struct listener));
-    l->cb = listener;
-    list_add_tail(&l->head, &listener_list);
+    if (callbacks == NULL) {
+        callbacks = _new(struct input_event_callback_list,
+                input_event_callback_list);
+        struct listeners* l = calloc(1, sizeof(struct listeners));
+        l->callbacks = callbacks;
+        l->listener = listener;
+        list_add_tail(&l->node, &listener_list);
+    }
 
+    struct input_event_callback *cb = calloc(1, sizeof(struct input_event_callback));
+    cb->construct = construct_input_event_callback;
+    cb->destruct = destruct_input_event_callback;
+    cb->construct(cb, name, listener);
+
+    callbacks->insert_callback(callbacks, cb);
+
+out:
     pthread_mutex_unlock(&listener_lock);
 }
 
-static void unregister_event_listener(input_event_listener_t listener) {
+static void unregister_event_listener(const char* name,
+        input_event_listener_t listener) {
+    assert_die_if(name == NULL, "name is NULL\n");
     assert_die_if(listener == NULL, "listener is NULL\n");
 
     struct list_head* pos;
-    struct list_head* next_pos;
+    struct input_event_callback_list* callbacks = NULL;
 
     pthread_mutex_lock(&listener_lock);
 
-    list_for_each_safe(pos, next_pos, &listener_list) {
-        struct listener* l = list_entry(pos, struct listener, head);
+    list_for_each(pos, &listener_list) {
+        struct listeners* l = list_entry(pos, struct listeners, node);
+        if (l->listener == listener)
+            callbacks = l->callbacks;
+    }
 
-        if (l->cb == listener) {
-            list_del(&l->head);
+    if (callbacks == NULL)
+        goto out;
 
+    for (int i = 0; i < callbacks->size(callbacks); i++) {
+        struct input_event_callback* cb = callbacks->get(callbacks, i);
+        if (!strcmp(cb->name, name))
+            callbacks->remove_callback(callbacks, cb);
+    }
+
+    if (callbacks->empty(callbacks)) {
+        _delete(callbacks);
+
+        struct list_head* pos;
+        struct list_head* next_pos;
+
+        list_for_each_safe(pos, next_pos, &listener_list) {
+            struct listeners* l = list_entry(pos, struct listeners, node);
+            list_del(&l->node);
             free(l);
-
-            pthread_mutex_unlock(&listener_lock);
-
-            return;
         }
     }
 
+out:
     pthread_mutex_unlock(&listener_lock);
 }
 

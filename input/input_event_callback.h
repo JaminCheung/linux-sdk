@@ -14,28 +14,31 @@
  *
  */
 
-#ifndef INPUT_MANAGER_H
-#define INPUT_MANAGER_H
+#ifndef INPUT_EVENT_CALLBACK_H
+#define INPUT_EVENT_CALLBACK_H
 
 #include <linux/input.h>
+
+#include <limits.h>
+
+#include <utils/list.h>
 
 typedef void (*input_event_listener_t)(const char* input_name,
         struct input_event *event);
 
-struct input_manager {
-    int (*init)(void);
-    int (*deinit)(void);
-    int (*start)(void);
-    int (*stop)(void);
-    int (*get_devices_count)(void);
-    void (*register_event_listener)(const char* name,
-            input_event_listener_t listener);
-    void (*unregister_event_listener)(const char*name, input_event_listener_t listener);
-    void (*dump_event)(struct input_event* event);
-    const char* (*type2str)(uint32_t event_type);
-    const char* (*code2str)(uint32_t event_type, uint32_t event_code);
+struct input_event_callback {
+    void (*construct)(struct input_event_callback* this,
+            const char* name, input_event_listener_t listener);
+    void (*destruct)(struct input_event_callback* this);
+
+    input_event_listener_t listener;
+    char name[NAME_MAX];
+
+    struct list_head node;
 };
 
-struct input_manager* get_input_manager(void);
+void construct_input_event_callback(struct input_event_callback* this,
+        const char* name, input_event_listener_t listener);
+void destruct_input_event_callback(struct input_event_callback* this);
 
-#endif /* INPUT_MANAGER_H */
+#endif /* INPUT_EVENT_CALLBACK_H */

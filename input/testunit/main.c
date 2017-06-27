@@ -8,7 +8,9 @@
 
 static struct input_manager *input_manager;
 
-static void input_event_listener(struct input_event* event) {
+static void input_event_listener(const char* input_name,
+        struct input_event* event) {
+    LOGI("Input device name: %s\n", input_name);
     input_manager->dump_event(event);
 }
 
@@ -29,7 +31,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    input_manager->register_event_listener(input_event_listener);
+    input_manager->register_event_listener("gpio-keys", input_event_listener);
 
     while (1)
         sleep(1000);

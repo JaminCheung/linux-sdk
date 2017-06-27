@@ -53,6 +53,8 @@ static void insert(struct fingerprint_list* this, struct fingerprint* new_fp) {
 
     list_add_tail(&new_fp->node, &this->list);
 
+    this->the_size++;
+
 out:
     pthread_mutex_unlock(&this->lock);
 }
@@ -71,7 +73,11 @@ static void erase(struct fingerprint_list* this, int index) {
             struct fingerprint* fp = list_entry(pos, struct fingerprint, node);
             if (i++ == index) {
                 list_del(&fp->node);
+
+                fp->destruct(fp);
                 free(fp);
+
+                this->the_size--;
 
                 break;
             }
@@ -91,8 +97,12 @@ static void erase_all(struct fingerprint_list* this) {
         struct fingerprint* fp = list_entry(pos, struct fingerprint, node);
 
         list_del(&fp->node);
+
+        fp->destruct(fp);
         free(fp);
     }
+
+    this->the_size = 0;
 
     pthread_mutex_unlock(&this->lock);
 }
@@ -161,4 +171,13 @@ void destruct_fingerprint_list(struct fingerprint_list* this) {
     erase_all(this);
 
     pthread_mutex_destroy(&this->lock);
+
+    this->insert = NULL;
+    this->empty = NULL;
+    this->erase_all = NULL;
+    this->empty = NULL;
+    this->size = NULL;
+    this->get = NULL;
+    this->the_size = 0;
+    this->dump = NULL;
 }

@@ -119,7 +119,9 @@ OBJS-y += security/security_manager.o
 #
 # Input
 #
-OBJS-y += input/input_manager.o
+OBJS-y += input/input_manager.o                                                \
+          input/input_event_callback_list.o                                    \
+          input/input_event_callback.o
 
 #
 # Battery
