@@ -17,12 +17,11 @@
 #include <string.h>
 
 #include <utils/log.h>
+#include <utils/assert.h>
 #include <utils/common.h>
-#include <fingerprint/fingerprints_userstate.h>
+#include "fingerprints_userstate.h"
 
 #define LOG_TAG "fingerprints_userstate"
-
-static pthread_mutex_t this_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static struct fingerprint_list* get_copy(struct fingerprints_userstate* this,
         struct fingerprint_list* list) {
@@ -50,9 +49,9 @@ static FILE* get_file_for_user(struct fingerprints_userstate* this, int user_id)
 }
 
 static void read_state_sync(struct fingerprints_userstate* this) {
-    pthread_mutex_lock(&this_lock);
+    pthread_mutex_lock(&this->lock);
 
-    pthread_mutex_unlock(&this_lock);
+    pthread_mutex_unlock(&this->lock);
 }
 
 static const char* get_unique_name(struct fingerprints_userstate* this) {
@@ -69,12 +68,32 @@ static int is_unique(struct fingerprints_userstate* this, const char* name) {
     return 0;
 }
 
-static void schedule_write_state(struct fingerprints_userstate* this) {
+static void* write_state_worker(void* param) {
+    struct fingerprints_userstate* this = (struct fingerprints_userstate*)param;
 
+    pthread_mutex_lock(&this->lock);
+    struct fingerprint_list* fingerprints = get_copy(this, this->fingerprints);
+    pthread_mutex_unlock(&this->lock);
+
+    return NULL;
+}
+
+static void schedule_write_state(struct fingerprints_userstate* this) {
+    int error = 0;
+
+    pthread_t tid;
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+
+    error = pthread_create(&tid, &attr, write_state_worker, NULL);
+    assert_die_if(error, "pthread create failed\n");
+
+    pthread_attr_destroy(&attr);
 }
 
 static void add_fingerprint(struct fingerprints_userstate* this, int finger_id, int group_id) {
-    pthread_mutex_lock(&this_lock);
+    pthread_mutex_lock(&this->lock);
 
     struct fingerprint* fp = calloc(1, sizeof(struct fingerprint));
     fp->construct = construct_fingerprint;
@@ -83,11 +102,11 @@ static void add_fingerprint(struct fingerprints_userstate* this, int finger_id, 
     fp->construct(fp, get_unique_name(this), group_id, finger_id, 0);
     schedule_write_state(this);
 
-    pthread_mutex_unlock(&this_lock);
+    pthread_mutex_unlock(&this->lock);
 }
 
 static void remove_fingerprint(struct fingerprints_userstate* this, int finger_id) {
-    pthread_mutex_lock(&this_lock);
+    pthread_mutex_lock(&this->lock);
 
     for (int i = 0; i < this->fingerprints->size(this->fingerprints); i++) {
         struct fingerprint* fp = this->fingerprints->get(this->fingerprints, i);
@@ -97,11 +116,11 @@ static void remove_fingerprint(struct fingerprints_userstate* this, int finger_i
         }
     }
 
-    pthread_mutex_unlock(&this_lock);
+    pthread_mutex_unlock(&this->lock);
 }
 
 static void rename_fingerprint(struct fingerprints_userstate* this, int finger_id, const char* name) {
-    pthread_mutex_lock(&this_lock);
+    pthread_mutex_lock(&this->lock);
 
     for (int i = 0; i < this->fingerprints->size(this->fingerprints); i++) {
         struct fingerprint* fp = this->fingerprints->get(this->fingerprints, i);
@@ -111,30 +130,31 @@ static void rename_fingerprint(struct fingerprints_userstate* this, int finger_i
         }
     }
 
-    pthread_mutex_unlock(&this_lock);
+    pthread_mutex_unlock(&this->lock);
 }
 
 static struct fingerprint_list* get_fingerprints(struct fingerprints_userstate* this) {
-    pthread_mutex_lock(&this_lock);
+    pthread_mutex_lock(&this->lock);
     struct fingerprint_list* copy_list = get_copy(this, this->fingerprints);
-    pthread_mutex_unlock(&this_lock);
+    pthread_mutex_unlock(&this->lock);
 
     return copy_list;
 }
 
 void construct_fingerprints_userstate(struct fingerprints_userstate* this,
         int user_id) {
-
-    this->fp = get_file_for_user(this, user_id);
-
-    read_state_sync(this);
-
     this->fingerprints = _new(struct fingerprint_list, fingerprint_list);
 
     this->add_fingerprint = add_fingerprint;
     this->remove_fingerprint = remove_fingerprint;
     this->rename_fingerprint = rename_fingerprint;
     this->get_fingerprints = get_fingerprints;
+
+    pthread_mutex_init(&this->lock, NULL);
+
+    this->fp = get_file_for_user(this, user_id);
+
+    read_state_sync(this);
 }
 
 void destruct_fingerprints_userstate(struct fingerprints_userstate* this) {

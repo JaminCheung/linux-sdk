@@ -15,9 +15,10 @@
  */
 
 #include <utils/log.h>
-#include "fingerprint_hal.h"
 
-#define LOG_TAG "fingerprint_hal"
+#include "fingerprint_device.h"
+
+#define LOG_TAG "fingerprint_device"
 
 static struct fingerprint_device this;
 
@@ -74,6 +75,6 @@ static struct fingerprint_device this = {
         .notify = NULL,
 };
 
-struct fingerprint_device* get_fingerprint_deivce(void) {
+struct fingerprint_device* get_fingerprint_device(void) {
     return &this;
 }

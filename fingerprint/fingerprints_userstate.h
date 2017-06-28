@@ -31,6 +31,7 @@ struct fingerprints_userstate {
     struct fingerprint_list* (*get_fingerprints)(struct fingerprints_userstate* this);
 
     FILE* fp;
+    pthread_mutex_t lock;
     struct fingerprint_list* fingerprints;
 };
 

@@ -63,7 +63,7 @@
 
 #define NAME_ELEMENT(element) [element] = #element
 
-struct listeners {
+struct listener {
     struct input_event_callback_list* callbacks;
     input_event_listener_t listener;
     struct list_head node;
@@ -765,6 +765,10 @@ static int scan_devices(void) {
     return 0;
 }
 
+static void wait_looper_quit(void) {
+    msleep(5);
+}
+
 static void dump_event(struct input_event* event) {
     LOGI("========================================\n");
     LOGI("Dump input event\n");
@@ -781,7 +785,7 @@ static void on_event(const char* name, struct input_event* event) {
     pthread_mutex_lock(&listener_lock);
 
     list_for_each(pos, &listener_list) {
-        struct listeners* l = list_entry(pos, struct listeners, node);
+        struct listener* l = list_entry(pos, struct listener, node);
         struct input_event_callback_list* callbacks = l->callbacks;
 
         for (int i = 0; i < callbacks->size(callbacks); i++) {
@@ -799,29 +803,31 @@ static void* thread_loop(void *param) {
     int error = 0;
     fd_set rdfs;
     struct input_event ev[256];
-
-    FD_ZERO(&rdfs);
-
-    if (max_fd < local_pipe[0])
-        max_fd = local_pipe[0];
-
     struct list_head* pos;
-    list_for_each(pos, &input_dev_list) {
-        struct input_device* device = list_entry(pos, struct input_device, head);
-        FD_SET(device->fd, &rdfs);
-    }
 
     for (;;) {
+        FD_ZERO(&rdfs);
+
+        pthread_mutex_lock(&device_list_lock);
+        list_for_each(pos, &input_dev_list) {
+            struct input_device* device = list_entry(pos, struct input_device, head);
+            FD_SET(device->fd, &rdfs);
+        }
+        pthread_mutex_unlock(&device_list_lock);
+
+        if (max_fd < local_pipe[0])
+            max_fd = local_pipe[0];
+
+        FD_SET(local_pipe[0], &rdfs);
+
+restart:
         error = select(max_fd + 1, &rdfs, NULL, NULL, NULL);
         if (error <= 0) {
             LOGE("select error, continue.\n");
-            continue;
+            goto restart;
         }
 
-        struct list_head* pos;
-
         pthread_mutex_lock(&device_list_lock);
-
         list_for_each(pos, &input_dev_list) {
             struct input_device* device = list_entry(pos, struct input_device, head);
             if (FD_ISSET(device->fd, &rdfs)) {
@@ -833,6 +839,8 @@ static void* thread_loop(void *param) {
 
                 for (int i = 0; i < readed / sizeof(struct input_event); i++)
                     on_event(device->name, &ev[i]);
+
+                FD_CLR(device->fd, &rdfs);
             }
         }
         pthread_mutex_unlock(&device_list_lock);
@@ -844,6 +852,8 @@ static void* thread_loop(void *param) {
                  LOGE("Unable to read pipe: %s\n", strerror(errno));
                  continue;
              }
+
+            FD_CLR(local_pipe[0], &rdfs);
 
             LOGI("main thread call me break out\n");
             break;
@@ -860,7 +870,7 @@ static void unregister_all_listeners(void) {
     pthread_mutex_lock(&listener_lock);
 
     list_for_each_safe(pos, next_pos, &listener_list) {
-        struct listeners* l = list_entry(pos, struct listeners, node);
+        struct listener* l = list_entry(pos, struct listener, node);
         struct input_event_callback_list* callbacks = l->callbacks;
 
         for (int i = 0; i < callbacks->size(callbacks); i++) {
@@ -929,6 +939,8 @@ static int stop(void) {
         LOGE("Unable to write pipe: %s\n", strerror(errno));
         goto error;
     }
+
+    wait_looper_quit();
 
     started = 0;
 
@@ -1027,7 +1039,7 @@ static void register_event_listener(const char* name,
     pthread_mutex_lock(&listener_lock);
 
     list_for_each(pos, &listener_list) {
-        struct listeners *l = list_entry(pos, struct listeners, node);
+        struct listener *l = list_entry(pos, struct listener, node);
         if (l->listener == listener) {
             callbacks = l->callbacks;
             for (int i = 0; i < callbacks->size(callbacks); i++) {
@@ -1041,7 +1053,7 @@ static void register_event_listener(const char* name,
     if (callbacks == NULL) {
         callbacks = _new(struct input_event_callback_list,
                 input_event_callback_list);
-        struct listeners* l = calloc(1, sizeof(struct listeners));
+        struct listener* l = calloc(1, sizeof(struct listener));
         l->callbacks = callbacks;
         l->listener = listener;
         list_add_tail(&l->node, &listener_list);
@@ -1069,7 +1081,7 @@ static void unregister_event_listener(const char* name,
     pthread_mutex_lock(&listener_lock);
 
     list_for_each(pos, &listener_list) {
-        struct listeners* l = list_entry(pos, struct listeners, node);
+        struct listener* l = list_entry(pos, struct listener, node);
         if (l->listener == listener)
             callbacks = l->callbacks;
     }
@@ -1090,7 +1102,7 @@ static void unregister_event_listener(const char* name,
         struct list_head* next_pos;
 
         list_for_each_safe(pos, next_pos, &listener_list) {
-            struct listeners* l = list_entry(pos, struct listeners, node);
+            struct listener* l = list_entry(pos, struct listener, node);
             list_del(&l->node);
             free(l);
         }

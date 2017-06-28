@@ -1,5 +1,6 @@
 #include <types.h>
 #include <utils/log.h>
+#include <utils/common.h>
 #include <fingerprint/fingerprint_manager.h>
 
 #define LOG_TAG "test_fingerprint"

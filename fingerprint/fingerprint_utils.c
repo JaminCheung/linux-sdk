@@ -19,8 +19,8 @@
 #include <utils/log.h>
 #include <utils/list.h>
 #include <utils/common.h>
-#include <fingerprint/fingerprint_utils.h>
-#include <fingerprint/fingerprints_userstate.h>
+#include "fingerprint_utils.h"
+#include "fingerprints_userstate.h"
 
 #define LOG_TAG "fingerprint_utils"
 

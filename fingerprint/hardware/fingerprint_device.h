@@ -14,8 +14,8 @@
  *
  */
 
-#ifndef FINGERPRINT_HAL_H
-#define FINGERPRINT_HAL_H
+#ifndef FINGERPRINT_DEVICE_H
+#define FINGERPRINT_DEVICE_H
 
 #include "hw_auth_token.h"
 #include <fingerprint/fingerprint_errorcode.h>
@@ -204,6 +204,6 @@ struct fingerprint_device {
     void *reserved[4];
 };
 
-struct fingerprint_device* get_fingerprint_deivce(void);
+struct fingerprint_device* get_fingerprint_device(void);
 
-#endif /* FINGERPRINT_HAL_H */
+#endif /* FINGERPRINT_DEVICE_H */

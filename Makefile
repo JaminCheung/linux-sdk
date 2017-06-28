@@ -36,6 +36,8 @@ OBJS-y += utils/signal_handler.o                                               \
           utils/assert.o                                                       \
           utils/common.o                                                       \
           utils/file_ops.o                                                     \
+          utils/runnable/pthread_wrapper.o                                     \
+          utils/runnable/default_runnable.o                                    \
           utils/thread_pool/thread_pool.o
 
 #
@@ -151,7 +153,9 @@ OBJS-y += fingerprint/fingerprint_manager.o                                    \
           fingerprint/fingerprint_list.o                                       \
           fingerprint/fingerprints_userstate.o                                 \
           fingerprint/fingerprint_utils.o                                      \
-          fingerprint/hardware/fingerprint_hal.o
+          fingerprint/authentication_result.o                                  \
+          fingerprint/fingerprint_device_proxy.o                               \
+          fingerprint/hardware/fingerprint_device.o
 
 OBJS := $(OBJS-y)
 
@@ -266,6 +270,7 @@ testunit:
 	$(QUITE_TEST_BUILD)test_input;make -sC input/testunit all
 	$(QUITE_TEST_BUILD)test_vibrator;make -sC vibrator/testunit all
 	$(QUITE_TEST_BUILD)test_fingerprint;make -sC fingerprint/testunit all
+	$(QUITE_TEST_BUILD)test_default_runnable;make -sC utils/runnable/testunit all
 
 	@echo -e '\n  $@: $(shell basename $(OUTDIR))/test_xxx is ready\n'
 
@@ -290,6 +295,7 @@ testunit_clean:
 	$(QUITE_TEST_CLEAN)test_input;make -sC input/testunit clean
 	$(QUITE_TEST_CLEAN)test_vibrator;make -sC vibrator/testunit clean
 	$(QUITE_TEST_CLEAN)test_fingerprint;make -sC fingerprint/testunit clean
+	$(QUITE_TEST_BUILD)test_default_runnable;make -sC utils/runnable/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS) $(OBJS)

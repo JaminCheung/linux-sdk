@@ -20,10 +20,7 @@
 #include <types.h>
 #include <fingerprint/fingerprint.h>
 #include <fingerprint/fingerprint_list.h>
-
-struct authentication_result {
-    struct fingerprint *fingerprint;
-};
+#include <fingerprint/authentication_result.h>
 
 struct enrollment_callback {
     void (*on_enrollment_error)(int error_code, const char* error_string);
@@ -31,10 +28,10 @@ struct enrollment_callback {
     void (*on_enrollment_progress)(int remaining);
 };
 
-struct remove_callback {
-    void (*on_remove_error)(struct fingerprint *fp, int error_code,
+struct removal_callback {
+    void (*on_removal_error)(struct fingerprint *fp, int error_code,
             const char* error_string);
-    void (*on_remove_successed)(struct fingerprint *fp);
+    void (*on_removal_successed)(struct fingerprint *fp);
 };
 
 struct authentication_callback {
@@ -53,17 +50,18 @@ struct fingerprint_manager {
     int (*init)(void);
     int (*deinit)(void);
     int (*is_hardware_detected)(void);
-    int (*has_enrolled_fingerprints)(void);
-    void (*authenticate)(struct authentication_callback *callback);
+    int (*has_enrolled_fingerprints)(int user_id);
+    void (*authenticate)(struct authentication_callback *callback, int flag, int user_id);
     void (*enroll)(char* token, int len, struct enrollment_callback *callback);
-    void (*pre_enroll)(void);
-    void (*post_enroll)(void);
-    void (*remove_fingerprint)(struct fingerprint *fp, struct remove_callback* callabck);
+    int64_t (*pre_enroll)(void);
+    int (*post_enroll)(void);
+    void (*set_active_user)(int user_id);
+    void (*remove_fingerprint)(struct fingerprint *fp, struct removal_callback* callabck);
     void (*rename_fingerprint)(int fp_id, const char* new_name);
 
-    struct fingerprint_list* (*get_enrolled_fingerprints)(void);
+    struct fingerprint_list* (*get_enrolled_fingerprints)(int user_id);
 
-    uint64_t (*get_authenticator_id)(void);
+    int64_t (*get_authenticator_id)(void);
     void (*reset_timeout)(char* token, int len);
     void (*add_lockout_reset_callback)(struct lockout_reset_callback* callback);
 };
