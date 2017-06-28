@@ -31,21 +31,26 @@ static void set_thread_count(struct default_runnable* this, int count) {
 }
 
 static int start(struct default_runnable* this, void* param) {
-    if (this->thread != NULL || this->thread_count < 1)
-        return 0;
+    int i = 0;
 
-    this->thread = calloc(this->thread_count, sizeof(struct pthread_wrapper));
+    if (this->thread != NULL || this->thread_count < 1)
+        return -1;
+
+    if (this->thread == NULL) {
+        this->thread = calloc(this->thread_count, sizeof(struct pthread_wrapper));
+        for (i = 0; i < this->thread_count; i++) {
+            this->thread[i].construct = construct_pthread_wrapper;
+            this->thread[i].destruct = destruct_pthread_wrapper;
+            this->thread[i].construct(&this->thread[i]);
+        }
+    }
+
     if (this->thread == NULL) {
         LOGE("Failed to create %d threads\n", this->thread_count);
         return 0;
     }
 
-    int i;
     for (i = 0; i < this->thread_count; i++) {
-        this->thread[i].construct = construct_pthread_wrapper;
-        this->thread[i].destruct = destruct_pthread_wrapper;
-        this->thread[i].construct(&this->thread[i]);
-
         if (this->thread[i].start(&this->thread[i], &this->runnable, param))
             return i;
     }
@@ -54,6 +59,7 @@ static int start(struct default_runnable* this, void* param) {
 }
 
 static void stop(struct default_runnable* this) {
+    LOGI("Please implement me.\n");
     this->is_stop = 1;
 }
 
@@ -76,6 +82,13 @@ void construct_default_runnable(struct default_runnable* this) {
 }
 
 void destruct_default_runnable(struct default_runnable* this) {
+    if (this->thread) {
+        for (int i = 0; i < this->thread_count; i++) {
+            this->thread[i].destruct(&this->thread[i]);
+            free(&this->thread[i]);
+        }
+    }
+
     this->set_thread_count = NULL;
     this->start = NULL;
     this->stop = NULL;

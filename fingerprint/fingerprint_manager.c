@@ -316,7 +316,7 @@ static void authenticate(struct authentication_callback *callback, int flag,
     //TODO: to service
 }
 
-static void enroll(char* token, int len, int flags, int user_id,
+static void enroll(char* token, int token_len, int flags, int user_id,
         struct enrollment_callback *callback) {
     assert_die_if(callback == NULL, "Callback is NULL\n");
 

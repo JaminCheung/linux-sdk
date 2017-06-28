@@ -74,12 +74,18 @@ static int get_pid(struct pthread_wrapper* this) {
     return this->pid;
 }
 
+static pthread_t get_tid(struct pthread_wrapper* this) {
+    return this->tid;
+}
+
 void construct_pthread_wrapper(struct pthread_wrapper* this) {
     this->start = start;
     this->join = join;
     this->get_runnable = get_runnable;
     this->get_param = get_param;
     this->get_pid = get_pid;
+    this->get_tid = get_tid;
+
     this->tid = 0;
     this->pid = 0;
     this->param = NULL;
@@ -91,6 +97,8 @@ void destruct_pthread_wrapper(struct pthread_wrapper* this) {
     this->get_runnable = NULL;
     this->get_param = NULL;
     this->get_pid = NULL;
+    this->get_tid = NULL;
+
     this->tid = 0;
     this->pid = 0;
     this->param = NULL;

@@ -52,12 +52,12 @@ struct fingerprint_manager {
     int (*is_hardware_detected)(void);
     int (*has_enrolled_fingerprints)(int user_id);
     void (*authenticate)(struct authentication_callback *callback, int flag, int user_id);
-    void (*enroll)(char* token, int len, struct enrollment_callback *callback);
+    void (*enroll)(char* token, int token_len, int flag, int user_id, struct enrollment_callback *callback);
     int64_t (*pre_enroll)(void);
     int (*post_enroll)(void);
     void (*set_active_user)(int user_id);
-    void (*remove_fingerprint)(struct fingerprint *fp, struct removal_callback* callabck);
-    void (*rename_fingerprint)(int fp_id, const char* new_name);
+    void (*remove_fingerprint)(struct fingerprint *fp, int user_id, struct removal_callback* callabck);
+    void (*rename_fingerprint)(int fp_id, int user_id, const char* new_name);
 
     struct fingerprint_list* (*get_enrolled_fingerprints)(int user_id);
 
