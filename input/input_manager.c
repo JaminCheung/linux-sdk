@@ -959,7 +959,7 @@ static int init(void) {
     pthread_mutex_lock(&init_lock);
 
     if (inited == 1) {
-        LOGE("battery manager already init\n");
+        LOGE("input manager already init\n");
         goto error;
     }
 
@@ -987,7 +987,7 @@ static int deinit(void) {
     pthread_mutex_lock(&init_lock);
 
     if (inited == 0) {
-        LOGE("battery manager already deinit\n");
+        LOGE("input manager already deinit\n");
         pthread_mutex_unlock(&init_lock);
         return -1;
     }

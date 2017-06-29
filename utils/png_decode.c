@@ -103,45 +103,53 @@ static void transform_rgb_to_draw(uint8_t* input_row, uint8_t* output_row,
 static int png_decode(const char* path, png_structp* png_ptr, png_infop* info_ptr,
         struct image_info* image_info, uint8_t gray_to_rgb) {
     uint8_t header[8];
+    volatile int error = 0;
+    FILE* fp = NULL;
 
-    FILE* fp = fopen(path, "rb");
+    fp = fopen(path, "rb");
     if (fp == NULL) {
         LOGE("Failed to open %s: %s\n", path, strerror(errno));
-        return -1;
+        error = -1;
+        goto out;
     }
 
     uint32_t bytes_readed = fread(header, 1, sizeof(header), fp);
     if (bytes_readed != sizeof(header)) {
         LOGE("Failed to read png image header\n");
-        return -1;
+        error = -1;
+        goto out;
     }
 
     if (png_sig_cmp(header, 0, sizeof(header))) {
         LOGE("Image is not png\n");
-        return -1;
+        error = -1;
+        goto out;
     }
 
     *png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, 0, 0, 0);
-    if (png_ptr == NULL) {
+    if (*png_ptr == NULL) {
         LOGI("Failed to create png structure\n");
-        return -1;
+        error = -1;
+        goto out;
+    }
+
+    *info_ptr = png_create_info_struct(*png_ptr);
+    if (*info_ptr == NULL) {
+        LOGE("Failed create png info structure\n");
+        error = -1;
+        goto out;
     }
 
     if (setjmp(png_jmpbuf(*png_ptr))) {
         LOGE("Failed to set error jump point\n");
         png_destroy_read_struct(png_ptr, info_ptr, NULL);
-        return -1;
+        error = -1;
+        goto out;
     }
 
     png_init_io(*png_ptr, fp);
-    *info_ptr = png_create_info_struct(*png_ptr);
-    if (info_ptr == NULL) {
-        LOGE("Failed create png info structure\n");
-        return -1;
-    }
 
     png_set_sig_bytes(*png_ptr, sizeof(header));
-
     png_read_info(*png_ptr, *info_ptr);
 
     /*
@@ -183,13 +191,21 @@ static int png_decode(const char* path, png_structp* png_ptr, png_infop* info_pt
     dump_image_info(image_info);
 
     return 0;
+
+out:
+    if (fp != NULL) {
+        fclose(fp);
+        fp = NULL;
+    }
+
+    return error;
 }
 
 int png_decode_font(const char* path, struct gr_surface** psurface) {
     assert_die_if(path == NULL, "path is NULL\n");
 
-    png_structp png_ptr;
-    png_infop info_ptr;
+    png_structp png_ptr = NULL;
+    png_infop info_ptr = NULL;
 
     struct gr_surface* surface = NULL;
     struct image_info image_info;
@@ -203,6 +219,7 @@ int png_decode_font(const char* path, struct gr_surface** psurface) {
 
     if (image_info.channels != 1) {
         LOGE("Invalid channels: %d\n", image_info.channels);
+        png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
         return -1;
     }
 
@@ -234,8 +251,8 @@ int png_decode_font(const char* path, struct gr_surface** psurface) {
 int png_decode_image(const char* path, struct gr_surface** psurface) {
     assert_die_if(path == NULL, "path is NULL\n");
 
-    png_structp png_ptr;
-    png_infop info_ptr;
+    png_structp png_ptr = NULL;
+    png_infop info_ptr = NULL;
 
     struct gr_surface* surface = NULL;
     struct image_info image_info;

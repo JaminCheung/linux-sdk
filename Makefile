@@ -36,6 +36,7 @@ OBJS-y += utils/signal_handler.o                                               \
           utils/assert.o                                                       \
           utils/common.o                                                       \
           utils/file_ops.o                                                     \
+          utils/png_decode.o                                                   \
           utils/runnable/pthread_wrapper.o                                     \
           utils/runnable/default_runnable.o                                    \
           utils/thread_pool/thread_pool.o
@@ -146,6 +147,16 @@ OBJS-y += vibrator/vibrator_manager.o
 OBJS-y += mount/mount_manager.o
 
 #
+# Framebuffer
+#
+OBJS-y += fb/fb_manager.o
+
+#
+# Graphics
+#
+OBJS-y += graphics/gr_drawer.o
+
+#
 # Fingerprint
 #
 OBJS-y += fingerprint/fingerprint_manager.o                                    \
@@ -191,6 +202,25 @@ LIBS-y += lib/zlib/zlib-1.2.8/adler32.o                                        \
           lib/zlib/zlib-1.2.8/gzlib.o                                          \
           lib/zlib/zlib-1.2.8/gzread.o                                         \
           lib/zlib/zlib-1.2.8/gzwrite.o                                        \
+
+#
+# PNG Lib
+#
+LIBS-y += lib/png/libpng-1.6.26/png.o                                          \
+          lib/png/libpng-1.6.26/pngerror.o                                     \
+          lib/png/libpng-1.6.26/pngget.o                                       \
+          lib/png/libpng-1.6.26/pngmem.o                                       \
+          lib/png/libpng-1.6.26/pngpread.o                                     \
+          lib/png/libpng-1.6.26/pngread.o                                      \
+          lib/png/libpng-1.6.26/pngrio.o                                       \
+          lib/png/libpng-1.6.26/pngrtran.o                                     \
+          lib/png/libpng-1.6.26/pngrutil.o                                     \
+          lib/png/libpng-1.6.26/pngset.o                                       \
+          lib/png/libpng-1.6.26/pngtrans.o                                     \
+          lib/png/libpng-1.6.26/pngwio.o                                       \
+          lib/png/libpng-1.6.26/pngwrite.o                                     \
+          lib/png/libpng-1.6.26/pngwtran.o                                     \
+          lib/png/libpng-1.6.26/pngwutil.o
 
 #
 # MD5 Lib
@@ -271,6 +301,8 @@ testunit:
 	$(QUITE_TEST_BUILD)test_vibrator;make -sC vibrator/testunit all
 	$(QUITE_TEST_BUILD)test_fingerprint;make -sC fingerprint/testunit all
 	$(QUITE_TEST_BUILD)test_default_runnable;make -sC utils/runnable/testunit all
+	$(QUITE_TEST_BUILD)test_fb;make -sC fb/testunit all
+	$(QUITE_TEST_BUILD)test_graphics;make -sC graphics/testunit all
 
 	@echo -e '\n  $@: $(shell basename $(OUTDIR))/test_xxx is ready\n'
 
@@ -296,6 +328,7 @@ testunit_clean:
 	$(QUITE_TEST_CLEAN)test_vibrator;make -sC vibrator/testunit clean
 	$(QUITE_TEST_CLEAN)test_fingerprint;make -sC fingerprint/testunit clean
 	$(QUITE_TEST_BUILD)test_default_runnable;make -sC utils/runnable/testunit clean
+	$(QUITE_TEST_BUILD)test_graphics;make -sC graphics/testunit clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS) $(OBJS)
