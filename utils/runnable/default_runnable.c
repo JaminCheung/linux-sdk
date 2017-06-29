@@ -33,7 +33,8 @@ static void set_thread_count(struct default_runnable* this, int count) {
 static int start(struct default_runnable* this, void* param) {
     int i = 0;
 
-    if (this->thread != NULL || this->thread_count < 1)
+
+    if (this->thread != NULL && this->thread_count < 1)
         return -1;
 
     if (this->thread == NULL) {
@@ -47,7 +48,7 @@ static int start(struct default_runnable* this, void* param) {
 
     if (this->thread == NULL) {
         LOGE("Failed to create %d threads\n", this->thread_count);
-        return 0;
+        return -1;
     }
 
     for (i = 0; i < this->thread_count; i++) {
@@ -83,10 +84,10 @@ void construct_default_runnable(struct default_runnable* this) {
 
 void destruct_default_runnable(struct default_runnable* this) {
     if (this->thread) {
-        for (int i = 0; i < this->thread_count; i++) {
+        for (int i = 0; i < this->thread_count; i++)
             this->thread[i].destruct(&this->thread[i]);
-            free(&this->thread[i]);
-        }
+
+        free(this->thread);
     }
 
     this->set_thread_count = NULL;
