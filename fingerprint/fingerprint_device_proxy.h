@@ -22,7 +22,7 @@
 
 struct fingerprint_device_proxy {
     void (*init)(struct fingerprint_device_callback* callback);
-    int (*enroll)(const uint8_t* token, uint32_t token_len, int group_id,
+    int (*enroll)(const char* token, uint32_t token_len, int group_id,
             int timeout);
     uint64_t (*pre_enroll)(void);
     int (*post_enroll)(void);

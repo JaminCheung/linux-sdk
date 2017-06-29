@@ -93,7 +93,7 @@ static void init(struct fingerprint_device_callback* cb) {
     callback = cb;
 }
 
-static int enroll(const uint8_t* token, uint32_t token_len, int group_id,
+static int enroll(const char* token, uint32_t token_len, int group_id,
         int timeout) {
     LOGD("enroll(gid=%d, timeout=%d)\n", group_id, timeout);
 

@@ -166,6 +166,11 @@ OBJS-y += fingerprint/fingerprint_manager.o                                    \
           fingerprint/fingerprint_utils.o                                      \
           fingerprint/authentication_result.o                                  \
           fingerprint/fingerprint_device_proxy.o                               \
+          fingerprint/client_monitor.o                                         \
+          fingerprint/enroll_client.o                                          \
+          fingerprint/removal_client.o                                         \
+          fingerprint/authentication_client.o                                  \
+          fingerprint/enumerate_client.o                                       \
           fingerprint/hardware/fingerprint_device.o
 
 OBJS := $(OBJS-y)

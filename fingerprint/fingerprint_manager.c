@@ -17,15 +17,28 @@
 #include <utils/log.h>
 #include <utils/assert.h>
 #include <utils/common.h>
+#include <utils/runnable/default_runnable.h>
 #include <fingerprint/fingerprint_manager.h>
 #include <fingerprint/fingerprint_errorcode.h>
 #include "fingerprint_utils.h"
 #include "fingerprint_device_proxy.h"
 #include "fingerprint_device_callback.h"
+#include "fingerprint_client_sender.h"
 
 #define LOG_TAG "fingerprint_manager"
 
+static const int enroll_limit = 10;
+
 static const int user_id;
+
+static struct enroll_param {
+    int user_id;
+    int flag;
+    char* token;
+    int token_len;
+} enroll_param;
+
+static struct fingerprint_client_sender client_sender;
 
 static struct authentication_callback* authentication_callback;
 static struct enrollment_callback* enrollment_callback;
@@ -36,6 +49,10 @@ static struct fingerprint* removal_fingerprint;
 static struct fingerprint_device_proxy* device_proxy;
 static struct fingerprint_utils* fingerprint_utils;
 static int64_t hardware_device_id;
+
+
+static struct default_runnable* enroll_runner;
+
 
 static const char* error_strings[] = {
         [FINGERPRINT_ERROR_HW_UNAVAILABLE] = "Fingerprint hardware not available.",
@@ -140,84 +157,6 @@ static struct fingerprint_device_callback device_callback = {
         .on_enumerate = on_enumerate,
 };
 
-static void notify_error_result(int64_t device_id, int error_code) {
-    if (enrollment_callback != NULL)
-        enrollment_callback->on_enrollment_error(error_code,
-                get_error_string(error_code));
-    if (authentication_callback != NULL)
-        authentication_callback->on_authentication_error(error_code,
-                get_error_string(error_code));
-    if (removal_callback != NULL)
-        removal_callback->on_removal_error(removal_fingerprint, error_code,
-                get_error_string(error_code));
-}
-
-static void noity_removed_result(int64_t device_id, int finger_id, int group_id) {
-    if (removal_callback != NULL) {
-        int req_finger_id = removal_fingerprint->get_finger_id(removal_fingerprint);
-        int req_group_id = removal_fingerprint->get_group_id(removal_fingerprint);
-
-        if (req_finger_id != 0 && finger_id != 0 && finger_id != req_finger_id) {
-            LOGW("Finger id did't match: %d != %d\n", req_finger_id, finger_id);
-            return;
-        }
-
-        if (group_id != req_group_id) {
-            LOGW("Group id did't match: %d != %d\n", req_group_id, group_id);
-            return;
-        }
-
-        struct fingerprint* fp = calloc(1, sizeof(struct fingerprint));
-        fp->construct = construct_fingerprint;
-        fp->destruct = destruct_fingerprint;
-        fp->construct(fp, "NULL", group_id, finger_id, device_id);
-
-        removal_callback->on_removal_successed(fp);
-
-        fp->destruct(fp);
-        free(fp);
-    }
-}
-
-static void notify_enroll_result(struct fingerprint* fp, int remaining) {
-    if (enrollment_callback != NULL)
-        enrollment_callback->on_enrollment_progress(remaining);
-}
-
-static void notify_authenticated_success(struct fingerprint* fp) {
-    if (authentication_callback != NULL) {
-        struct authentication_result* result =
-                calloc(1, sizeof(struct authentication_result));
-        result->construct = construct_authentication_result;
-        result->destruct = destruct_authentication_result;
-        result->construct(result, fp, 0);
-
-        authentication_callback->on_authentication_successed(result);
-
-        result->destruct(result);
-        free(result);
-    }
-}
-
-static void notify_authenticated_failed(void) {
-    if (authentication_callback != NULL)
-        authentication_callback->on_authentication_failed();
-}
-
-static void notify_acquired_result(int64_t device_id, int acquired_info) {
-    if (authentication_callback != NULL)
-        authentication_callback->on_authentication_acquired(acquired_info);
-
-    const char* str = get_acquired_string(acquired_info);
-    if (str == NULL)
-        return;
-
-    if (enrollment_callback != NULL)
-        enrollment_callback->on_enrollment_help(acquired_info, str);
-    else if (authentication_callback != NULL)
-        authentication_callback->on_authentication_help(acquired_info, str);
-}
-
 static void stop_authentication(int initialed_by_client) {
 
 }
@@ -230,6 +169,10 @@ static void stop_enrollment(int initialed_by_client) {
         LOGW_IF(error, "stop_enrollment failed, error: %d\n", error);
 
     }
+}
+
+static void start_enrollment(char* token, int token_len, int user_id, int flags) {
+
 }
 
 static void stop_pending_operations(int initialted_by_client) {
@@ -281,6 +224,134 @@ static void cancel_authentication(void) {
     //TODO: to service
 }
 
+static void enroll_thread(struct pthread_wrapper* thread, void* param) {
+    struct enroll_param* enroll_param = (struct enroll_param*)param;
+
+    start_enrollment(enroll_param->token, enroll_param->token_len,
+            enroll_param->user_id, enroll_param->flag);
+}
+
+
+
+/* =========================== Client Interface ============================= */
+
+static void notify_enroll_result(struct fingerprint* fp, int remaining) {
+    if (enrollment_callback != NULL)
+        enrollment_callback->on_enrollment_progress(remaining);
+}
+
+static void send_enroll_result(int64_t device_id, int finger_id, int group_id,
+        int remaining) {
+    struct fingerprint* fp = calloc(1, sizeof(struct fingerprint));
+    fp->construct = construct_fingerprint;
+    fp->destruct = destruct_fingerprint;
+    fp->construct(fp, "NULL", group_id, finger_id, device_id);
+
+    notify_enroll_result(fp, remaining);
+
+    fp->destruct(fp);
+    free(fp);
+}
+
+static void notify_acquired_result(int64_t device_id, int acquired_info) {
+    if (authentication_callback != NULL)
+        authentication_callback->on_authentication_acquired(acquired_info);
+
+    const char* str = get_acquired_string(acquired_info);
+    if (str == NULL)
+        return;
+
+    if (enrollment_callback != NULL)
+        enrollment_callback->on_enrollment_help(acquired_info, str);
+    else if (authentication_callback != NULL)
+        authentication_callback->on_authentication_help(acquired_info, str);
+}
+
+static void send_acquired_result(int64_t device_id, int acquire_info) {
+    notify_acquired_result(device_id, acquire_info);
+}
+
+static void notify_authentication_successed(struct fingerprint* fp, int user_id) {
+    if (authentication_callback != NULL) {
+        struct authentication_result* result =
+                calloc(1, sizeof(struct authentication_result));
+        result->construct = construct_authentication_result;
+        result->destruct = destruct_authentication_result;
+        result->construct(result, fp, user_id);
+
+        authentication_callback->on_authentication_successed(result);
+
+        result->destruct(result);
+        free(result);
+    }
+}
+
+static void send_authentication_successed(int64_t device_id,
+        struct fingerprint* fp, int user_id) {
+    notify_authentication_successed(fp, user_id);
+}
+
+static void notify_authentication_failed(void) {
+    if (authentication_callback != NULL)
+        authentication_callback->on_authentication_failed();
+}
+
+static void send_authentication_failed(int64_t device_id) {
+    notify_authentication_failed();
+}
+
+static void notify_removed_result(int64_t device_id, int finger_id, int group_id) {
+    if (removal_callback != NULL) {
+        int req_finger_id = removal_fingerprint->get_finger_id(removal_fingerprint);
+        int req_group_id = removal_fingerprint->get_group_id(removal_fingerprint);
+
+        if (req_finger_id != 0 && finger_id != 0 && finger_id != req_finger_id) {
+            LOGW("Finger id did't match: %d != %d\n", req_finger_id, finger_id);
+            return;
+        }
+
+        if (group_id != req_group_id) {
+            LOGW("Group id did't match: %d != %d\n", req_group_id, group_id);
+            return;
+        }
+
+        struct fingerprint* fp = calloc(1, sizeof(struct fingerprint));
+        fp->construct = construct_fingerprint;
+        fp->destruct = destruct_fingerprint;
+        fp->construct(fp, "NULL", group_id, finger_id, device_id);
+
+        removal_callback->on_removal_successed(fp);
+
+        fp->destruct(fp);
+        free(fp);
+    }
+}
+
+static void send_removed_result(int64_t device_id, int finger_id, int group_id) {
+    notify_removed_result(device_id, finger_id, group_id);
+}
+
+static void notify_error_result(int64_t device_id, int error_code) {
+    if (enrollment_callback != NULL)
+        enrollment_callback->on_enrollment_error(error_code,
+                get_error_string(error_code));
+    if (authentication_callback != NULL)
+        authentication_callback->on_authentication_error(error_code,
+                get_error_string(error_code));
+    if (removal_callback != NULL)
+        removal_callback->on_removal_error(removal_fingerprint, error_code,
+                get_error_string(error_code));
+}
+
+static void send_error_result(int64_t device_id, int error) {
+    notify_error_result(device_id, error);
+}
+
+/* ========================= Client Interface end =========================== */
+
+
+
+
 /* ================================ Public API ============================== */
 
 static int is_hardware_detected(void) {
@@ -291,6 +362,10 @@ static int is_hardware_detected(void) {
     return hardware_device_id != 0;
 }
 
+static struct fingerprint_list* get_enrolled_fingerprints(int user_id) {
+    return fingerprint_utils->get_fingerprints_for_user(user_id);
+}
+
 static int has_enrolled_fingerprints(int user_id) {
     //TODO: to service
 
@@ -299,7 +374,7 @@ static int has_enrolled_fingerprints(int user_id) {
 
     struct fingerprint_list* list = fingerprint_utils->get_fingerprints_for_user(user_id);
 
-    return list->size(list);
+    return list->size(list) > 0;
 }
 
 static void authenticate(struct authentication_callback *callback, int flag,
@@ -322,15 +397,28 @@ static void enroll(char* token, int token_len, int flags, int user_id,
 
     enrollment_callback = callback;
     //TODO: to service
+
+    struct fingerprint_list* list = get_enrolled_fingerprints(user_id);
+
+    int enrolled = list->size(list);
+    if (enrolled >= enroll_limit) {
+        LOGW("Too many fingerprints registerd\n");
+        return;
+    }
+
+    enroll_param.flag = flags;
+    enroll_param.user_id = user_id;
+    enroll_param.token = token;
+    enroll_param.token_len = token_len;
+
+    enroll_runner->start(enroll_runner, (void*)&enroll_param);
 }
 
 static int64_t pre_enroll(void) {
-    //TODO: to service
     return start_pre_enroll();
 }
 
 static int post_enroll(void) {
-    //TODO: to service
     return start_post_enroll();
 }
 
@@ -349,12 +437,6 @@ static void rename_fingerprint(int fp_id, int user_id, const char* new_name) {
 
 }
 
-static struct fingerprint_list* get_enrolled_fingerprints(int user_id) {
-    //TODO: to service
-
-    return NULL;
-}
-
 static int64_t get_authenticator_id(void) {
     //TODO: to service
     return 0;
@@ -365,7 +447,7 @@ static void reset_timeout(char* token, int token_len) {
 }
 
 static void add_lockout_reset_callback(struct lockout_reset_callback* callback) {
-    LOGI("Please implemnt me.\n");
+    LOGI("Please implement me.\n");
 }
 
 static int init(void) {
@@ -382,10 +464,21 @@ static int init(void) {
 
     fingerprint_utils = get_fingerprint_utils();
 
+    client_sender.on_enroll_result = send_enroll_result;
+    client_sender.on_acquired = send_acquired_result;
+    client_sender.on_authentication_successed = send_authentication_successed;
+    client_sender.on_authentication_failed = send_authentication_failed;
+    client_sender.on_error = send_error_result;
+    client_sender.on_removed = send_removed_result;
+
+    enroll_runner = _new(struct default_runnable, default_runnable);
+    enroll_runner->runnable.run = enroll_thread;
+
     return 0;
 }
 
 static int deinit(void) {
+    _delete(enroll_runner);
 
     return 0;
 }
