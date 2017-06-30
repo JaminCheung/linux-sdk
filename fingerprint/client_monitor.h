@@ -17,22 +17,26 @@
 #ifndef CLIENT_MONITOR_H
 #define CLIENT_MONITOR_H
 
+#include <utils/linux.h>
 #include "fingerprint_client_sender.h"
+
+#define to_this(ptr, type, member) \
+    container_of(ptr, type, member)
 
 struct client_monitor {
     void (*construct)(struct client_monitor* this, int64_t device_id,
             struct fingerprint_client_sender* sender, int user_id, int group_id);
     void (*destruct)(struct client_monitor* this);
 
-    void (*start)(struct client_monitor* this);
-    void (*stop)(struct client_monitor* this, int initiated_by_client);
+    int (*start)(struct client_monitor* this);
+    int (*stop)(struct client_monitor* this, int initiated_by_client);
 
-    void (*on_enroll_result)(struct client_monitor* this, int finger_id, int group_id, int rem);
-    void (*on_authenticated)(struct client_monitor* this, int finger_id, int group_id);
-    void (*on_removed)(struct client_monitor* this, int finger_id, int group_id);
-    void (*on_enumeration_result)(struct client_monitor* this, int finger_id, int group_id);
-    void (*on_acquired)(struct client_monitor* this, int acquired_info);
-    void (*on_error)(struct client_monitor* this, int error);
+    int (*on_enroll_result)(struct client_monitor* this, int finger_id, int group_id, int rem);
+    int (*on_authenticated)(struct client_monitor* this, int finger_id, int group_id);
+    int (*on_removed)(struct client_monitor* this, int finger_id, int group_id);
+    int (*on_enumeration_result)(struct client_monitor* this, int finger_id, int group_id);
+    int (*on_acquired)(struct client_monitor* this, int acquired_info);
+    int (*on_error)(struct client_monitor* this, int error);
 
     int64_t (*get_device_id)(struct client_monitor* this);
     int (*get_user_id)(struct client_monitor* this);

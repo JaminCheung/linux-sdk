@@ -27,9 +27,10 @@ struct removal_client {
             int group_id, int user_id);
     void (*destruct)(struct removal_client* this);
 
-
-    void (*send_removed)(struct removal_client* this, int finger_id,
+    int (*send_removed)(struct removal_client* this, int finger_id,
             int group_id);
+
+    int finger_id;
 };
 
 void construct_removal_client(struct removal_client* this, int64_t device_id,

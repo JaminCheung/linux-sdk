@@ -155,6 +155,14 @@ static int set_active_group(int group_id, const uint8_t* path,
     return device->set_active_group(device, group_id, path_name);;
 }
 
+static int enumerate(void) {
+    return 0;
+}
+
+static int stop_enumerate(void) {
+    return 0;
+}
+
 static int64_t open_hal(void) {
     LOGD("Open hardware\n");
 
@@ -195,6 +203,8 @@ struct fingerprint_device_proxy this = {
         .pre_enroll = pre_enroll,
         .post_enroll = post_enroll,
         .stop_enrollment = stop_enrollment,
+        .enumerate = enumerate,
+        .stop_enumerate = stop_enumerate,
         .authenticate = authenticate,
         .stop_authentication = stop_authentication,
         .remove_fingerprint = remove_fingerprint,

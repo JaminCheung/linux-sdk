@@ -24,34 +24,62 @@
 
 #define LOG_TAG "enumerate_client"
 
-static struct fingerprint_utils* utils;
 static struct fingerprint_device_proxy* proxy;
 
-static void on_enroll_result(struct client_monitor* base, int finger_id,
+static int on_enroll_result(struct client_monitor* base, int finger_id,
         int group_id, int remaining) {
     LOGD("%s called for enumerate!\n", __FUNCTION__);
+
+    return 0;
 }
 
-static void on_removed(struct client_monitor* base, int finger_id, int group_id) {
+static int on_removed(struct client_monitor* base, int finger_id, int group_id) {
     LOGD("%s called for enumerate!\n", __FUNCTION__);
+
+    return 0;
 }
 
-static void on_enumeration_result(struct client_monitor* base, int finger_id,
+static int on_enumeration_result(struct client_monitor* base, int finger_id,
         int group_id) {
+    base->sender->on_removed(base->get_device_id(base), finger_id, group_id);
 
+    return finger_id == 0;
 }
 
-static void on_authenticated(struct client_monitor* base, int finger_id,
+static int on_authenticated(struct client_monitor* base, int finger_id,
         int group_id) {
     LOGD("%s called for enumerate!\n", __FUNCTION__);
+
+    return 0;
 }
 
-static void start(struct client_monitor* base) {
+static int start(struct client_monitor* base) {
+    int error = 0;
 
+    error = proxy->enumerate();
+    if (error != 0) {
+        LOGW("Failed to start enumerate for user: %d\n", base->get_user_id(base));
+        base->on_error(base, FINGERPRINT_ERROR_HW_UNAVAILABLE);
+
+        return error;
+    }
+
+    return 0;
 }
 
-static void stop(struct client_monitor* base, int initiated_by_client) {
+static int stop(struct client_monitor* base, int initiated_by_client) {
+    int error = 0;
 
+    error = proxy->stop_enumerate();
+    if (error != 0) {
+        LOGW("Failed to stop enumerate: %d\n", error);
+        return error;
+    }
+
+    if (initiated_by_client)
+        base->on_error(base, FINGERPRINT_ERROR_CANCELED);
+
+    return 0;
 }
 
 void construct_enumerate_client(struct enumerate_client* this,
@@ -68,8 +96,6 @@ void construct_enumerate_client(struct enumerate_client* this,
     this->base->on_enumeration_result = on_enumeration_result;
     this->base->on_authenticated = on_authenticated;
 
-    if (utils == NULL)
-        utils = get_fingerprint_utils();
     if (proxy == NULL)
         proxy = get_fingerprint_device_proxy();
 }

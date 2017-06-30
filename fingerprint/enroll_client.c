@@ -32,11 +32,7 @@
 static struct fingerprint_utils* utils;
 static struct fingerprint_device_proxy* proxy;
 
-static struct enroll_client* to_this(struct client_monitor** base) {
-    return container_of(base, struct enroll_client, base);
-}
-
-static void on_enroll_result(struct client_monitor* base, int finger_id,
+static int on_enroll_result(struct client_monitor* base, int finger_id,
         int group_id, int remaining) {
     if (group_id != base->get_group_id(base)) {
         LOGW("group_id != get_group_id(), group_id=%d get_group_id=%d\n",
@@ -46,28 +42,34 @@ static void on_enroll_result(struct client_monitor* base, int finger_id,
     if (remaining == 0)
         utils->add_fingerprint_for_user(finger_id, base->user_id);
 
-    struct enroll_client* this = to_this(&base);
+    struct enroll_client* this = to_this(&base, struct enroll_client, base);
 
     return this->send_enroll_result(this, finger_id, group_id, remaining);
 }
 
-static void on_removed(struct client_monitor* base, int finger_id, int group_id) {
+static int on_removed(struct client_monitor* base, int finger_id, int group_id) {
     LOGD("%s called for enroll!\n", __FUNCTION__);
+
+    return 0;
 }
 
-static void on_enumeration_result(struct client_monitor* base, int finger_id,
+static int on_enumeration_result(struct client_monitor* base, int finger_id,
         int group_id) {
     LOGD("%s called for enroll!\n", __FUNCTION__);
+
+    return 0;
 }
 
-static void on_authenticated(struct client_monitor* base, int finger_id,
+static int on_authenticated(struct client_monitor* base, int finger_id,
         int group_id) {
     LOGD("%s called for enroll!\n", __FUNCTION__);
+
+    return 0;
 }
 
-static void start(struct client_monitor* base) {
+static int start(struct client_monitor* base) {
     int error = 0;
-    struct enroll_client* this = to_this(&base);
+    struct enroll_client* this = to_this(&base, struct enroll_client, base);
 
     int timeout = (int) (ENROLLMENT_TIMEOUT_MS / MS_PER_SEC);
 
@@ -76,27 +78,38 @@ static void start(struct client_monitor* base) {
     if (error) {
         LOGE("Failedl to start enroll: %d\n", error);
         base->on_error(base, FINGERPRINT_ERROR_HW_UNAVAILABLE);
+
+        return error;
     }
+
+    return 0;
 }
 
-static void stop(struct client_monitor* base, int initiated_by_client) {
+static int stop(struct client_monitor* base, int initiated_by_client) {
     int error = 0;
 
     error = proxy->stop_enrollment();
-    if (error)
+    if (error) {
         LOGE("Failed to stop enrollment: %d\n", error);
+        return error;
+    }
 
     if (initiated_by_client)
         base->on_error(base, FINGERPRINT_ERROR_CANCELED);
+
+    return 0;
 }
 
-static void send_enroll_resutl(struct enroll_client* this, int finger_id,
+static int send_enroll_resutl(struct enroll_client* this, int finger_id,
         int group_id, int remaining) {
     if (this->base->sender == NULL)
-        return;
+        return - 1;
 
     this->base->sender->on_enroll_result(this->base->get_device_id(this->base),
             finger_id, group_id, remaining);
+
+    return remaining == 0;
+
 }
 
 void construct_enroll_client(struct enroll_client* this, int64_t device_id,

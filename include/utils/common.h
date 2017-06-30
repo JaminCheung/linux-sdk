@@ -46,6 +46,7 @@ enum system_platform_t {
     free((void *)(P));                      \
 })
 
+const char* get_pname(void);
 void msleep(uint64_t msec);
 void cold_boot(const char *path);
 enum system_platform_t get_system_platform(void);

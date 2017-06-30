@@ -27,6 +27,8 @@ struct fingerprint_device_proxy {
     uint64_t (*pre_enroll)(void);
     int (*post_enroll)(void);
     int (*stop_enrollment)(void);
+    int (*enumerate)(void);
+    int (*stop_enumerate)(void);
     int (*authenticate)(uint64_t session_id, int group_id);
     int (*stop_authentication)(void);
     int (*remove_fingerprint)(int finger_id, int group_id);

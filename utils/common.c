@@ -71,6 +71,10 @@ enum system_platform_t get_system_platform(void) {
     return UNKNOWN;
 }
 
+const char* get_pname(void) {
+    return NULL;
+}
+
 static void do_cold_boot(DIR *d, int lvl) {
     struct dirent *de;
     int dfd, fd;

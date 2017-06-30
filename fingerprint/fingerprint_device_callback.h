@@ -25,8 +25,8 @@ struct fingerprint_device_callback {
     void (*on_authenticated)(int64_t device_id, int finger_id, int group_id);
     void (*on_error)(int64_t device_id, int error);
     void (*on_removed)(int64_t device_id, int finger_id, int group_id);
-    void (*on_enumerate)(int64_t device_id, const int* finger_id,
-            const int* group_id, int size);
+    void (*on_enumerate)(int64_t device_id, const int* finger_id, int finger_size,
+            const int* group_id, int group_size);
 };
 
 #endif /* FINEGRPRINT_DEVICE_CALLBACK_H */

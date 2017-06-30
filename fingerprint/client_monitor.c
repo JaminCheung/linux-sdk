@@ -36,12 +36,16 @@ static struct fingerprint_client_sender* get_sender(struct client_monitor* this)
     return this->sender;
 }
 
-static void on_error(struct client_monitor* this, int error) {
+static int on_error(struct client_monitor* this, int error) {
     this->sender->on_error(this->get_device_id(this), error);
+
+    return 0;
 }
 
-static void on_acquired(struct client_monitor* this, int acquired_info) {
+static int on_acquired(struct client_monitor* this, int acquired_info) {
     this->sender->on_acquired(this->get_device_id(this), acquired_info);
+
+    return 0;
 }
 
 void construct_client_monitor(struct client_monitor* this, int64_t device_id,
@@ -71,4 +75,7 @@ void destruct_client_monitor(struct client_monitor* this) {
     this->get_group_id = NULL;
     this->get_user_id = NULL;
     this->get_sender = NULL;
+
+    this->on_error = NULL;
+    this->on_acquired = NULL;
 }

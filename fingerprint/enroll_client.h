@@ -30,7 +30,7 @@ struct enroll_client {
     char* token;
     int token_len;
 
-    void (*send_enroll_result)(struct enroll_client* this, int finger_id,
+    int (*send_enroll_result)(struct enroll_client* this, int finger_id,
             int group_id, int remaining);
 };
 

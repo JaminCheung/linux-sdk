@@ -23,13 +23,16 @@ struct authentication_client {
     struct client_monitor* base;
 
     void (*construct)(struct authentication_client* this, int64_t device_id,
-            struct fingerprint_client_sender* sender, int user_id, int group_id);
+            struct fingerprint_client_sender* sender, int user_id, int group_id,
+            int64_t op_id);
     void (*destruct)(struct authentication_client* this);
+
+    int64_t op_id;
 };
 
 void construct_authentication_client(struct authentication_client* this,
         int64_t device_id, struct fingerprint_client_sender* sender,
-        int user_id, int group_id);
+        int user_id, int group_id, int64_t op_id);
 void destruct_authentication_client(struct authentication_client* this);
 
 #endif /* AUTHENTICATION_CLIENT_H */

@@ -14,6 +14,9 @@
  *
  */
 
+#include <unistd.h>
+#include <sys/types.h>
+
 #include <utils/log.h>
 #include <utils/assert.h>
 #include <utils/common.h>
@@ -24,8 +27,20 @@
 #include "fingerprint_device_proxy.h"
 #include "fingerprint_device_callback.h"
 #include "fingerprint_client_sender.h"
+#include "client_monitor.h"
+#include "enroll_client.h"
+#include "authentication_client.h"
+#include "removal_client.h"
+#include "enumerate_client.h"
 
 #define LOG_TAG "fingerprint_manager"
+
+typedef enum client_type {
+    ENROLL_CLIENT,
+    AUTHENTICATION_CLIENT,
+    REMOVAL_CLIENT,
+    ENUMERATE_CLIENT,
+} client_type_t;
 
 static const int enroll_limit = 10;
 
@@ -38,7 +53,67 @@ static struct enroll_param {
     int token_len;
 } enroll_param;
 
-static struct fingerprint_client_sender client_sender;
+static struct authenticate_param {
+    int op_id;
+    int user_id;
+    int group_id;
+    int flags;
+} authenticate_param;
+
+static struct remove_param {
+    int user_id;
+    struct fingerprint* fp;
+} remove_param;
+
+static struct rename_param {
+    int finger_id;
+    int group_id;
+    const char* name;
+} rename_param;
+
+static struct enroll_result_param {
+    int64_t device_id;
+    int finger_id;
+    int group_id;
+    int remaining;
+} enroll_result_param;
+
+static struct acquired_result_param {
+    int64_t device_id;
+    int acquired_info;
+} acquired_result_param;
+
+static struct authenticated_result_param {
+    int64_t device_id;
+    int finger_id;
+    int group_id;
+} authenticated_result_param;
+
+static struct error_result_param {
+    int64_t device_id;
+    int error;
+} error_result_param;
+
+static struct removed_result_param {
+    int64_t device_id;
+    int finger_id;
+    int group_id;
+} removed_result_param;
+
+static struct enumerated_result_param {
+    int64_t device_id;
+    const int* finger_id;
+    int finger_size;
+    const int* group_id;
+    int group_size;
+} enumerated_result_param;
+
+struct client_monitor* current_client;
+struct enroll_client* enroll_client;
+struct authentication_client* authentication_client;
+struct removal_client* removal_client;
+
+static struct fingerprint_client_sender* client_sender;
 
 static struct authentication_callback* authentication_callback;
 static struct enrollment_callback* enrollment_callback;
@@ -52,7 +127,17 @@ static int64_t hardware_device_id;
 
 
 static struct default_runnable* enroll_runner;
+static struct default_runnable* authentication_runner;
+static struct default_runnable* active_group_runner;
+static struct default_runnable* remove_runner;
+static struct default_runnable* rename_runner;
 
+static struct default_runnable* enroll_result_runner;
+static struct default_runnable* authenticated_result_runner;
+static struct default_runnable* remove_result_runner;
+static struct default_runnable* error_result_runner;
+static struct default_runnable* acquired_result_runner;
+static struct default_runnable* enumerated_result_runner;
 
 static const char* error_strings[] = {
         [FINGERPRINT_ERROR_HW_UNAVAILABLE] = "Fingerprint hardware not available.",
@@ -122,30 +207,161 @@ static const char* get_acquired_string(int acquire_info) {
     }
 }
 
+static void remove_client(struct client_monitor* client) {
+
+}
+
+static void handle_enroll_result(int64_t device_id, int finger_id, int group_id,
+        int remaining) {
+    struct client_monitor* client = current_client;
+    if (client != NULL) {
+        if (client->on_enroll_result(client, finger_id, group_id, remaining)) {
+            remove_client(client);
+        }
+    }
+}
+
+static void handle_acquired(int64_t device_id, int acquired_info) {
+    struct client_monitor* client = current_client;
+
+    if (client != NULL) {
+        if (client->on_acquired(client, acquired_info)) {
+            remove_client(client);
+        }
+    }
+}
+
+static void handle_authenticated(int64_t device_id, int finger_id,
+        int group_id) {
+    struct client_monitor* client = current_client;
+
+    if (client != NULL) {
+        if (client->on_authenticated(client, finger_id, group_id)) {
+            remove_client(client);
+        }
+    }
+}
+
+static void handle_removed(int64_t device_id, int finger_id, int group_id) {
+    struct client_monitor* client = current_client;
+
+    if (client != NULL) {
+        if (client->on_removed(client, finger_id, group_id)) {
+            remove_client(client);
+        }
+    }
+}
+
+static void handle_enumerate(int64_t device_id, const int* finger_id, int finger_size,
+        const int* group_ids, int group_size) {
+    if (finger_size != group_size) {
+        LOGE("Finger id and group id length different\n");
+        return;
+    }
+}
+
+static void handle_error(int64_t device_id, int error) {
+    struct client_monitor* client = current_client;
+
+    if (client != NULL) {
+        if (client->on_error(client, error))
+            remove_client(client);
+    }
+}
+
+static void enroll_result_thread(struct pthread_wrapper* thread, void* param) {
+    struct enroll_result_param* args = (struct enroll_result_param*)param;
+
+    handle_enroll_result(args->device_id, args->finger_id, args->group_id,
+            args->remaining);
+}
+
+static void acquired_result_thread(struct pthread_wrapper* thread, void* param) {
+    struct acquired_result_param *args = (struct acquired_result_param*)param;
+
+    handle_acquired(args->device_id, args->acquired_info);
+}
+
+static void error_result_thread(struct pthread_wrapper* thread, void* param) {
+    struct error_result_param* args = (struct error_result_param*)param;
+
+    handle_error(args->device_id, args->error);
+}
+
+static void removed_result_thread(struct pthread_wrapper* thread, void* param) {
+    struct removed_result_param* args = (struct removed_result_param*)param;
+
+    handle_removed(args->device_id, args->finger_id, args->group_id);
+}
+
+static void enumerated_result_thread(struct pthread_wrapper* thread, void* param) {
+    struct enumerated_result_param* args =
+            (struct enumerated_result_param*)param;
+
+    handle_enumerate(args->device_id, args->finger_id, args->finger_size,
+            args->group_id, args->group_size);
+}
+
+static void authenticated_result_thread(struct pthread_wrapper* threaed, void* param) {
+    struct authenticated_result_param* args =
+            (struct authenticated_result_param*)param;
+
+    handle_authenticated(args->device_id, args->finger_id, args->group_id);
+}
+
 static void on_enroll_result(int64_t device_id, int finger_id, int group_id,
         int samples_remaining) {
+    enroll_result_param.device_id = device_id;
+    enroll_result_param.finger_id = finger_id;
+    enroll_result_param.group_id = group_id;
+    enroll_result_param.remaining = samples_remaining;
 
+    enroll_runner->start(enroll_runner, (void*)&enroll_result_param);
 }
 
 static void on_acquired(int64_t device_id, int acquired_info) {
+    acquired_result_param.device_id = device_id;
+    acquired_result_param.acquired_info = acquired_info;
 
+    acquired_result_runner->start(acquired_result_runner,
+            (void*)&acquired_result_param);
 }
 
 static void on_authenticated(int64_t device_id, int finger_id, int group_id) {
+    authenticated_result_param.device_id = device_id;
+    authenticated_result_param.finger_id = finger_id;
+    authenticated_result_param.group_id = group_id;
 
+    authenticated_result_runner->start(authenticated_result_runner,
+            (void*)&authenticated_result_param);
 }
 
 static void on_error(int64_t device_id, int error) {
+    error_result_param.device_id = device_id;
+    error_result_param.error = error;
 
+    error_result_runner->start(error_result_runner, (void*)&error_result_param);
 }
 
 static void on_removed(int64_t device_id, int finger_id, int group_id) {
+    removed_result_param.device_id = device_id;
+    removed_result_param.finger_id = finger_id;
+    removed_result_param.group_id = group_id;
 
+    remove_result_runner->start(remove_result_runner,
+            (void*)&removed_result_param);
 }
 
-static void on_enumerate(int64_t device_id, const int* finger_id,
-        const int* group_id, int size) {
+static void on_enumerate(int64_t device_id, const int* finger_id, int finger_size,
+        const int* group_id, int group_size) {
+    enumerated_result_param.device_id = device_id;
+    enumerated_result_param.finger_id = finger_id;
+    enumerated_result_param.finger_size = finger_size;
+    enumerated_result_param.group_id = group_id;
+    enumerated_result_param.group_size = group_size;
 
+    enumerated_result_runner->start(enumerated_result_runner,
+            (void*)&enumerated_result_param);
 }
 
 static struct fingerprint_device_callback device_callback = {
@@ -156,6 +372,29 @@ static struct fingerprint_device_callback device_callback = {
         .on_removed = on_removed,
         .on_enumerate = on_enumerate,
 };
+
+static void update_active_group(int group_id, const char* progress_name) {
+
+}
+
+static void start_client(struct client_monitor* new_client,
+        int initialed_by_client) {
+    int error = 0;
+
+    if (current_client != NULL) {
+        error = current_client->stop(current_client, initialed_by_client);
+        if (error) {
+            LOGE("Failed to stop client\n");
+            return;
+        }
+    }
+
+    if (new_client != NULL) {
+        LOGD("Start client\n");
+        current_client = new_client;
+        current_client->start(current_client);
+    }
+}
 
 static void stop_authentication(int initialed_by_client) {
 
@@ -171,23 +410,6 @@ static void stop_enrollment(int initialed_by_client) {
     }
 }
 
-static void start_enrollment(char* token, int token_len, int user_id, int flags) {
-
-}
-
-static void stop_pending_operations(int initialted_by_client) {
-    stop_enrollment(initialted_by_client);
-    stop_authentication(initialted_by_client);
-}
-
-static void handle_error(int64_t device_id, int error) {
-
-}
-
-static void update_active_group() {
-
-}
-
 static int can_use_fingerprint(void) {
     return 1;
 }
@@ -198,18 +420,6 @@ static uint64_t start_pre_enroll(void) {
 
 static int start_post_enroll(void) {
     return device_proxy->post_enroll();
-}
-
-static void start_remove(int finger_id, int user_id) {
-    int error = 0;
-
-    stop_pending_operations(1);
-
-    error = device_proxy->remove_fingerprint(finger_id, user_id);
-    if (error) {
-        LOGW("startRemove with id = %d failed, result=%d\n",finger_id, error);
-        handle_error(hardware_device_id, FINGERPRINT_ERROR_HW_UNAVAILABLE);
-    }
 }
 
 static int get_current_id(void) {
@@ -224,14 +434,84 @@ static void cancel_authentication(void) {
     //TODO: to service
 }
 
-static void enroll_thread(struct pthread_wrapper* thread, void* param) {
-    struct enroll_param* enroll_param = (struct enroll_param*)param;
 
-    start_enrollment(enroll_param->token, enroll_param->token_len,
-            enroll_param->user_id, enroll_param->flag);
+
+static void start_enrollment(char* token, int token_len, int user_id, int flags) {
+    update_active_group(user_id, NULL);
+
+    int group_id = user_id;
+
+    if (enroll_client == NULL) {
+        enroll_client = calloc(1, sizeof(struct enroll_client));
+        enroll_client->construct = construct_enroll_client;
+        enroll_client->destruct = destruct_enroll_client;
+        enroll_client->construct(enroll_client, hardware_device_id,
+                client_sender, user_id, group_id, token, token_len);
+    }
+
+    start_client(enroll_client->base, 1);
 }
 
+static void enroll_thread(struct pthread_wrapper* thread, void* param) {
+    struct enroll_param* args = (struct enroll_param*)param;
 
+    start_enrollment(args->token, args->token_len, args->user_id, args->flag);
+}
+
+static void start_authentication(int64_t op_id, int user_id, int group_id,
+        int flags) {
+    update_active_group(group_id, NULL);
+
+    if (authentication_client == NULL) {
+        authentication_client = calloc(1, sizeof(struct authentication_client));
+        authentication_client->construct = construct_authentication_client;
+        authentication_client->destruct = destruct_authentication_client;
+        authentication_client->construct(authentication_client,
+                hardware_device_id, client_sender, user_id, group_id, op_id);
+    }
+
+    start_client(authentication_client->base, 1);
+}
+
+static void authenticate_thread(struct pthread_wrapper* thread, void* param) {
+    struct authenticate_param *args = (struct authenticate_param*) param;
+
+    start_authentication(args->op_id, args->user_id, args->group_id,
+            args->flags);
+}
+
+static void active_group_thread(struct pthread_wrapper* thread, void* param) {
+    int user_id = (int)param;
+
+    update_active_group(user_id, NULL);
+}
+
+void start_remove(int finger_id, int group_id, int user_id) {
+    if (removal_client == NULL) {
+        removal_client = calloc(1, sizeof(struct removal_client));
+        removal_client->construct = construct_removal_client;
+        removal_client->destruct = destruct_removal_client;
+        removal_client->construct(removal_client, hardware_device_id,
+                client_sender, finger_id, group_id, user_id);
+    }
+
+    start_client(removal_client->base, 1);
+}
+
+static void remove_thread(struct pthread_wrapper* thread, void* param) {
+    struct remove_param* args = (struct remove_param*)param;
+
+    struct fingerprint* fp = args->fp;
+
+    start_remove(fp->get_finger_id(fp), fp->get_group_id(fp), user_id);
+}
+
+static void rename_thread(struct pthread_wrapper* thread, void* param) {
+    struct rename_param* args = (struct rename_param*)param;
+
+    fingerprint_utils->rename_fingerprint_for_user(args->finger_id,
+            args->group_id, args->name);
+}
 
 /* =========================== Client Interface ============================= */
 
@@ -389,6 +669,13 @@ static void authenticate(struct authentication_callback *callback, int flag,
 
     int session_id = 0;
     //TODO: to service
+
+    authenticate_param.flags = flag;
+    authenticate_param.user_id = user_id;
+    authenticate_param.group_id = user_id;
+    authenticate_param.op_id = 0;
+
+    authentication_runner->start(authentication_runner, (void*)&authenticate_param);
 }
 
 static void enroll(char* token, int token_len, int flags, int user_id,
@@ -423,7 +710,7 @@ static int post_enroll(void) {
 }
 
 static void set_active_user(int user_id) {
-    //TODO: to service
+    active_group_runner->start(active_group_runner, (void*)&user_id);
 }
 
 static void remove_fingerprint(struct fingerprint *fp, int user_id,
@@ -431,10 +718,20 @@ static void remove_fingerprint(struct fingerprint *fp, int user_id,
     removal_callback = callback;
     removal_fingerprint = fp;
     //TODO: to service
+
+
+    remove_param.fp = fp;
+    remove_param.user_id = user_id;
+
+    remove_runner->start(remove_runner, (void*)&remove_param);
 }
 
 static void rename_fingerprint(int fp_id, int user_id, const char* new_name) {
+    rename_param.finger_id = fp_id;
+    rename_param.group_id = getegid();
+    rename_param.name = new_name;
 
+    rename_runner->start(rename_runner, (void*)&rename_param);
 }
 
 static int64_t get_authenticator_id(void) {
@@ -456,7 +753,7 @@ static int init(void) {
     device_proxy->init(&device_callback);
     hardware_device_id = device_proxy->open_hal();
     if (hardware_device_id != 0) {
-        update_active_group();
+        update_active_group(0, NULL);
     } else {
         LOGE("Failed to open fingerprint device\n");
         return -1;
@@ -464,21 +761,49 @@ static int init(void) {
 
     fingerprint_utils = get_fingerprint_utils();
 
-    client_sender.on_enroll_result = send_enroll_result;
-    client_sender.on_acquired = send_acquired_result;
-    client_sender.on_authentication_successed = send_authentication_successed;
-    client_sender.on_authentication_failed = send_authentication_failed;
-    client_sender.on_error = send_error_result;
-    client_sender.on_removed = send_removed_result;
+    client_sender = calloc(1, sizeof(struct fingerprint_client_sender));
+    client_sender->on_enroll_result = send_enroll_result;
+    client_sender->on_acquired = send_acquired_result;
+    client_sender->on_authentication_successed = send_authentication_successed;
+    client_sender->on_authentication_failed = send_authentication_failed;
+    client_sender->on_error = send_error_result;
+    client_sender->on_removed = send_removed_result;
 
     enroll_runner = _new(struct default_runnable, default_runnable);
     enroll_runner->runnable.run = enroll_thread;
+    authentication_runner = _new(struct default_runnable, default_runnable);
+    authentication_runner->runnable.run = authenticate_thread;
+    active_group_runner = _new(struct default_runnable, default_runnable);
+    active_group_runner->runnable.run = active_group_thread;
+    remove_runner = _new(struct default_runnable, default_runnable);
+    remove_runner->runnable.run = remove_thread;
+    rename_runner = _new(struct default_runnable, default_runnable);
+    rename_runner->runnable.run = rename_thread;
+
+    enroll_result_runner = _new(struct default_runnable, default_runnable);
+    enroll_result_runner->runnable.run = enroll_result_thread;
+    authenticated_result_runner = _new(struct default_runnable, default_runnable);
+    authenticated_result_runner->runnable.run = authenticated_result_thread;
+    remove_result_runner = _new(struct default_runnable, default_runnable);
+    remove_result_runner->runnable.run = removed_result_thread;
+    error_result_runner = _new(struct default_runnable, default_runnable);
+    error_result_runner->runnable.run = error_result_thread;
+    acquired_result_runner = _new(struct default_runnable, default_runnable);
+    acquired_result_runner->runnable.run = acquired_result_thread;
+    enumerated_result_runner = _new(struct default_runnable, default_runnable);
+    enumerated_result_runner->runnable.run = enumerated_result_thread;
 
     return 0;
 }
 
 static int deinit(void) {
+    free(client_sender);
+
     _delete(enroll_runner);
+    _delete(authentication_runner);
+    _delete(active_group_runner);
+    _delete(remove_runner);
+    _delete(rename_runner);
 
     return 0;
 }

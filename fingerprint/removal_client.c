@@ -17,39 +17,76 @@
 #include <stdlib.h>
 
 #include <utils/log.h>
+#include <fingerprint/fingerprint_errorcode.h>
+#include "fingerprint_utils.h"
+#include "fingerprint_device_proxy.h"
 #include "removal_client.h"
 
 #define LOG_TAG "remval_client"
 
-static void on_enroll_result(struct client_monitor* base, int finger_id,
+static struct fingerprint_utils* utils;
+static struct fingerprint_device_proxy* proxy;
+
+static int on_enroll_result(struct client_monitor* base, int finger_id,
         int group_id, int remaining) {
+    LOGD("%s called for remove!\n", __FUNCTION__);
 
+    return 0;
 }
 
-static void on_removed(struct client_monitor* base, int finger_id, int group_id) {
+static int on_removed(struct client_monitor* base, int finger_id, int group_id) {
+    if (finger_id != 0)
+        utils->remove_fingerprint_id_for_user(finger_id, base->get_user_id(base));
 
+    struct removal_client* this = to_this(&base, struct removal_client, base);
+
+    return this->send_removed(this, finger_id, base->get_group_id(base));
 }
 
-static void on_enumeration_result(struct client_monitor* base, int finger_id,
+static int on_enumeration_result(struct client_monitor* base, int finger_id,
         int group_id) {
+    LOGD("%s called for remove!\n", __FUNCTION__);
 
+    return 0;
 }
 
-static void on_authenticated(struct client_monitor* base, int finger_id,
+static int on_authenticated(struct client_monitor* base, int finger_id,
         int group_id) {
+    LOGD("%s called for remove!\n", __FUNCTION__);
 
+    return 0;
 }
 
-static void start(struct client_monitor* base) {
+static int start(struct client_monitor* base) {
+    int error = 0;
 
+    struct removal_client* this = to_this(&base, struct removal_client, base);
+
+    error = proxy->remove_fingerprint(this->finger_id, base->get_device_id(base));
+    if (error) {
+        LOGW("Failed to start remove with finger_id=%d: %d\n",
+                this->finger_id, error);
+
+        base->on_error(base, FINGERPRINT_ERROR_HW_UNAVAILABLE);
+
+        return error;
+    }
+
+    return 0;
 }
 
-static void stop(struct client_monitor* base, int initiated_by_client) {
+static int stop(struct client_monitor* base, int initiated_by_client) {
+    if (initiated_by_client)
+        base->on_error(base, FINGERPRINT_ERROR_CANCELED);
 
+    return 0;
 }
 
-static void send_removed(struct removal_client* this, int finger_id, int group_id) {
+static int send_removed(struct removal_client* this, int finger_id, int group_id) {
+    this->base->sender->on_removed(this->base->get_device_id(this->base),
+            finger_id, group_id);
 
+    return finger_id ==0;
 }
 
 void construct_removal_client(struct removal_client* this, int64_t device_id,
@@ -68,6 +105,13 @@ void construct_removal_client(struct removal_client* this, int64_t device_id,
     this->base->on_authenticated = on_authenticated;
 
     this->send_removed = send_removed;
+
+    this->finger_id = finger_id;
+
+    if (utils == NULL)
+        utils = get_fingerprint_utils();
+    if (proxy == NULL)
+        proxy = get_fingerprint_device_proxy();
 }
 
 void destruct_removal_client(struct removal_client* this) {
