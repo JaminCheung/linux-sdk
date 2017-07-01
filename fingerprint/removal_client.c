@@ -19,7 +19,7 @@
 #include <utils/log.h>
 #include <fingerprint/fingerprint_errorcode.h>
 #include "fingerprint_utils.h"
-#include "fingerprint_device_proxy.h"
+#include "hardware/fingerprint_device_proxy.h"
 #include "removal_client.h"
 
 #define LOG_TAG "remval_client"

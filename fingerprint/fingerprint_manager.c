@@ -24,8 +24,8 @@
 #include <fingerprint/fingerprint_manager.h>
 #include <fingerprint/fingerprint_errorcode.h>
 #include "fingerprint_utils.h"
-#include "fingerprint_device_proxy.h"
-#include "fingerprint_device_callback.h"
+#include "hardware/fingerprint_device_proxy.h"
+#include "hardware/fingerprint_device_callback.h"
 #include "fingerprint_client_sender.h"
 #include "client_monitor.h"
 #include "enroll_client.h"

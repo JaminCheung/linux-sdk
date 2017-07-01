@@ -18,13 +18,18 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
+#include "android/hardware.h"
 #include "fingerprint_device_proxy.h"
-#include "hardware/fingerprint_device.h"
+#include "fingerprint_device.h"
 
 #define LOG_TAG "fingerprint_device_proxy"
 
 static struct fingerprint_device_callback* callback;
-static struct fingerprint_device* device;
+
+static fingerprint_module_t* module;
+static fingerprint_device_t* device;
+
+static const uint16_t kVersion = HARDWARE_MODULE_API_VERSION(2, 0);
 
 static void notify_key_store(const uint8_t* auth_token, const uint32_t auth_token_len) {
     //TODO: fill me
@@ -168,7 +173,33 @@ static int64_t open_hal(void) {
 
     int error = 0;
 
-    device = get_fingerprint_device();
+    const hw_module_t *hw_module = NULL;
+    if (0 != (error = hw_get_module(FINGERPRINT_HARDWARE_MODULE_ID, &hw_module))) {
+        LOGE("Can't open fingerprint HW Module, error: %d", error);
+        return 0;
+    }
+    if (NULL == hw_module) {
+        LOGE("No valid fingerprint module");
+        return 0;
+    }
+
+    module = (fingerprint_module_t *)hw_module;
+    if (module->common.methods->open == NULL) {
+        LOGE("No valid open method");
+        return 0;
+    }
+    hw_device_t *hw_device = NULL;
+    if (0 != (error = module->common.methods->open(hw_module, NULL, &hw_device))) {
+        LOGE("Can't open fingerprint methods, error: %d", error);
+        return 0;
+    }
+
+    if (kVersion != hw_device->version) {
+        LOGE("Wrong fp version. Expected %d, got %d", kVersion, hw_device->version);
+        // return 0; // FIXME
+    }
+
+    device = (fingerprint_device_t *)hw_device;
     error = device->set_notify(device, hardware_notify_callback);
     if (error < 0) {
         LOGE("Failed to call to set_notify(), error: %d\n", error);
@@ -190,6 +221,12 @@ static int close_hal(void) {
     if (device == NULL) {
         LOGE("Invalid device\n");
         return -ENOSYS;
+    }
+
+    int error = 0;
+    if (0 != (error = device->common.close((hw_device_t*)device))) {
+        LOGE("Can't close fingerprint module, error: %d", error);
+        return error;
     }
 
     device = NULL;

@@ -20,7 +20,7 @@
 #include "enumerate_client.h"
 #include <fingerprint/fingerprint_errorcode.h>
 #include "fingerprint_utils.h"
-#include "fingerprint_device_proxy.h"
+#include "hardware/fingerprint_device_proxy.h"
 
 #define LOG_TAG "enumerate_client"
 

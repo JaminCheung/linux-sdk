@@ -20,6 +20,10 @@
 #include "hw_auth_token.h"
 #include <fingerprint/fingerprint_errorcode.h>
 
+#define FINGERPRINT_MODULE_API_VERSION_1_0 HARDWARE_MODULE_API_VERSION(1, 0)
+#define FINGERPRINT_MODULE_API_VERSION_2_0 HARDWARE_MODULE_API_VERSION(2, 0)
+#define FINGERPRINT_HARDWARE_MODULE_ID "fingerprint"
+
 typedef enum fingerprint_msg_type {
     FINGERPRINT_ERROR = -1,
     FINGERPRINT_ACQUIRED = 1,
@@ -27,6 +31,46 @@ typedef enum fingerprint_msg_type {
     FINGERPRINT_TEMPLATE_REMOVED = 4,
     FINGERPRINT_AUTHENTICATED = 5
 } fingerprint_msg_type_t;
+
+#if 0
+/*
+ * Fingerprint errors are meant to tell the framework to terminate the current operation and ask
+ * for the user to correct the situation. These will almost always result in messaging and user
+ * interaction to correct the problem.
+ *
+ * For example, FINGERPRINT_ERROR_CANCELED should follow any acquisition message that results in
+ * a situation where the current operation can't continue without user interaction. For example,
+ * if the sensor is dirty during enrollment and no further enrollment progress can be made,
+ * send FINGERPRINT_ACQUIRED_IMAGER_DIRTY followed by FINGERPRINT_ERROR_CANCELED.
+ */
+typedef enum fingerprint_error {
+    FINGERPRINT_ERROR_HW_UNAVAILABLE = 1, /* The hardware has an error that can't be resolved. */
+    FINGERPRINT_ERROR_UNABLE_TO_PROCESS = 2, /* Bad data; operation can't continue */
+    FINGERPRINT_ERROR_TIMEOUT = 3, /* The operation has timed out waiting for user input. */
+    FINGERPRINT_ERROR_NO_SPACE = 4, /* No space available to store a template */
+    FINGERPRINT_ERROR_CANCELED = 5, /* The current operation can't proceed. See above. */
+    FINGERPRINT_ERROR_UNABLE_TO_REMOVE = 6, /* fingerprint with given id can't be removed */
+    FINGERPRINT_ERROR_VENDOR_BASE = 1000 /* vendor-specific error messages start here */
+} fingerprint_error_t;
+
+/*
+ * Fingerprint acquisition info is meant as feedback for the current operation.  Anything but
+ * FINGERPRINT_ACQUIRED_GOOD will be shown to the user as feedback on how to take action on the
+ * current operation. For example, FINGERPRINT_ACQUIRED_IMAGER_DIRTY can be used to tell the user
+ * to clean the sensor.  If this will cause the current operation to fail, an additional
+ * FINGERPRINT_ERROR_CANCELED can be sent to stop the operation in progress (e.g. enrollment).
+ * In general, these messages will result in a "Try again" message.
+ */
+typedef enum fingerprint_acquired_info {
+    FINGERPRINT_ACQUIRED_GOOD = 0,
+    FINGERPRINT_ACQUIRED_PARTIAL = 1, /* sensor needs more data, i.e. longer swipe. */
+    FINGERPRINT_ACQUIRED_INSUFFICIENT = 2, /* image doesn't contain enough detail for recognition*/
+    FINGERPRINT_ACQUIRED_IMAGER_DIRTY = 3, /* sensor needs to be cleaned */
+    FINGERPRINT_ACQUIRED_TOO_SLOW = 4, /* mostly swipe-type sensors; not enough data collected */
+    FINGERPRINT_ACQUIRED_TOO_FAST = 5, /* for swipe and area sensors; tell user to slow down*/
+    FINGERPRINT_ACQUIRED_VENDOR_BASE = 1000 /* vendor-specific acquisition messages start here */
+} fingerprint_acquired_info_t;
+#endif
 
 typedef struct fingerprint_finger_id {
     uint32_t gid;
@@ -69,7 +113,15 @@ typedef struct fingerprint_msg {
 typedef void (*fingerprint_notify_t)(const fingerprint_msg_t *msg);
 
 /* Synchronous operation */
-struct fingerprint_device {
+typedef struct fingerprint_device {
+    /**
+     * Common methods of the fingerprint device. This *must* be the first member
+     * of fingerprint_device as users of this structure will cast a hw_device_t
+     * to fingerprint_device pointer in contexts where it's known
+     * the hw_device_t references a fingerprint_device.
+     */
+    struct hw_device_t common;
+
     /*
      * Client provided callback function to receive notifications.
      * Do not set by hand, use the function above instead.
@@ -202,8 +254,16 @@ struct fingerprint_device {
 
     /* Reserved for backward binary compatibility */
     void *reserved[4];
-};
+} fingerprint_device_t;
 
-struct fingerprint_device* get_fingerprint_device(void);
+typedef struct fingerprint_module {
+    /**
+     * Common methods of the fingerprint module. This *must* be the first member
+     * of fingerprint_module as users of this structure will cast a hw_module_t
+     * to fingerprint_module pointer in contexts where it's known
+     * the hw_module_t references a fingerprint_module.
+     */
+    struct hw_module_t common;
+} fingerprint_module_t;
 
 #endif /* FINGERPRINT_DEVICE_H */
