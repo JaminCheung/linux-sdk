@@ -24,7 +24,7 @@ struct enroll_client {
 
     void (*construct)(struct enroll_client* this, int64_t device_id,
             struct fingerprint_client_sender* sender, int user_id, int group_id,
-            char* token, int token_len);
+            char* token, int token_len, const char* owner);
     void (*destruct)(struct enroll_client* this);
 
     char* token;
@@ -36,7 +36,7 @@ struct enroll_client {
 
 void construct_enroll_client(struct enroll_client* this, int64_t device_id,
         struct fingerprint_client_sender* sender, int user_id, int group_id,
-        char* token, int token_len);
+        char* token, int token_len, const char* owner);
 void destruct_enroll_client(struct enroll_client* this);
 
 #endif /* ENROLL_CLIENT_H */

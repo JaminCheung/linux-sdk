@@ -28,6 +28,7 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <pwd.h>
 
 #include <types.h>
 #include <utils/log.h>
@@ -51,7 +52,6 @@ void msleep(uint64_t msec) {
     } while (err < 0 && errno == EINTR);
 }
 
-
 enum system_platform_t get_system_platform(void) {
     FILE* fp = NULL;
     char line[256] = {0};
@@ -71,8 +71,54 @@ enum system_platform_t get_system_platform(void) {
     return UNKNOWN;
 }
 
-const char* get_pname(void) {
+char* get_current_process_name(void) {
+    return get_process_name(getpid());
+}
+
+char* get_process_name(pid_t pid) {
+    int count = 0;
+
+    char real_path[PATH_MAX] = {0};
+    char exe_path[PATH_MAX] = {0};
+
+    sprintf(exe_path, "/proc/%d/exe", pid);
+
+    count = readlink(exe_path, real_path, sizeof(real_path));
+    if(count < 0 || count >= PATH_MAX)
+        goto error;
+
+    char *p = real_path;
+    for (int i = count - 1; i >= 0; i--) {
+        if (real_path[i] == '/') {
+                i++;
+                p += i;
+                break;
+        }
+    }
+
+    if (strlen(p) == 0)
+        goto error;
+
+    char* name = strdup(p);
+
+    return name;
+
+error:
+    LOGE("Failed to get process name\n");
     return NULL;
+}
+
+char* get_user_system_dir(uid_t user_id) {
+    struct passwd *pwd;
+    char* buf;
+
+    pwd = getpwuid(user_id);
+    if (pwd == NULL)
+        return NULL;
+
+    asprintf(&buf, "/%s", pwd->pw_name);
+
+    return buf;
 }
 
 static void do_cold_boot(DIR *d, int lvl) {

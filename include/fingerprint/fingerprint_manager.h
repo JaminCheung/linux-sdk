@@ -52,18 +52,15 @@ struct fingerprint_manager {
     int (*is_hardware_detected)(void);
     int (*has_enrolled_fingerprints)(int user_id);
     void (*authenticate)(struct authentication_callback *callback, int flag, int user_id);
+    void (*cancel_authentication)(void);
     void (*enroll)(char* token, int token_len, int flag, int user_id, struct enrollment_callback *callback);
+    void (*cancel_enrollment)(void);
     int64_t (*pre_enroll)(void);
     int (*post_enroll)(void);
-    void (*set_active_user)(int user_id);
     void (*remove_fingerprint)(struct fingerprint *fp, int user_id, struct removal_callback* callabck);
     void (*rename_fingerprint)(int fp_id, int user_id, const char* new_name);
-
     struct fingerprint_list* (*get_enrolled_fingerprints)(int user_id);
-
     int64_t (*get_authenticator_id)(void);
-    void (*reset_timeout)(char* token, int len);
-    void (*add_lockout_reset_callback)(struct lockout_reset_callback* callback);
 };
 
 struct fingerprint_manager* get_fingerprint_manager(void);

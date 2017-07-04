@@ -18,6 +18,8 @@
 #define COMMON_H
 
 #include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 #include <types.h>
 #include <lib/libcommon.h>
@@ -46,7 +48,9 @@ enum system_platform_t {
     free((void *)(P));                      \
 })
 
-const char* get_pname(void);
+char* get_process_name(pid_t pid);
+char* get_current_process_name(void);
+char* get_user_system_dir(uid_t uid);
 void msleep(uint64_t msec);
 void cold_boot(const char *path);
 enum system_platform_t get_system_platform(void);

@@ -57,9 +57,9 @@ LDFLAGS := -pthread -lm -lrt -ldl -Wl,-rpath,/usr/lib
 LDSHFLAGS := -shared -Wl,-Bsymbolic
 
 ifndef DEBUG
-CFLAGS += -Os -mhard-float
+CFLAGS += -Os -mhard-float -D_GNU_SOURCE
 else
-CFLAGS += -g -DLOCAL_DEBUG -DDEBUG
+CFLAGS += -D_GNU_SOURCE -g -DLOCAL_DEBUG -DDEBUG
 endif
 
 override CFLAGS := $(CHECKFLAGS) $(CFLAGS)

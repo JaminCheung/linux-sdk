@@ -25,7 +25,8 @@
 
 struct client_monitor {
     void (*construct)(struct client_monitor* this, int64_t device_id,
-            struct fingerprint_client_sender* sender, int user_id, int group_id);
+            struct fingerprint_client_sender* sender, int user_id, int group_id,
+            const char* owner);
     void (*destruct)(struct client_monitor* this);
 
     int (*start)(struct client_monitor* this);
@@ -42,15 +43,18 @@ struct client_monitor {
     int (*get_user_id)(struct client_monitor* this);
     int (*get_group_id)(struct client_monitor* this);
     struct fingerprint_client_sender* (*get_sender)(struct client_monitor* this);
+    const char* (*get_owner_string)(struct client_monitor* this);
 
     int64_t device_id;
     int group_id;
     int user_id;
+    char* owner;
     struct fingerprint_client_sender* sender;
 };
 
 void construct_client_monitor(struct client_monitor* this, int64_t device_id,
-        struct fingerprint_client_sender* sender, int user_id, int group_id);
+        struct fingerprint_client_sender* sender, int user_id, int group_id,
+        const char* owner);
 void destruct_client_monitor(struct client_monitor* this);
 
 #endif /* CLIENT_MONITOR_H */

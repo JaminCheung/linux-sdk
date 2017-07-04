@@ -114,12 +114,13 @@ static int send_enroll_resutl(struct enroll_client* this, int finger_id,
 
 void construct_enroll_client(struct enroll_client* this, int64_t device_id,
         struct fingerprint_client_sender* sender, int user_id, int group_id,
-        char* token, int token_len) {
+        char* token, int token_len, const char* owner) {
 
     this->base = calloc(1, sizeof(struct client_monitor));
     this->base->construct = construct_client_monitor;
     this->base->destruct = destruct_client_monitor;
-    this->base->construct(this->base, device_id, sender, user_id, group_id);
+    this->base->construct(this->base, device_id, sender, user_id, group_id,
+            owner);
     this->base->start = start;
     this->base->stop = stop;
     this->base->on_enroll_result = on_enroll_result;

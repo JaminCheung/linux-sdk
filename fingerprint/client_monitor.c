@@ -14,6 +14,7 @@
  *
  */
 
+#include <stdlib.h>
 #include <utils/log.h>
 
 #include "client_monitor.h"
@@ -36,6 +37,10 @@ static struct fingerprint_client_sender* get_sender(struct client_monitor* this)
     return this->sender;
 }
 
+static const char* get_owner_string(struct client_monitor* this) {
+    return this->owner;
+}
+
 static int on_error(struct client_monitor* this, int error) {
     this->sender->on_error(this->get_device_id(this), error);
 
@@ -49,32 +54,39 @@ static int on_acquired(struct client_monitor* this, int acquired_info) {
 }
 
 void construct_client_monitor(struct client_monitor* this, int64_t device_id,
-        struct fingerprint_client_sender* sender, int user_id, int group_id) {
+        struct fingerprint_client_sender* sender, int user_id, int group_id,
+        const char* owner) {
 
     this->device_id = device_id;
     this->user_id = user_id;
     this->group_id = group_id;
     this->sender = sender;
+    this->owner = (char*) owner;
 
     this->get_device_id = get_device_id;
     this->get_group_id = get_group_id;
     this->get_user_id = get_user_id;
     this->get_sender = get_sender;
+    this->get_owner_string = get_owner_string;
 
     this->on_error = on_error;
     this->on_acquired = on_acquired;
 }
 
 void destruct_client_monitor(struct client_monitor* this) {
+    free(this->owner);
+
     this->device_id = -1;
     this->user_id = -1;
     this->group_id = -1;
     this->sender = NULL;
+    this->owner = NULL;
 
     this->get_device_id = NULL;
     this->get_group_id = NULL;
     this->get_user_id = NULL;
     this->get_sender = NULL;
+    this->get_owner_string = NULL;
 
     this->on_error = NULL;
     this->on_acquired = NULL;

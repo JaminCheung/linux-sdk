@@ -24,7 +24,7 @@ struct authentication_client {
 
     void (*construct)(struct authentication_client* this, int64_t device_id,
             struct fingerprint_client_sender* sender, int user_id, int group_id,
-            int64_t op_id);
+            int64_t op_id, const char* owner);
     void (*destruct)(struct authentication_client* this);
 
     int64_t op_id;
@@ -32,7 +32,7 @@ struct authentication_client {
 
 void construct_authentication_client(struct authentication_client* this,
         int64_t device_id, struct fingerprint_client_sender* sender,
-        int user_id, int group_id, int64_t op_id);
+        int user_id, int group_id, int64_t op_id, const char* owner);
 void destruct_authentication_client(struct authentication_client* this);
 
 #endif /* AUTHENTICATION_CLIENT_H */

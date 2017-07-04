@@ -24,7 +24,7 @@ struct removal_client {
 
     void (*construct)(struct removal_client* this, int64_t device_id,
             struct fingerprint_client_sender* sender, int finger_id,
-            int group_id, int user_id);
+            int group_id, int user_id, const char* owner);
     void (*destruct)(struct removal_client* this);
 
     int (*send_removed)(struct removal_client* this, int finger_id,
@@ -35,7 +35,7 @@ struct removal_client {
 
 void construct_removal_client(struct removal_client* this, int64_t device_id,
         struct fingerprint_client_sender* sender, int finger_id,
-        int group_id, int user_id);
+        int group_id, int user_id, const char* owner);
 void destruct_removal_client(struct removal_client* this);
 
 #endif /* REMOVAL_CLIENT_H */

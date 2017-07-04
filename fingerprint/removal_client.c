@@ -91,12 +91,13 @@ static int send_removed(struct removal_client* this, int finger_id, int group_id
 
 void construct_removal_client(struct removal_client* this, int64_t device_id,
         struct fingerprint_client_sender* sender, int finger_id,
-        int group_id, int user_id) {
+        int group_id, int user_id, const char* owner) {
 
     this->base = calloc(1, sizeof(struct client_monitor));
     this->base->construct = construct_client_monitor;
     this->base->destruct = destruct_client_monitor;
-    this->base->construct(this->base, device_id, sender, user_id, group_id);
+    this->base->construct(this->base, device_id, sender, user_id, group_id,
+            owner);
     this->base->start = start;
     this->base->stop = stop;
     this->base->on_enroll_result = on_enroll_result;

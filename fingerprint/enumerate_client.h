@@ -23,13 +23,14 @@ struct enumerate_client {
     struct client_monitor* base;
 
     void (*construct)(struct enumerate_client* this, int64_t device_id,
-            struct fingerprint_client_sender* sender, int user_id, int group_id);
+            struct fingerprint_client_sender* sender, int user_id, int group_id,
+            const char* owner);
     void (*destruct)(struct enumerate_client* this);
 };
 
 void construct_enumerate_client(struct enumerate_client* this,
         int64_t device_id, struct fingerprint_client_sender* sender,
-        int user_id, int group_id);
+        int user_id, int group_id, const char* owner);
 void destruct_enumerate_client(struct enumerate_client* this);
 
 #endif /* ENUMERATE_CLIENT_H */

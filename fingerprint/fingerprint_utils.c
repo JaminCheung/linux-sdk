@@ -39,20 +39,21 @@ static struct fingerprints_userstate* get_state_for_user(int user_id) {
 
     struct userstate* userstate = NULL;
 
-    list_for_each_entry(userstate, &userstate_list, node) {
-        if (user_id == userstate->id)
-            goto out;
+    if (!list_empty(&userstate_list)) {
+        list_for_each_entry(userstate, &userstate_list, node) {
+            if (user_id == userstate->id)
+                goto out;
+        }
     }
 
     if (userstate == NULL) {
-        struct userstate* userstate = calloc(1, sizeof(struct userstate));
-
+        userstate = calloc(1, sizeof(struct userstate));
         userstate->user = calloc(1, sizeof(struct fingerprints_userstate));
         userstate->user->construct = construct_fingerprints_userstate;
         userstate->user->destruct = destruct_fingerprints_userstate;
         userstate->user->construct(userstate->user, user_id);
-
         userstate->id = user_id;
+
         list_add_tail(&userstate->node, &userstate_list);
     }
 
@@ -70,6 +71,7 @@ static struct fingerprint_list* get_fingerprints_for_user(int user_id) {
 
 static void add_fingerprint_for_user(int finger_id, int user_id) {
     struct fingerprints_userstate* userstate = get_state_for_user(user_id);
+
 
     userstate->add_fingerprint(userstate, finger_id, user_id);
 }

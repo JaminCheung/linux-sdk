@@ -19,6 +19,7 @@
 
 #include <stdio.h>
 
+#include <utils/runnable/default_runnable.h>
 #include <fingerprint/fingerprint_list.h>
 
 struct fingerprints_userstate {
@@ -30,7 +31,9 @@ struct fingerprints_userstate {
     void (*rename_fingerprint)(struct fingerprints_userstate* this, int finger_id, const char* name);
     struct fingerprint_list* (*get_fingerprints)(struct fingerprints_userstate* this);
 
-    FILE* fp;
+    int user_id;
+    char file_path[PATH_MAX];
+    struct default_runnable* runner;
     pthread_mutex_t lock;
     struct fingerprint_list* fingerprints;
 };

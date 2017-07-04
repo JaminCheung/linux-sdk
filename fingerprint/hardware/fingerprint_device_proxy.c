@@ -175,7 +175,7 @@ static int64_t open_hal(void) {
 
     const hw_module_t *hw_module = NULL;
     if (0 != (error = hw_get_module(FINGERPRINT_HARDWARE_MODULE_ID, &hw_module))) {
-        LOGE("Can't open fingerprint HW Module, error: %d", error);
+        LOGE("Can't open fingerprint HW Module, error: %d\n", error);
         return 0;
     }
     if (NULL == hw_module) {

@@ -84,11 +84,12 @@ static int stop(struct client_monitor* base, int initiated_by_client) {
 
 void construct_enumerate_client(struct enumerate_client* this,
         int64_t device_id, struct fingerprint_client_sender* sender,
-        int user_id, int group_id) {
+        int user_id, int group_id, const char* owner) {
     this->base = calloc(1, sizeof(struct client_monitor));
     this->base->construct = construct_client_monitor;
     this->base->destruct = destruct_client_monitor;
-    this->base->construct(this->base, device_id, sender, user_id, group_id);
+    this->base->construct(this->base, device_id, sender, user_id, group_id,
+            owner);
     this->base->start = start;
     this->base->stop = stop;
     this->base->on_enroll_result = on_enroll_result;

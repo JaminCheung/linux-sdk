@@ -14,8 +14,6 @@
  *
  */
 
-#define _GNU_SOURCE /* for asprintf */
-
 #include <linux/input.h>
 #include <limits.h>
 #include <string.h>
