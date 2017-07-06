@@ -105,8 +105,7 @@ static int init(void) {
 
     memset(fbmem, 0, fb_fixinfo.smem_len);
 
-    fb_count = fb_fixinfo.smem_len / (fb_varinfo.yres
-            * fb_fixinfo.line_length);
+    fb_count = fb_varinfo.yres_virtual / fb_varinfo.yres;
 
     screen_size = fb_fixinfo.line_length * fb_varinfo.yres;
 
