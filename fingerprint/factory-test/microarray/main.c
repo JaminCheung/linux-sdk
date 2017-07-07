@@ -386,8 +386,15 @@ static void work_thread(struct pthread_wrapper* thread, void* param) {
                 break;
             }
 
-            if (ret != 0)
+            if (ret != 0) {
+                LOGI("=====> %s \e[0;91mFailure!\e[0m <=====\n", test_items_str[id]);
                 break;
+
+            } else {
+                LOGI("=====> %s \e[0;32mPass!\e[0m <=====\n", test_items_str[id]);
+            }
+
+
         }
 
         nativeRemove();
@@ -437,7 +444,7 @@ static void do_work(void) {
 
 restart:
     fflush(stdin);
-    printf("Type \'s\' to start test\n");
+    printf("Type \e[0;91m\'s\'\e[0m to start test\n");
     scanf("%c", &c);
 
     if (c != 's')
@@ -450,10 +457,10 @@ restart:
     runner->wait(runner);
 
     if (!test_success) {
-        LOGI("Test failure, restart.\n");
+        LOGI("\e[0;91mTest failure, restart.\e[0m\n");
         goto restart;
     } else {
-        LOGI("Test success.\n");
+        LOGI("\e[0;32mTest success.\e[0m\n");
         finish();
     }
 }
