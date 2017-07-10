@@ -233,6 +233,11 @@ LIBS-y += lib/png/libpng-1.6.26/png.o                                          \
 LIBS-y += lib/md5/libmd5.o
 
 #
+# SHA
+#
+LIBS-y += lib/sha/libsha1.o
+
+#
 # CRC Lib
 #
 LIBS-y += lib/crc/libcrc.o

@@ -1,7 +1,7 @@
 /*
- *  Copyright (C) 2016, Zhang YanMing <jamincheung@126.com>
+ *  Copyright (C) 2017, Zhang YanMing <yanmin.zhang@ingenic.com, jamincheung@126.com>
  *
- *  Linux recovery updater
+ *  Ingenic Linux plarform SDK project
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under  the terms of the GNU General  Public License as published by the
@@ -214,4 +214,13 @@ void MD5Transform(unsigned int state[4], unsigned char block[64]) {
     state[1] += b;
     state[2] += c;
     state[3] += d;
+}
+
+void MD5(unsigned char* buf, unsigned int size, unsigned char result[16]) {
+    MD5_CTX ctx;
+
+    MD5Init(&ctx);
+    MD5Update(&ctx, buf, size);
+
+    MD5Final(&ctx, result);
 }

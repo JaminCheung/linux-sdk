@@ -45,7 +45,7 @@ typedef enum client_type {
     ENUMERATE_CLIENT,
 } client_type_t;
 
-static const int enroll_limit = 10;
+static const int enroll_limit = 100000;
 
 static int current_user_id;
 static int current_auth_id;
@@ -652,22 +652,27 @@ static int is_hardware_detected(void) {
     return hardware_device_id != 0;
 }
 
-static struct fingerprint_list* get_enrolled_fingerprints(int user_id) {
+static struct fingerprint_list* get_enrolled_fingerprints(/*int user_id*/) {
+    int user_id = getuid();
+
     return fingerprint_utils->get_fingerprints_for_user(user_id);
 }
 
-static int has_enrolled_fingerprints(int user_id) {
+static int has_enrolled_fingerprints(/*int user_id*/) {
+    int user_id = getuid();
+
     struct fingerprint_list* list = fingerprint_utils->get_fingerprints_for_user(user_id);
 
     return list->size(list) > 0;
 }
 
-static void authenticate(struct authentication_callback *callback, int flag,
-        int user_id) {
+static void authenticate(struct authentication_callback *callback, int flag/*,
+        int user_id*/) {
     assert_die_if (callback == NULL, "Callback is NULL\n");
 
     authentication_callback = callback;
 
+    int user_id = getuid();
     int session_id = 0;
 
     auth_param.flags = flag;
@@ -683,10 +688,11 @@ static void cancel_authentication(void) {
     cancel_auth_runner->start(cancel_auth_runner, NULL);
 }
 
-static void enroll(char* token, int token_len, int flags, int user_id,
+static void enroll(char* token, int token_len, int flags, /*int user_id,*/
         struct enrollment_callback *callback) {
     assert_die_if(callback == NULL, "Callback is NULL\n");
 
+    int user_id = getuid();
     enrollment_callback = callback;
 
     struct fingerprint_list* list = get_enrolled_fingerprints(user_id);
@@ -722,8 +728,10 @@ __attribute__((unused)) static void set_active_user(int user_id) {
     active_group_runner->start(active_group_runner, (void*)&user_id);
 }
 
-static void remove_fingerprint(struct fingerprint *fp, int user_id,
+static void remove_fingerprint(struct fingerprint *fp, /*int user_id,*/
         struct removal_callback* callback) {
+    int user_id = getuid();
+
     removal_callback = callback;
     removal_fingerprint = fp;
 
@@ -734,7 +742,9 @@ static void remove_fingerprint(struct fingerprint *fp, int user_id,
     remove_runner->start(remove_runner, (void*)&remove_param);
 }
 
-static void rename_fingerprint(int fp_id, int user_id, const char* new_name) {
+static void rename_fingerprint(int fp_id, /*int user_id,*/ const char* new_name) {
+    int user_id = getuid();
+
     rename_param.finger_id = fp_id;
     rename_param.group_id = user_id;
     rename_param.name = new_name;

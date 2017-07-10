@@ -91,22 +91,18 @@ static int hw_module_exists(char *path, size_t path_len, const char *name,
         const char* subname) {
 
     snprintf(path, path_len, "%s/%s.%s.so", HAL_LIBRARY_PATH2, name, subname);
-    LOGI("path=%s\n", path);
     if (access(path, R_OK) == 0)
         return 0;
 
     snprintf(path, path_len, "%s/%s.%s.so", HAL_LIBRARY_PATH1, name, subname);
-    LOGI("path=%s\n", path);
     if (access(path, R_OK) == 0)
         return 0;
 
     snprintf(path, path_len, "%s/%s.%s.so", HAL_LIBRARY_PATH4, name, subname);
-    LOGI("path=%s\n", path);
     if (access(path, R_OK) == 0)
         return 0;
 
     snprintf(path, path_len, "%s/%s.%s.so", HAL_LIBRARY_PATH3, name, subname);
-    LOGI("path=%s\n", path);
     if (access(path, R_OK) == 0)
         return 0;
 
