@@ -581,7 +581,7 @@ SP_API enum sp_return sp_open(struct sp_port *port, enum sp_mode flags)
 #ifdef OFILL
 	data.term.c_oflag &= ~OFILL;
 #endif
-	data.term.c_lflag &= ~(ISIG | ICANON | ECHO | IEXTEN);
+	data.term.c_lflag &= ~(ISIG | ICANON | ECHO | IEXTEN  | ECHOE);
 	data.term.c_cc[VMIN] = 0;
 	data.term.c_cc[VTIME] = 0;
 
