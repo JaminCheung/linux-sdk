@@ -27,7 +27,7 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <lib/md5/libmd5.h>
+#include <openssl/md5.h>
 
 #define LOG_TAG "file_ops"
 
@@ -76,7 +76,7 @@ int check_file_md5(const char* path, const char* md5) {
     if (fd < 0)
         return -1;
 
-    MD5Init(&md5_ctx);
+    MD5_Init(&md5_ctx);
 
     for (;;) {
         retval = read(fd, buf, sizeof(buf));
@@ -85,7 +85,7 @@ int check_file_md5(const char* path, const char* md5) {
             goto error;
         }
 
-        MD5Update(&md5_ctx, buf, retval);
+        MD5_Update(&md5_ctx, buf, retval);
 
         if (retval == 0 || retval < READ_DATA_SIZE)
             break;
@@ -93,7 +93,7 @@ int check_file_md5(const char* path, const char* md5) {
 
     close(fd);
 
-    MD5Final(&md5_ctx, md5_value);
+    MD5_Final(md5_value, &md5_ctx);
 
     for (i = 0; i < MD5_SIZE; i++)
         snprintf(md5_str + i * 2, 2 + 1, "%02x", md5_value[i]);

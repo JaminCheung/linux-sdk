@@ -56,6 +56,11 @@ CHECKFLAGS := -Wall -Wuninitialized -Wundef
 LDFLAGS := -pthread -lm -lrt -ldl -Wl,-rpath,/usr/lib
 LDSHFLAGS := -shared -Wl,-Bsymbolic
 
+#
+# Shared link openssl-1.0.2
+#
+LDFLAGS += -L$(TOPDIR)/lib/openssl -lcrypto -lssl
+
 ifndef DEBUG
 CFLAGS += -Os -mhard-float -D_GNU_SOURCE
 else

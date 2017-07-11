@@ -17,6 +17,9 @@
 #ifndef LIB_SHA1_H
 #define LIB_SHA1_H
 
+/*
+ * Deprecated, you should use openssl(include/lib/openssl)
+ */
 #define SHA1_DIGEST_LENGTH 20
 
 typedef struct

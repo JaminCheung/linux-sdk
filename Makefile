@@ -228,14 +228,14 @@ LIBS-y += lib/png/libpng-1.6.26/png.o                                          \
           lib/png/libpng-1.6.26/pngwutil.o
 
 #
-# MD5 Lib
+# MD5 Lib (Deprecated, you should use openssl - include/lib/openssl)
 #
-LIBS-y += lib/md5/libmd5.o
+LIBS-n += lib/md5/libmd5.o
 
 #
-# SHA
+# SHA Lib (Deprecated, you should use openssl - include/lib/openssl)
 #
-LIBS-y += lib/sha/libsha1.o
+LIBS-n += lib/sha/libsha1.o
 
 #
 # CRC Lib

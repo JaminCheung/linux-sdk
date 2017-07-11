@@ -17,6 +17,9 @@
 #ifndef LIB_MD5_H
 #define LIB_MD5_H
 
+/*
+ * Deprecated, you should use openssl(include/lib/openssl)
+ */
 #define MD5_DIGEST_LENGTH 16
 
 typedef struct
