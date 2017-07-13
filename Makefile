@@ -159,7 +159,7 @@ OBJS-y += graphics/gr_drawer.o
 #
 # Fingerprint
 #
-OBJS-y += fingerprint/fingerprint_manager.o                                    \
+OBJS-n += fingerprint/fingerprint_manager.o                                    \
           fingerprint/fingerprint.o                                            \
           fingerprint/fingerprint_list.o                                       \
           fingerprint/fingerprints_userstate.o                                 \
@@ -172,6 +172,11 @@ OBJS-y += fingerprint/fingerprint_manager.o                                    \
           fingerprint/enumerate_client.o                                       \
           fingerprint/hardware/android/hardware.o                              \
           fingerprint/hardware/fingerprint_device_proxy.o
+
+#
+# Fingerprint2
+#
+OBJS-y += fingerprint2/fingerprint_manager.o
 
 OBJS := $(OBJS-y)
 

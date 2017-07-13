@@ -53,13 +53,19 @@ INCLUDES := -I$(TOPDIR)/include                                                \
 
 CFLAGS := -std=gnu11 $(INCLUDES) -fPIC
 CHECKFLAGS := -Wall -Wuninitialized -Wundef
-LDFLAGS := -pthread -lm -lrt -ldl -Wl,-rpath,/usr/lib
 LDSHFLAGS := -shared -Wl,-Bsymbolic
 
 #
-# Shared link openssl-1.0.2
+# Library link - Static
 #
-LDFLAGS += -L$(TOPDIR)/lib/openssl -lcrypto -lssl
+
+LDFLAGS := -Wl,-Bstatic -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint
+
+#
+# Library link - Dynamic
+#
+LDFLAGS += -Wl,-Bdynamic -pthread -lm -lrt -ldl                                \
+           -L$(TOPDIR)/lib/openssl -lcrypto -lssl
 
 ifndef DEBUG
 CFLAGS += -Os -mhard-float -D_GNU_SOURCE
