@@ -38,22 +38,6 @@
 
 
 
-#define WAIT_ZB_DEV_POWER_ON()                              \
-        do{                                                 \
-            pthread_mutex_lock(&cfg_mutex);                 \
-            pthread_cond_wait(&cfg_cond, &cfg_mutex);       \
-            pthread_mutex_unlock(&cfg_mutex);               \
-        }while(0)
-
-
-#define WAIT_ZB_DEV_NWK_JOIN()                              \
-        do{                                                 \
-            pthread_mutex_lock(&join_mutex);                \
-            pthread_cond_wait(&join_cond, &join_mutex);      \
-            pthread_mutex_unlock(&join_mutex);              \
-        }while(0)
-
-
 
 
 static char* status_str[] = {
@@ -93,95 +77,122 @@ int main(int argc, char *argv[]) {
     zb_m = get_zigbee_manager();
 
     ret = zb_m->init(zb_uart_recv_cb);
-    if (ret < 0){
+    if (ret < 0) {
         LOGE("zigbee init fail. err: %d\n", ret);
         return -1;
     }
     sleep(2);
 
+    pthread_mutex_lock(&cfg_mutex);
     LOGI("hardware reset\n");
     ret = zb_m->reset();
-    if (ret < 0){
+    if (ret < 0) {
         LOGE("hardware reset fail, err: %d\r\n",ret);
     }
-    WAIT_ZB_DEV_POWER_ON();
+    pthread_cond_wait(&cfg_cond, &cfg_mutex);
+    pthread_mutex_unlock(&cfg_mutex);
 
+    pthread_mutex_lock(&cfg_mutex);
     LOGI("factory setting\n");
     ret = zb_m->factory();
-    if (ret < 0){
+    if (ret < 0) {
         LOGE("factory send fail, err: %d\r\n",ret);
         return -1;
     }
-    WAIT_ZB_DEV_POWER_ON();
+    pthread_cond_wait(&cfg_cond, &cfg_mutex);
+    pthread_mutex_unlock(&cfg_mutex);
 
     LOGI("set tx power: %d dbm\n", ZIGBEE_TX_POWER);
     zb_m->set_tx_power(ZIGBEE_TX_POWER);
-    if (ret < 0){
+    if (ret < 0) {
         LOGE("factory send fail, err: %d\r\n",ret);
     }
 
     LOGI("set join aging: %d s\n", ZIGBEE_JOIN_AGING);
     ret = zb_m->set_join_aging(ZIGBEE_JOIN_AGING);
-    if (ret < 0){
+    if (ret < 0) {
         LOGE("set join aging send fail, err: %d\r\n",ret);
     }
 
     LOGI("set cast type: %d addr : 0x%04x \n", ZIGBEE_CAST_TYPE, ZIGBEE_CAST_ADDR);
     ret = zb_m->set_cast_type(ZIGBEE_CAST_TYPE, ZIGBEE_CAST_ADDR);
-    if (ret < 0){
+    if (ret < 0) {
         LOGE("set cast type send fail, err: %d\r\n",ret);
     }
 
+    pthread_mutex_lock(&cfg_mutex);
     LOGI("set panid: 0x%04x\n",ZIGBEE_PAN_ID);
     ret = zb_m->set_panid(ZIGBEE_PAN_ID);
-    if (ret < 0){
+    if (ret < 0) {
         LOGE("set panid send fail, err: %d\r\n",ret);
     }
-    WAIT_ZB_DEV_POWER_ON();
+    pthread_cond_wait(&cfg_cond, &cfg_mutex);
+    pthread_mutex_unlock(&cfg_mutex);
 
 
+    pthread_mutex_lock(&cfg_mutex);
     LOGI("set channel: 0x%02x\n", ZIGBEE_CHANNEL);
     ret = zb_m->set_channel(ZIGBEE_CHANNEL);
-    if (ret < 0){
+    if (ret < 0) {
         LOGE("set channel send fail, err: %d\r\n",ret);
     }
-    WAIT_ZB_DEV_POWER_ON();
+    pthread_cond_wait(&cfg_cond, &cfg_mutex);
+    pthread_mutex_unlock(&cfg_mutex);
 
+    pthread_mutex_lock(&cfg_mutex);
     LOGI("set key: 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\
  0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\n",
     key[0],key[1],key[2],key[3],key[4],key[5],key[6],key[7],key[8],
     key[9],key[10],key[11],key[12],key[13],key[14],key[15]);
     ret = zb_m->set_key(key,sizeof(key));
-    if (ret < 0){
+    if (ret < 0) {
         LOGE("set aes key fail, err: %d\r\n",ret);
     }
-    WAIT_ZB_DEV_POWER_ON();
+    pthread_cond_wait(&cfg_cond, &cfg_mutex);
+    pthread_mutex_unlock(&cfg_mutex);
 
-    if (ZIGBEE_ROLE == ZIGBEE_ROLE_ENDEV){
+
+    if (ZIGBEE_ROLE == ZIGBEE_ROLE_ENDEV) {
+        pthread_mutex_lock(&cfg_mutex);
         LOGI("set poll rate: %d ms\n",ZIGBEE_POLL_RATE);
         ret = zb_m->set_poll_rate(ZIGBEE_POLL_RATE);
-        if (ret < 0){
+        if (ret < 0) {
             LOGE("set poll rate send fail, err: %d\r\n",ret);
         }
-        WAIT_ZB_DEV_POWER_ON();
+        pthread_cond_wait(&cfg_cond, &cfg_mutex);
+        pthread_mutex_unlock(&cfg_mutex);
     }
 
     LOGI("set rote: %d\n", ZIGBEE_ROLE);
-    ret = zb_m->set_role(ZIGBEE_ROLE);
-    if (ret < 0){
-        LOGE("set role send fail, err: %d\r\n",ret);
+    if (ZIGBEE_ROLE == ZIGBEE_ROLE_COOR) {
+        thread_mutex_lock(&cfg_mutex);
+        ret = zb_m->set_role(ZIGBEE_ROLE);
+        if (ret < 0) {
+            LOGE("set role send fail, err: %d\r\n",ret);
+        }
+        pthread_cond_wait(&cfg_cond, &cfg_mutex);
+        pthread_mutex_unlock(&cfg_mutex);
+    } else {
+        pthread_mutex_lock(&join_mutex);
+        ret = zb_m->set_role(ZIGBEE_ROLE);
+        if (ret < 0) {
+            LOGE("set role send fail, err: %d\r\n",ret);
+        }
+        pthread_cond_wait(&join_cond, &join_mutex);
+        pthread_mutex_unlock(&join_mutex);
     }
-    if (ZIGBEE_ROLE == ZIGBEE_ROLE_COOR)
-        WAIT_ZB_DEV_POWER_ON();
-    else
-        WAIT_ZB_DEV_NWK_JOIN();
 
-    zb_m->get_info();
-    while(1){
+
+    ret = zb_m->get_info();
+    if (ret < 0) {
+        LOGE("get info send fail. err: %d\n",ret);
+    }
+
+    while(1) {
         ret = zb_m->ctrl(send,sizeof(send));
-        if (ret < 0){
+        if (ret < 0) {
             LOGI("ctrl send fail. err: %d\n",ret);
-        }else{
+        } else {
             LOGI("monk send: ");
             for (i = 0; i < sizeof(send); ++i) {
                 printf(" 0x%x", send[i]);
@@ -203,7 +214,7 @@ static int8_t info_rsp_handle(uint8_t* info, uint16_t len)
     uint8_t channel;
     struct zb_info_t zb_info = {0};
 
-    if (info == NULL){
+    if (info == NULL) {
         return -1;
     }
 
@@ -249,8 +260,8 @@ static void zb_uart_recv_cb(uint8_t cmd, uint8_t* const pl, uint16_t len)
         break;
 
         case UART_CMD_STATUS_REPORT:
-
             GET_NWK_STATUS(id, nwk_status, pl);
+            LOGI("   dev id: 0x%04x   status: %s\n", id,status_str[nwk_status]);
             if (nwk_status == DEV_STATUS_POWER_ON) {
                 pthread_mutex_lock(&cfg_mutex);
                 pthread_cond_signal(&cfg_cond);
@@ -260,7 +271,7 @@ static void zb_uart_recv_cb(uint8_t cmd, uint8_t* const pl, uint16_t len)
                 pthread_cond_signal(&join_cond);
                 pthread_mutex_unlock(&join_mutex);
             }
-            LOGI("   dev id: 0x%04x   status: %s\n", id,status_str[nwk_status]);
+
         break;
 
         case UART_CMD_INFO_RSP:

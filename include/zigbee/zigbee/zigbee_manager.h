@@ -73,6 +73,15 @@ enum {
     DEV_STATUS_NWK_LEAVE
 };
 
+/**
+ *  @brief   处理解析到完整数据包后的回调函数，由用户编写并在调用init（）时传入
+ *
+ *  @param   cmd - 接收到的命令字
+ *           pl  - 接收到的载荷数据
+ *           len - 接收到的数据长度
+ *
+ *  @note    该接口回调时为子线程上下文，操作全局变量需注意线程安全问题
+ */
 typedef void (*uart_zigbee_recv_cb)(uint8_t cmd, uint8_t* const pl, uint16_t len);
 
 
