@@ -253,7 +253,7 @@ static int32_t uart_read(char* devname, void* buf, uint32_t count, uint32_t time
         goto out;
     }
     if (read_count < count) {
-        LOGW("timeout occured, but read size is not sufficient\n");
+        //LOGW("timeout occured, but read size is not sufficient\n");
     }
 
     return read_count;
