@@ -108,6 +108,11 @@ OBJS-y += spi/spi_manager.o
 OBJS-y += 74hc595/74hc595_manager.o
 
 #
+# Cypress
+#
+OBJS-y += cypress/cypress_manager.o
+
+#
 # Flash
 #
 OBJS-y += flash/flash_manager.o                                                \
@@ -319,6 +324,7 @@ testunit:
 	$(QUITE_TEST_BUILD)test_battery;make -sC battery/testunit all
 	$(QUITE_TEST_BUILD)test_mount;make -sC mount/testunit all
 	$(QUITE_TEST_BUILD)test_74hc595;make -sC 74hc595/testunit all
+	$(QUITE_TEST_BUILD)test_cypress;make -sC cypress/testunit all
 	$(QUITE_TEST_BUILD)test_input;make -sC input/testunit all
 	$(QUITE_TEST_BUILD)test_vibrator;make -sC vibrator/testunit all
 	$(QUITE_TEST_BUILD)test_fingerprint;make -sC fingerprint/testunit all
@@ -348,6 +354,7 @@ testunit_clean:
 	$(QUITE_TEST_CLEAN)test_battery;make -sC battery/testunit clean
 	$(QUITE_TEST_CLEAN)test_mount;make -sC mount/testunit clean
 	$(QUITE_TEST_CLEAN)test_74hc595;make -sC 74hc595/testunit clean
+	$(QUITE_TEST_CLEAN)test_cypress;make -sC cypress/testunit clean
 	$(QUITE_TEST_CLEAN)test_input;make -sC input/testunit clean
 	$(QUITE_TEST_CLEAN)test_vibrator;make -sC vibrator/testunit clean
 	$(QUITE_TEST_CLEAN)test_fingerprint;make -sC fingerprint/testunit clean
