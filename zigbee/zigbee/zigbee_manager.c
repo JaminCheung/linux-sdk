@@ -117,7 +117,7 @@ struct dev_ctrl{
     uint8_t read_buf[READ_BUF_LEN];     // read form uart
     uint8_t send_buf[SEND_BUF_LEN];     // hold data of will be request
     uint8_t send_cmd;
-    uint8_t send_result;
+    int8_t send_result;
     uint16_t send_len;
     uart_zigbee_recv_cb recv_cb;        // register to protocol receive callback
 };
@@ -278,13 +278,6 @@ static int zb_dev_init(void)
         goto err_dev_open_fail;
     }
 
-    ret = ioctl(devc.fd, ZB_CC2530_IOC_POWER, POWER_ON);
-    if (ret < 0) {
-        LOGE("%s dev: %s power ctrl fail\n",__FUNCTION__,ZIGBEE_DEV_NAME);
-        ret = -2;
-        goto err_power_en_fail;
-    }
-
     uart = get_uart_manager();
     ret = uart->init(PORT_S1_DEVNAME, PORT_S1_BAUDRATE, PORT_S1_DATABITS,
                                       PORT_S1_PRARITY,  PORT_S1_STOPBITS);
@@ -324,8 +317,6 @@ err_pro_init_fail:
 err_uart_cfg_fail:
     uart->deinit(PORT_S1_DEVNAME);
 err_uart_init_fail:
-    ioctl(devc.fd, ZB_CC2530_IOC_POWER, POWER_OFF);
-err_power_en_fail:
     close(devc.fd);
 err_dev_open_fail:
     return ret;
@@ -343,7 +334,6 @@ static void zb_dev_deinit(void)
     timer->deinit(TIMER_ID);
     uart_pro->deinit(&src);
     uart->deinit(PORT_S1_DEVNAME);
-    ioctl(devc.fd, ZB_CC2530_IOC_POWER, POWER_OFF);
     close(devc.fd);
 }
 
