@@ -74,8 +74,8 @@ struct input_device {
     struct list_head head;
 };
 
-LIST_HEAD(input_dev_list);
-LIST_HEAD(listener_list);
+static LIST_HEAD(input_dev_list);
+static LIST_HEAD(listener_list);
 
 static int max_fd;
 static int inited;

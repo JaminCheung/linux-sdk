@@ -1,0 +1,33 @@
+TOPDIR ?= ../..
+
+include ../../config.mk
+
+TESTUNIT1 := test_fingerprint
+TESTUNIT1_OBJS := main.o
+
+TESTUNIT2 := test_ma_fp
+TESTUNIT2_OBJS := microarray/test_ma.o
+
+TESTUNIT3 := test_gf_fp
+TESTUNIT3_OBJS := goodix/test_gf.o
+
+LINK_LIBS := -L$(OUTDIR) -l$(TARGET_NAME)
+
+.PHONY : all clean
+
+all: $(TESTUNIT2) $(TESTUNIT3)
+
+%.o:%.c
+	$(QUIET_CC) $(COMPILE_SRC) $< -o $@
+
+#$(TESTUNIT1):$(TESTUNIT1_OBJS)
+#	$(QUIET_LINK)$(LINK_OBJS) $(LINK_LIBS) -o $(OUTDIR)/$@ $(TESTUNIT1_OBJS) $(LDFLAGS)
+
+$(TESTUNIT2):$(TESTUNIT2_OBJS)
+	$(QUIET_LINK)$(LINK_OBJS) $(LINK_LIBS) -o $(OUTDIR)/$@ $(TESTUNIT2_OBJS) $(LDFLAGS)
+
+$(TESTUNIT3):$(TESTUNIT3_OBJS)
+	$(QUIET_LINK)$(LINK_OBJS) $(LINK_LIBS) -o $(OUTDIR)/$@ $(TESTUNIT3_OBJS) $(LDFLAGS)
+
+clean:
+	@rm -rf $(TESTUNIT1_OBJS) $(TESTUNIT2_OBJS) $(TESTUNIT3_OBJS)

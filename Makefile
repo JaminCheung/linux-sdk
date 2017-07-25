@@ -327,11 +327,10 @@ testunit:
 	$(QUITE_TEST_BUILD)test_cypress;make -sC cypress/testunit all
 	$(QUITE_TEST_BUILD)test_input;make -sC input/testunit all
 	$(QUITE_TEST_BUILD)test_vibrator;make -sC vibrator/testunit all
-	$(QUITE_TEST_BUILD)test_fingerprint;make -sC fingerprint/testunit all
+	$(QUITE_TEST_BUILD)test_fingerprint2;make -sC fingerprint2/testunit all
 	$(QUITE_TEST_BUILD)test_default_runnable;make -sC utils/runnable/testunit all
 	$(QUITE_TEST_BUILD)test_fb;make -sC fb/testunit all
 	$(QUITE_TEST_BUILD)test_graphics;make -sC graphics/testunit all
-	$(QUITE_TEST_BUILD)ma_factory_test;make -sC fingerprint/factory-test/microarray all
 
 	@echo -e '\n  $@: $(shell basename $(OUTDIR))/test_xxx is ready\n'
 
@@ -357,10 +356,9 @@ testunit_clean:
 	$(QUITE_TEST_CLEAN)test_cypress;make -sC cypress/testunit clean
 	$(QUITE_TEST_CLEAN)test_input;make -sC input/testunit clean
 	$(QUITE_TEST_CLEAN)test_vibrator;make -sC vibrator/testunit clean
-	$(QUITE_TEST_CLEAN)test_fingerprint;make -sC fingerprint/testunit clean
+	$(QUITE_TEST_CLEAN)test_fingerprint2;make -sC fingerprint2/testunit clean
 	$(QUITE_TEST_CLEAN)test_default_runnable;make -sC utils/runnable/testunit clean
 	$(QUITE_TEST_CLEAN)test_graphics;make -sC graphics/testunit clean
-	$(QUITE_TEST_CLEAN)ma_factory_test;make -sC fingerprint/factory-test/microarray clean
 
 clean: testunit_clean
 	@rm -rf $(LIBS) $(OBJS)

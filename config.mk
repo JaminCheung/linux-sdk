@@ -65,7 +65,8 @@ LDFLAGS := -Wl,-Bstatic -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint
 # Library link - Dynamic
 #
 LDFLAGS += -Wl,-Bdynamic -pthread -lm -lrt -ldl                                \
-           -L$(TOPDIR)/lib/openssl -lcrypto -lssl
+           -L$(TOPDIR)/lib/openssl -lcrypto -lssl                              \
+           -L$(TOPDIR)/lib/fingerprint -lfprint-mips
 
 ifndef DEBUG
 CFLAGS += -Os -mhard-float -D_GNU_SOURCE
