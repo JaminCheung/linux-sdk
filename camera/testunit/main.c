@@ -32,6 +32,7 @@
 #define DEFAULT_HEIGHT   480
 #define DEFAULT_BPP      16
 
+
 #define LOG_TAG   "test_camera"
 
 
