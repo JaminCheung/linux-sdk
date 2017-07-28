@@ -15,9 +15,15 @@
 #define HAL_LIBRARY_PATH1 "/lib/libfprint-mips.so"
 #define HAL_LIBRARY_PATH2 "/usr/lib/libfprint-mips.so"
 
+typedef enum {
+    DELETE_BY_ID,
+    DELETE_ALL,
+} delete_type_t;
+
 enum {
     ENROLL_TEST,
     AUTH_TEST,
+    LIST_TEST,
     DELETE_TEST,
     TEST_MAX,
 };
@@ -32,6 +38,8 @@ static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 static int work_state = STATE_IDLE;
 static int enroll_steps;
+fingerprint_finger_id_t fingers[FINGERPRINT_SIZE];
+uint32_t finger_count = 0;
 
 static const char* test2string(int item) {
     switch (item) {
@@ -39,6 +47,8 @@ static const char* test2string(int item) {
         return "enroll test";
     case AUTH_TEST:
         return "authenticate test";
+    case LIST_TEST:
+        return "list fingers test";
     case DELETE_TEST:
         return "delete test";
     default:
@@ -50,6 +60,7 @@ static void print_tips(void) {
     fprintf(stderr, "==================== Microarray FP ===================\n");
     fprintf(stderr, "  %d.Enroll\n", ENROLL_TEST);
     fprintf(stderr, "  %d.Authenticate\n", AUTH_TEST);
+    fprintf(stderr, "  %d.List enrolled fingers\n", LIST_TEST);
     fprintf(stderr, "  %d.Delete\n", DELETE_TEST);
     fprintf(stderr, "======================================================\n");
 }
@@ -58,6 +69,14 @@ static void print_delete_id_tips(void) {
     fprintf(stderr, "==============================================\n");
     fprintf(stderr, "Please enter finger id.\n");
     fprintf(stderr, "==============================================\n");
+}
+
+static void dump_fingers(void) {
+    fprintf(stderr, "============== Finger List ==============\n");
+    for (int i = 0; i < finger_count; i++)
+        fprintf(stderr, "Finger[%d]: %d\n", i, fingers[i].fid);
+
+    fprintf(stderr, "=========================================\n");
 }
 
 static void set_state_idle(void) {
@@ -99,6 +118,10 @@ static void ma_fp_callback(const fingerprint_msg_t *msg) {
     case FINGERPRINT_ACQUIRED:
         LOGI("========> FINGERPRINT_ACQUIRED: acquired_info=%d\n",
                 msg->data.acquired.acquired_info);
+        if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_FINGER_DOWN)
+            LOGI("=======> FINGERPRINT FINGER DOWN\n");
+        else if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_FINGER_UP)
+            LOGI("=======> FINGERPRINT FINGER UP\n");
         break;
 
     case FINGERPRINT_AUTHENTICATED:
@@ -141,7 +164,7 @@ static void handle_signal(int signal) {
     int error = 0;
 
     error = ma_fingerprint_close();
-    if (error < 0)
+    if (error)
         LOGE("Failed to close microarray library\n");
 
     exit(1);
@@ -172,7 +195,7 @@ static int do_enroll(void) {
     enroll_steps = -1;
 
     error = ma_fingerprint_enroll();
-    if (error < 0) {
+    if (error) {
         LOGE("Failedl to enroll fingerprint\n");
         return -1;
     }
@@ -183,11 +206,36 @@ static int do_enroll(void) {
 static int do_auth(void) {
     int error = 0;
 
+    error = ma_fingerprint_enumerate(fingers, &finger_count);
+    if (error) {
+        LOGE("Failed to enumerate fingers\n");
+        return -1;
+    }
+
+    if (finger_count <= 0) {
+        LOGW("No any valid finger's templete\n");
+        set_state_idle();
+        return 0;
+    }
+
     error = ma_fingerprint_authenticate();
-    if (error < 0) {
+    if (error) {
         LOGE("Failed to auth fingerprint\n");
         return -1;
     }
+
+    return 0;
+}
+
+static int do_list(void) {
+    int error = 0;
+
+    error = ma_fingerprint_enumerate(fingers, &finger_count);
+    if (error) {
+        LOGE("Failed to enumerate fingers\n");
+        return -1;
+    }
+    dump_fingers();
 
     return 0;
 }
@@ -204,7 +252,7 @@ restart:
 
     uint32_t id = strtol(id_buf, NULL, 0);
     error = ma_fingerprint_remove(id);
-    if (error < 0)
+    if (error)
         LOGE("Failed to delete finger by id %d\n", id);
 
     return error;
@@ -215,6 +263,8 @@ static void do_work(void) {
     char sel_buf[64] = {0};
 
     setbuf(stdin, NULL);
+
+    do_list();
 
     for (;;) {
 restart:
@@ -236,7 +286,8 @@ restart:
 
         LOGI("Going to %s\n", test2string(action));
 
-        set_state_busy();
+        if (action != LIST_TEST)
+            set_state_busy();
 
         switch(action) {
         case ENROLL_TEST:
@@ -245,6 +296,10 @@ restart:
 
         case AUTH_TEST:
             error = do_auth();
+            break;
+
+        case LIST_TEST:
+            error = do_list();
             break;
 
         case DELETE_TEST:
@@ -275,13 +330,13 @@ int main(int argc, char *argv[]) {
 #endif
 
     error = ma_fingerprint_set_notify_callback(ma_fp_callback);
-    if (error < 0) {
+    if (error) {
         LOGE("Failed to set callback\n");
         return -1;
     }
 
     error = ma_fingerprint_open(get_user_system_dir(getuid()));
-    if (error < 0) {
+    if (error) {
         LOGE("Failed to open microarray lib\n");
         return -1;
     }

@@ -33,7 +33,15 @@ typedef enum fingerprint_acquired_info {
     FINGERPRINT_ACQUIRED_IMAGER_DIRTY = 3, /* sensor needs to be cleaned */
     FINGERPRINT_ACQUIRED_TOO_SLOW = 4, /* mostly swipe-type sensors; not enough data collected */
     FINGERPRINT_ACQUIRED_TOO_FAST = 5, /* for swipe and area sensors; tell user to slow down*/
-    FINGERPRINT_ACQUIRED_VENDOR_BASE = 1000 /* vendor-specific acquisition messages start here */
+    FINGERPRINT_ACQUIRED_VENDOR_BASE = 1000, /* vendor-specific acquisition messages start here */
+    FINGERPRINT_ACQUIRED_WAIT_FINGER_INPUT = FINGERPRINT_ACQUIRED_VENDOR_BASE + 1,
+    FINGERPRINT_ACQUIRED_FINGER_DOWN = FINGERPRINT_ACQUIRED_VENDOR_BASE + 2,
+    FINGERPRINT_ACQUIRED_FINGER_UP = FINGERPRINT_ACQUIRED_VENDOR_BASE + 3,
+    FINGERPRINT_ACQUIRED_INPUT_TOO_LONG = FINGERPRINT_ACQUIRED_VENDOR_BASE + 4,
+    FINGERPRINT_ACQUIRED_DUPLICATE_FINGER = FINGERPRINT_ACQUIRED_VENDOR_BASE + 5,
+    FINGERPRINT_ACQUIRED_DUPLICATE_AREA = FINGERPRINT_ACQUIRED_VENDOR_BASE + 6,
+    FINGERPRINT_ACQUIRED_LOW_COVER = FINGERPRINT_ACQUIRED_VENDOR_BASE + 7,
+    FINGERPRINT_ACQUIRED_BAD_IMAGE = FINGERPRINT_ACQUIRED_VENDOR_BASE + 8,
 } fingerprint_acquired_info_t;
 
 
@@ -73,6 +81,8 @@ typedef struct fingerprint_msg {
     } data;
 } fingerprint_msg_t;
 
+#define FINGERPRINT_SIZE 5
+
 /* Callback function type */
 typedef void (*fingerprint_notify_t)(const fingerprint_msg_t *msg);
 
@@ -88,6 +98,9 @@ int ma_fingerprint_remove(uint32_t fid);
 int ma_fingerprint_authenticate();
 
 int ma_fingerprint_set_notify_callback(fingerprint_notify_t notify);
+
+int ma_fingerprint_enumerate(fingerprint_finger_id_t *results,
+        uint32_t *max_size);
 
 int ma_fingerprint_open(const char *store_path);
 
