@@ -375,7 +375,6 @@ static int zb_logic_init(uart_zigbee_recv_cb recv_cb)
  */
 static void zb_logic_deinit(void)
 {
-    int ret;
     pthread_cancel(devc.poll_ptid);
     pthread_join(devc.poll_ptid, NULL);
 }

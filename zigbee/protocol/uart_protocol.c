@@ -368,7 +368,6 @@ static int16_t pack_handle(uint8_t* buf, uint16_t len, uart_pro_recv_cb cb)
 {
     uint8_t cmd = buf[UART_SGM_CMD];
     uint8_t sn = buf[UART_SGM_SN];
-    uint16_t i;
     uint16_t cchecksum = gen_checksum(buf,len-2);
     uint16_t rchecksum = buf[len-2]<<8 | buf[len-1];
 
@@ -376,7 +375,7 @@ static int16_t pack_handle(uint8_t* buf, uint16_t len, uart_pro_recv_cb cb)
         return -1;
     /*
     printf("extract %d:", len);
-    for (i=0; i<len; i++)
+    for (int i=0; i<len; i++)
         printf(" 0x%x",buf[i]);
     printf("\r\n");
     */
@@ -509,7 +508,7 @@ static int16_t uart_pro_receive(pro_src_st* src, uint8_t* buf, uint16_t len)
  */
 static int16_t uart_pro_send(pro_src_st* src, uint8_t cmd, uint8_t* pl, uint16_t pllen,uart_pro_send_hd hd)
 {
-    uint16_t i,len,slen;
+    uint16_t len,slen;
 
     if (src == NULL || hd == NULL)
         return -1;
@@ -519,7 +518,7 @@ static int16_t uart_pro_send(pro_src_st* src, uint8_t cmd, uint8_t* pl, uint16_t
 
     /*
     printf("send %d:", slen);
-    for (i=0; i<slen; i++)
+    for (int i=0; i<slen; i++)
         printf(" 0x%x",src->sbuf[i]);
     printf("\r\n");
     */

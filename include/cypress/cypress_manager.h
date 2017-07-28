@@ -27,16 +27,25 @@
 #define CYPRESS_DRV_IOC_ENABLE_IRQ       _IOW(CYPRESS_IOC_MAGIC, 4, int)
 #define CYPRESS_DRV_IOC_DISABLE_IRQ      _IOW(CYPRESS_IOC_MAGIC, 5, int)
 
-
+/**
+ * M1卡的密码类型，此宏值不要修改
+ */
 #define M1_AUTH_KEYA    0x60
 #define M1_AUTH_KEYB    0x61
 
+/**
+ * 定义卡的类型，此结构不要修改
+ */
 enum card_type {
     CARD_TYPE_A = 0,
-    CARD_TYPE_b = 1,
+    CARD_TYPE_B = 1,
     CARD_MIFARE1 = 2,
 };
 
+
+/**
+ * 卡操作的数据包结构体，此结果不要修改
+ */
 struct card_t {
     uint8_t type;
     uint8_t cardtype;          //IC卡类型: TYPE_A、TYPE_B、MIFARE1
@@ -49,15 +58,22 @@ struct card_t {
     uint8_t eof;               //数据包结束标志
 };
 
+
+/**
+ * 处理按键和读卡上报事件的回调函数指针类型
+ */
 typedef void (*deal_keys_report_handler)(uint8_t keycode, uint8_t keyvalue);
 typedef void (*deal_card_report_handler)(int dev_fd);
+
 
 struct cypress_manager {
     /**
      * Function: cypress_init
      * Description: cypress 设备初始化
      * Input:
-     * Return: 正数或0: 成功写入的字节数  -1: 失败
+     *      keys_handler: 处理按键上报事件的回调函数
+     *      card_handler: 处理读卡上报事件和回调函数
+     * Return: 正数或0: 成功写入的字节数  小于0: 失败
      * Others: 该函数必须在其他cypress_manager的其它函数之前被调用
      */
     int32_t (*init)(deal_keys_report_handler keys_handler, \
@@ -91,4 +107,5 @@ struct cypress_manager {
  * Others: 通过该结构体指针访问cypress_manager内部提供的方法
  */
 struct cypress_manager *get_cypress_manager(void);
-#endif
+
+#endif /* _CYPRESS_MANAGER_H */
