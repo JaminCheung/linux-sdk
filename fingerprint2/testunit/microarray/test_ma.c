@@ -8,6 +8,7 @@
 #include <utils/file_ops.h>
 #include <utils/signal_handler.h>
 #include <utils/assert.h>
+#include <power/power_manager.h>
 
 #include "../../ma_fingerprint.h"
 
@@ -27,6 +28,7 @@ enum {
     AUTH_TEST,
     LIST_TEST,
     DELETE_TEST,
+    SUSPEND_TEST,
     EXIT_TEST,
     TEST_MAX,
 };
@@ -36,6 +38,7 @@ enum {
     STATE_BUSY
 };
 
+static struct power_manager* power_manager;
 static struct signal_handler* signal_handler;
 static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
@@ -55,6 +58,8 @@ static const char* test2string(int item) {
         return "list fingers test";
     case DELETE_TEST:
         return "delete test";
+    case SUSPEND_TEST:
+        return "suspend test";
     case EXIT_TEST:
         return "exit";
     default:
@@ -68,6 +73,7 @@ static void print_tips(void) {
     fprintf(stderr, "  %d.Authenticate\n", AUTH_TEST);
     fprintf(stderr, "  %d.List enrolled fingers\n", LIST_TEST);
     fprintf(stderr, "  %d.Delete\n", DELETE_TEST);
+    fprintf(stderr, "  %d.Suspend\n", SUSPEND_TEST);
     fprintf(stderr, "  %d.Exit\n", EXIT_TEST);
     fprintf(stderr, "======================================================\n");
 }
@@ -259,8 +265,7 @@ static int do_auth(void) {
 
     if (finger_count <= 0) {
         LOGW("No any valid finger's templete\n");
-        set_state_idle();
-        return 0;
+        return -1;
     }
 
     error = ma_fingerprint_authenticate();
@@ -325,6 +330,16 @@ restart2:
     return error;
 }
 
+static int do_suspend(void) {
+    int error = 0;
+
+    power_manager->sleep();
+
+    LOGI("=====> Wakeup <=====\n");
+
+    return 0;
+}
+
 static int do_exit(void) {
     int error = 0;
 
@@ -361,7 +376,7 @@ restart:
 
         LOGI("Going to %s\n", test2string(action));
 
-        if (action != LIST_TEST && action != EXIT_TEST)
+        if (action != LIST_TEST && action != EXIT_TEST && action != SUSPEND_TEST)
             set_state_busy();
 
         switch(action) {
@@ -379,6 +394,10 @@ restart:
 
         case DELETE_TEST:
             error = do_delete();
+            break;
+
+        case SUSPEND_TEST:
+            error = do_suspend();
             break;
 
         case EXIT_TEST:
@@ -399,6 +418,7 @@ restart:
 int main(int argc, char *argv[]) {
     int error = 0;
 
+    power_manager = get_power_manager();
     signal_handler = _new(struct signal_handler, signal_handler);
 
     signal_handler->set_signal_handler(signal_handler, SIGINT, handle_signal);
