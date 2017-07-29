@@ -16,8 +16,8 @@
 #define HAL_LIBRARY_PATH2 "/usr/lib/libfprint-mips.so"
 
 typedef enum {
-    DELETE_BY_ID,
     DELETE_ALL,
+    DELETE_BY_ID,
 } delete_type_t;
 
 enum {
@@ -25,6 +25,7 @@ enum {
     AUTH_TEST,
     LIST_TEST,
     DELETE_TEST,
+    EXIT_TEST,
     TEST_MAX,
 };
 
@@ -51,28 +52,39 @@ static const char* test2string(int item) {
         return "list fingers test";
     case DELETE_TEST:
         return "delete test";
+    case EXIT_TEST:
+        return "exit";
     default:
         return "unknown test";
     }
 }
 
 static void print_tips(void) {
-    fprintf(stderr, "==================== Microarray FP ===================\n");
+    fprintf(stderr, "\n==================== Microarray FP ===================\n");
     fprintf(stderr, "  %d.Enroll\n", ENROLL_TEST);
     fprintf(stderr, "  %d.Authenticate\n", AUTH_TEST);
     fprintf(stderr, "  %d.List enrolled fingers\n", LIST_TEST);
     fprintf(stderr, "  %d.Delete\n", DELETE_TEST);
+    fprintf(stderr, "  %d.Exit\n", EXIT_TEST);
     fprintf(stderr, "======================================================\n");
 }
 
-static void print_delete_id_tips(void) {
+static void print_delete_tips(void) {
+    fprintf(stderr, "\n==============================================\n");
+    fprintf(stderr, "Please select delete type.\n");
+    fprintf(stderr, "  %d.Delete all\n", DELETE_ALL);
+    fprintf(stderr, "  %d.Delete by id\n", DELETE_BY_ID);
     fprintf(stderr, "==============================================\n");
+}
+
+static void print_delete_id_tips(void) {
+    fprintf(stderr, "\n==============================================\n");
     fprintf(stderr, "Please enter finger id.\n");
     fprintf(stderr, "==============================================\n");
 }
 
 static void dump_fingers(void) {
-    fprintf(stderr, "============== Finger List ==============\n");
+    fprintf(stderr, "\n============== Finger List ==============\n");
     for (int i = 0; i < finger_count; i++)
         fprintf(stderr, "Finger[%d]: %d\n", i, fingers[i].fid);
 
@@ -102,7 +114,7 @@ static void wait_state_idle(void) {
 
     while (work_state == STATE_BUSY) {
         pthread_cond_wait(&cond, &lock);
-        msleep(600);
+        //msleep(200);
     }
 
     pthread_mutex_unlock(&lock);
@@ -116,24 +128,47 @@ static void ma_fp_callback(const fingerprint_msg_t *msg) {
         break;
 
     case FINGERPRINT_ACQUIRED:
-        LOGI("========> FINGERPRINT_ACQUIRED: acquired_info=%d\n",
+        LOGD("========> FINGERPRINT_ACQUIRED: acquired_info=%d\n",
                 msg->data.acquired.acquired_info);
-        if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_FINGER_DOWN)
-            LOGI("=======> FINGERPRINT FINGER DOWN\n");
+
+        if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_GOOD)
+            LOGI("Finger good\n");
+
+        else if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_FINGER_DOWN)
+            LOGI("Finger down\n");
+
         else if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_FINGER_UP)
-            LOGI("=======> FINGERPRINT FINGER UP\n");
+            LOGI("Finger up\n");
+
+        else if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_DUPLICATE_AREA)
+            LOGW("Duplicate finger area\n");
+
+        else if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_IMAGER_DIRTY)
+            LOGW("Sensor may be dirty\n");
+
+        else if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_LOW_COVER)
+            LOGW("Sensor low cover\n");
+
+        else if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_DUPLICATE_FINGER) {
+            LOGW("Duplicate finger\n");
+            ma_fingerprint_cancel();
+            set_state_idle();
+        }
+
         break;
 
     case FINGERPRINT_AUTHENTICATED:
-        LOGI("========> FINGERPRINT_AUTHENTICATED: fid=%d\n",
+        LOGD("========> FINGERPRINT_AUTHENTICATED: fid=%d\n",
                 msg->data.authenticated.finger.fid);
         if (msg->data.authenticated.finger.fid == 0)
-            LOGE("==========> FINGERPRINT AUTH FAILED!!!\n");
+            LOGE("Finger auth failure!\n");
+        else
+            LOGI("Finger auth success, id=%d!\n", msg->data.authenticated.finger.fid);
         set_state_idle();
         break;
 
     case FINGERPRINT_TEMPLATE_ENROLLING:
-        LOGI("========> FINGERPRINT_TEMPLATE_ENROLLING: fid=%d, rem=%d\n",
+        LOGD("========> FINGERPRINT_TEMPLATE_ENROLLING: fid=%d, rem=%d\n",
                 msg->data.enroll.finger.fid,
                 msg->data.enroll.samples_remaining);
 
@@ -142,15 +177,16 @@ static void ma_fp_callback(const fingerprint_msg_t *msg) {
 
         int progress = (enroll_steps + 1 - msg->data.enroll.samples_remaining);
 
-        LOGI("=======> ENROLL PROGRESS %d%%\n", 100 * progress / (enroll_steps + 1));
+        LOGI("Finger enrolling %d%%\n", 100 * progress / (enroll_steps + 1));
 
         if (msg->data.enroll.samples_remaining == 0)
             set_state_idle();
         break;
 
     case FINGERPRINT_TEMPLATE_REMOVED:
-        LOGI("========> FINGERPRINT_TEMPLATE_REMOVED: fid=%d\n",
+        LOGD("========> FINGERPRINT_TEMPLATE_REMOVED: fid=%d\n",
                 msg->data.removed.finger.fid);
+        LOGI("Finger removed, id=%d\n", msg->data.removed.finger.fid);
         set_state_idle();
         break;
 
@@ -169,25 +205,6 @@ static void handle_signal(int signal) {
 
     exit(1);
 }
-
-#if 0
-int init_fp_lib(char *path, uint32_t len) {
-    snprintf(path, len, "%s", HAL_LIBRARY_PATH1);
-
-    if (file_exist(path) != 0) {
-        LOGW("Failed to found lib at: %s, try %s\n", HAL_LIBRARY_PATH1, HAL_LIBRARY_PATH2);
-
-        snprintf(path, len, "%s", HAL_LIBRARY_PATH2);
-
-        if (file_exist(path) != 0) {
-            LOGE("Failed to found any microarray library\n");
-            return -1;
-        }
-    }
-
-    return 0;
-}
-#endif
 
 static int do_enroll(void) {
     int error = 0;
@@ -243,19 +260,48 @@ static int do_list(void) {
 static int do_delete(void) {
     int error = 0;
     char id_buf[128] = {0};
+    char type_buf[32] = {0};
 
 restart:
-    print_delete_id_tips();
-
-    if (fgets(id_buf, sizeof(id_buf), stdin) == NULL)
+    print_delete_tips();
+    if (fgets(type_buf, sizeof(type_buf), stdin) == NULL)
+        goto restart;
+    if (strlen(type_buf) != 2)
         goto restart;
 
-    uint32_t id = strtol(id_buf, NULL, 0);
-    error = ma_fingerprint_remove(id);
-    if (error)
-        LOGE("Failed to delete finger by id %d\n", id);
+    int type = strtol(type_buf, NULL, 0);
+    if (type > DELETE_BY_ID || type < 0)
+        goto restart;
+
+    if (type == DELETE_BY_ID) {
+restart2:
+        print_delete_id_tips();
+
+        if (fgets(id_buf, sizeof(id_buf), stdin) == NULL)
+            goto restart2;
+        uint32_t id = strtol(id_buf, NULL, 0);
+
+        error = ma_fingerprint_remove(id);
+        if (error)
+            LOGE("Failed to delete finger by id %d\n", id);
+
+    } else if (type == DELETE_ALL) {
+        error = ma_fingerprint_remove(type);
+        if (error)
+            LOGE("Failed to delete all finger\n");
+    }
 
     return error;
+}
+
+static int do_exit(void) {
+    int error = 0;
+
+    error = ma_fingerprint_close();
+    if (error)
+        LOGE("Failed to close microarray library\n");
+
+    exit(error);
 }
 
 static void do_work(void) {
@@ -269,8 +315,6 @@ static void do_work(void) {
     for (;;) {
 restart:
         wait_state_idle();
-
-        ma_fingerprint_cancel();
 
         print_tips();
 
@@ -286,7 +330,7 @@ restart:
 
         LOGI("Going to %s\n", test2string(action));
 
-        if (action != LIST_TEST)
+        if (action != LIST_TEST && action != EXIT_TEST)
             set_state_busy();
 
         switch(action) {
@@ -306,6 +350,10 @@ restart:
             error = do_delete();
             break;
 
+        case EXIT_TEST:
+            error = do_exit();
+            break;
+
         default:
             break;
         }
@@ -313,8 +361,6 @@ restart:
 }
 
 int main(int argc, char *argv[]) {
-    char path[PATH_MAX];
-
     int error = 0;
 
     signal_handler = _new(struct signal_handler, signal_handler);
@@ -322,12 +368,6 @@ int main(int argc, char *argv[]) {
     signal_handler->set_signal_handler(signal_handler, SIGINT, handle_signal);
     signal_handler->set_signal_handler(signal_handler, SIGQUIT, handle_signal);
     signal_handler->set_signal_handler(signal_handler, SIGTERM, handle_signal);
-
-#if 0
-    error = init_fp_lib(path, sizeof(path));
-    if (error < 0)
-        return -1;
-#endif
 
     error = ma_fingerprint_set_notify_callback(ma_fp_callback);
     if (error) {
