@@ -210,7 +210,6 @@ static int8_t info_rsp_handle(uint8_t* info, uint16_t len)
 {
 #define K(x)  zb_info.key[x]
 
-    uint16_t i = 0;
     uint8_t channel;
     struct zb_info_t zb_info = {0};
 
@@ -227,7 +226,7 @@ static int8_t info_rsp_handle(uint8_t* info, uint16_t len)
     LOGI("channel: 0x%02x%02x%02x%02x \r\n" ,zb_info.channel[3],zb_info.channel[2]
                                             ,zb_info.channel[1],zb_info.channel[0]);
     LOGI("secure key: 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\
- 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\r\n",
+        0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x 0x%02x\r\n",
         K(0),K(1),K(2),K(3),K(4),K(5),K(6),K(7),K(8),K(9),K(10),K(11),K(12),K(13),K(14),K(15));
 
     LOGI("join aging: %d %s\r\n",zb_info.join_aging, zb_info.join_aging == 0xFF? "s always" : "s");

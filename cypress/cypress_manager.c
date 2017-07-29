@@ -31,32 +31,31 @@
 #include <types.h>
 #include <utils/log.h>
 #include <utils/assert.h>
+#include <input/input_manager.h>
 #include <cypress/cypress_manager.h>
 
 
 
-#define LOG_TAG        "cypress"
-#define CYPRESS_DEFAULT_DEV   "/dev/cypress_psoc4"
-#define CYPRESS_INPUT_DEV     "/dev/input/event0"
+#define LOG_TAG                  "cypress"
+#define CYPRESS_DEFAULT_DEV      "/dev/cypress_psoc4"
+#define CYPRESS_INPUT_DEV_NAME   "cypress_psoc4"
 
 
 struct cypress_dev {
     int dev_fd;
-    int input_fd;
     bool is_init;
 
-    pthread_t pth_keys;
     struct sigaction sigact;
+    struct input_manager *input_manager;
 
     deal_keys_report_handler keys_report_handler;
     deal_card_report_handler card_report_handler;
 };
 
 static struct cypress_dev cypress;
-//static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 
-/*
+/**
  * Functions
  */
 static void cypress_mcu_reset(void) {
@@ -69,27 +68,19 @@ static void cypress_mcu_reset(void) {
 }
 
 static void cypress_sync_handler(int signo) {
-    if (signo == SIGIO)
+    if (signo == SIGIO &&
+        cypress.card_report_handler) {
         cypress.card_report_handler(cypress.dev_fd);
+    }
 }
 
-static void *cypress_keys_pthread(void *arg) {
-    int retval;
-    struct input_event event;
-
-    pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, NULL);      //允许退出线程
-    pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, NULL); //设置立即取消
-
-    while(1) {
-        bzero(&event, sizeof(event));
-        retval = read(cypress.input_fd, &event, sizeof(event));
-        if (retval == sizeof(event)) {
-            if (event.type == EV_KEY) {
-                cypress.keys_report_handler(event.code, event.value);
-            }
-        }
+static void cypress_input_event_listener(const char *input_name,
+        struct input_event *event) {
+    if (event->type == EV_KEY &&
+        cypress.keys_report_handler) {
+            cypress.keys_report_handler(event->code, event->value);
     }
-    return NULL;
+
 }
 
 static int32_t cypress_init(deal_keys_report_handler keys_handler, \
@@ -99,14 +90,18 @@ static int32_t cypress_init(deal_keys_report_handler keys_handler, \
     cypress.dev_fd = open(CYPRESS_DEFAULT_DEV, O_RDWR);
     if (cypress.dev_fd < 0) {
         LOGE("Failed to open: %s\n", CYPRESS_DEFAULT_DEV);
+        return -ENOENT;
+    }
+
+    cypress.input_manager = get_input_manager();
+    if (cypress.input_manager->init() < 0) {
+        LOGE("Failed to init input manager\n");
         return -ENODEV;
     }
 
-    cypress.input_fd = open(CYPRESS_INPUT_DEV, O_RDWR);
-    if (cypress.input_fd < 0) {
-        LOGE("Failed to open: %s\n", CYPRESS_INPUT_DEV);
-        close(cypress.dev_fd);
-        return -ENODEV;
+    if (cypress.input_manager->start() < 0) {
+        LOGE("Failed to start input manager\n");
+        return -EPERM;
     }
 
     bzero(&cypress.sigact, sizeof(struct sigaction));
@@ -120,9 +115,7 @@ static int32_t cypress_init(deal_keys_report_handler keys_handler, \
     cypress.keys_report_handler = keys_handler;
     cypress.card_report_handler = card_handler;
 
-    pthread_create(&cypress.pth_keys, NULL, cypress_keys_pthread, (void *)&cypress);
-    pthread_detach(cypress.pth_keys);
-
+    cypress.input_manager->register_event_listener(CYPRESS_INPUT_DEV_NAME, cypress_input_event_listener);
     cypress.is_init = true;
 
     return 0;
@@ -130,9 +123,9 @@ static int32_t cypress_init(deal_keys_report_handler keys_handler, \
 
 static void cypress_deinit(void) {
     if (cypress.is_init) {
-        pthread_cancel(cypress.pth_keys);
         close(cypress.dev_fd);
-        close(cypress.input_fd);
+        cypress.input_manager->stop();
+        cypress.input_manager->deinit();
         cypress.keys_report_handler = NULL;
         cypress.card_report_handler = NULL;
         cypress.is_init = false;
@@ -140,8 +133,8 @@ static void cypress_deinit(void) {
 }
 
 struct cypress_manager cypress_manager = {
-    .init = cypress_init,
-    .deinit = cypress_deinit,
+    .init      = cypress_init,
+    .deinit    = cypress_deinit,
     .mcu_reset = cypress_mcu_reset,
 };
 
