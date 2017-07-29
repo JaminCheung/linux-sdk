@@ -7,6 +7,7 @@
 #include <utils/common.h>
 #include <utils/file_ops.h>
 #include <utils/signal_handler.h>
+#include <utils/assert.h>
 
 #include "../../ma_fingerprint.h"
 
@@ -14,6 +15,7 @@
 
 #define HAL_LIBRARY_PATH1 "/lib/libfprint-mips.so"
 #define HAL_LIBRARY_PATH2 "/usr/lib/libfprint-mips.so"
+#define AUTH_MAX_TIMES 5
 
 typedef enum {
     DELETE_ALL,
@@ -39,6 +41,7 @@ static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 static int work_state = STATE_IDLE;
 static int enroll_steps;
+static int auth_count;
 fingerprint_finger_id_t fingers[FINGERPRINT_SIZE];
 uint32_t finger_count = 0;
 
@@ -60,7 +63,7 @@ static const char* test2string(int item) {
 }
 
 static void print_tips(void) {
-    fprintf(stderr, "\n==================== Microarray FP ===================\n");
+    fprintf(stderr, "\n================= Microarray FP Menu =================\n");
     fprintf(stderr, "  %d.Enroll\n", ENROLL_TEST);
     fprintf(stderr, "  %d.Authenticate\n", AUTH_TEST);
     fprintf(stderr, "  %d.List enrolled fingers\n", LIST_TEST);
@@ -112,10 +115,8 @@ static void set_state_busy(void) {
 static void wait_state_idle(void) {
     pthread_mutex_lock(&lock);
 
-    while (work_state == STATE_BUSY) {
+    while (work_state == STATE_BUSY)
         pthread_cond_wait(&cond, &lock);
-        //msleep(200);
-    }
 
     pthread_mutex_unlock(&lock);
 }
@@ -134,6 +135,9 @@ static void ma_fp_callback(const fingerprint_msg_t *msg) {
         if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_GOOD)
             LOGI("Finger good\n");
 
+        else if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_INSUFFICIENT)
+            LOGW("Finger bad\n");
+
         else if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_FINGER_DOWN)
             LOGI("Finger down\n");
 
@@ -150,7 +154,7 @@ static void ma_fp_callback(const fingerprint_msg_t *msg) {
             LOGW("Sensor low cover\n");
 
         else if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_DUPLICATE_FINGER) {
-            LOGW("Duplicate finger\n");
+            LOGW("Duplicate finger! Canceling...\n");
             ma_fingerprint_cancel();
             set_state_idle();
         }
@@ -160,11 +164,22 @@ static void ma_fp_callback(const fingerprint_msg_t *msg) {
     case FINGERPRINT_AUTHENTICATED:
         LOGD("========> FINGERPRINT_AUTHENTICATED: fid=%d\n",
                 msg->data.authenticated.finger.fid);
-        if (msg->data.authenticated.finger.fid == 0)
-            LOGE("Finger auth failure!\n");
-        else
+        if (msg->data.authenticated.finger.fid == 0) {
+            if (auth_count >= AUTH_MAX_TIMES - 1) {
+                LOGE("Finger auth failure! Canceling...\n");
+                ma_fingerprint_cancel();
+                auth_count = 0;
+                set_state_idle();
+            } else {
+                auth_count++;
+                LOGE("Finger auth failure! %d try left\n", AUTH_MAX_TIMES - auth_count);
+            }
+
+        } else {
             LOGI("Finger auth success, id=%d!\n", msg->data.authenticated.finger.fid);
-        set_state_idle();
+            auth_count = 0;
+            set_state_idle();
+        }
         break;
 
     case FINGERPRINT_TEMPLATE_ENROLLING:
@@ -211,6 +226,17 @@ static int do_enroll(void) {
 
     enroll_steps = -1;
 
+    error = ma_fingerprint_enumerate(fingers, &finger_count);
+    if (error) {
+        LOGE("Failed to enumerate fingers\n");
+        return -1;
+    }
+
+    if (finger_count >= FINGERPRINT_SIZE) {
+        LOGW("Finger enrolled templete full!\n");
+        return -1;
+    }
+
     error = ma_fingerprint_enroll();
     if (error) {
         LOGE("Failedl to enroll fingerprint\n");
@@ -228,6 +254,8 @@ static int do_auth(void) {
         LOGE("Failed to enumerate fingers\n");
         return -1;
     }
+
+    assert_die_if(finger_count > FINGERPRINT_SIZE, "Invalid finger size\n");
 
     if (finger_count <= 0) {
         LOGW("No any valid finger's templete\n");
@@ -252,6 +280,9 @@ static int do_list(void) {
         LOGE("Failed to enumerate fingers\n");
         return -1;
     }
+
+    assert_die_if(finger_count > FINGERPRINT_SIZE, "Invalid finger size\n");
+
     dump_fingers();
 
     return 0;
@@ -356,6 +387,11 @@ restart:
 
         default:
             break;
+        }
+
+        if (error) {
+            LOGI("Failed to %s\n", test2string(action));
+            set_state_idle();
         }
     }
 }
