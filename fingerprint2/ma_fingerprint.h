@@ -43,6 +43,7 @@ typedef enum fingerprint_acquired_info {
     FINGERPRINT_ACQUIRED_DUPLICATE_AREA = FINGERPRINT_ACQUIRED_ALI_BASE + 6,
     FINGERPRINT_ACQUIRED_LOW_COVER = FINGERPRINT_ACQUIRED_ALI_BASE + 7,
     FINGERPRINT_ACQUIRED_BAD_IMAGE = FINGERPRINT_ACQUIRED_ALI_BASE + 8,
+    FINGERPRINT_ACQUIRED_TRIAL_OVER = FINGERPRINT_ACQUIRED_ALI_BASE + 9,
 } fingerprint_acquired_info_t;
 
 
@@ -82,13 +83,17 @@ typedef struct fingerprint_msg {
     } data;
 } fingerprint_msg_t;
 
-#define FINGERPRINT_SIZE 20
+#define FINGERPRINT_LIMIT 50
+#define VERSION_TRAIL    0
+#define VERSION_RELEASE  1
 
 /* Callback function type */
 typedef void (*fingerprint_notify_t)(const fingerprint_msg_t *msg);
 
 
+int ma_fingerprint_set_enroll_times(int times);
 
+int ma_fingerprint_set_max_fingers(int fingers);
 
 int ma_fingerprint_enroll();
 
@@ -107,5 +112,6 @@ int ma_fingerprint_open(const char *store_path);
 
 int ma_fingerprint_close();
 
+int ma_fingerprint_get_version(char *version, int size);
 
 #endif

@@ -18,6 +18,9 @@
 #define HAL_LIBRARY_PATH2 "/usr/lib/libfprint-mips.so"
 #define AUTH_MAX_TIMES 5
 
+#define MAX_ENROLL_TIMES 5
+#define MAX_ENROLL_FINGERS 5
+
 typedef enum {
     DELETE_ALL,
     DELETE_BY_ID,
@@ -45,8 +48,9 @@ static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 static int work_state = STATE_IDLE;
 static int enroll_steps;
 static int auth_count;
-fingerprint_finger_id_t fingers[FINGERPRINT_SIZE];
-uint32_t finger_count = 0;
+static fingerprint_finger_id_t fingers[MAX_ENROLL_FINGERS];
+static uint32_t finger_count = 0;
+static int version_code = -1;
 
 static const char* test2string(int item) {
     switch (item) {
@@ -137,6 +141,13 @@ static void ma_fp_callback(const fingerprint_msg_t *msg) {
     case FINGERPRINT_ACQUIRED:
         LOGD("========> FINGERPRINT_ACQUIRED: acquired_info=%d\n",
                 msg->data.acquired.acquired_info);
+
+        if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_TRIAL_OVER) {
+            LOGW("================================\n");
+            LOGW("          Trial Over!\n");
+            LOGW("================================\n");
+            exit(0);
+        }
 
         if (msg->data.acquired.acquired_info == FINGERPRINT_ACQUIRED_GOOD)
             LOGI("Finger good\n");
@@ -232,20 +243,10 @@ static int do_enroll(void) {
 
     enroll_steps = -1;
 
-    error = ma_fingerprint_enumerate(fingers, &finger_count);
-    if (error) {
-        LOGE("Failed to enumerate fingers\n");
-        return -1;
-    }
-
-    if (finger_count >= FINGERPRINT_SIZE) {
-        LOGW("Finger enrolled templete full!\n");
-        return -1;
-    }
-
     error = ma_fingerprint_enroll();
     if (error) {
-        LOGE("Failedl to enroll fingerprint\n");
+        LOGE("Failedl to enroll fingerprint, fingers can't more than %d\n",
+                MAX_ENROLL_FINGERS);
         return -1;
     }
 
@@ -261,7 +262,7 @@ static int do_auth(void) {
         return -1;
     }
 
-    assert_die_if(finger_count > FINGERPRINT_SIZE, "Invalid finger size\n");
+    assert_die_if(finger_count > MAX_ENROLL_FINGERS, "Invalid finger size\n");
 
     if (finger_count <= 0) {
         LOGW("No any valid finger's templete\n");
@@ -286,7 +287,7 @@ static int do_list(void) {
         return -1;
     }
 
-    assert_die_if(finger_count > FINGERPRINT_SIZE, "Invalid finger size\n");
+    assert_die_if(finger_count > MAX_ENROLL_FINGERS, "Invalid finger size\n");
 
     dump_fingers();
 
@@ -417,6 +418,7 @@ restart:
 
 int main(int argc, char *argv[]) {
     int error = 0;
+    char version_str[NAME_MAX];
 
     power_manager = get_power_manager();
     signal_handler = _new(struct signal_handler, signal_handler);
@@ -424,6 +426,21 @@ int main(int argc, char *argv[]) {
     signal_handler->set_signal_handler(signal_handler, SIGINT, handle_signal);
     signal_handler->set_signal_handler(signal_handler, SIGQUIT, handle_signal);
     signal_handler->set_signal_handler(signal_handler, SIGTERM, handle_signal);
+
+    version_code = ma_fingerprint_get_version(version_str, sizeof(version_str));
+    LOGI("%s\n", version_str);
+
+    LOGI("=======================================\n");
+    if (version_code == VERSION_TRAIL) {
+        LOGI("Notice: This is debug version\n");
+
+    } else if (version_code == VERSION_RELEASE) {
+        LOGI("Notice: This is release version\n");
+
+    } else {
+        assert_die_if(1, "Unknown version\n");
+    }
+    LOGI("=======================================\n");
 
     error = ma_fingerprint_set_notify_callback(ma_fp_callback);
     if (error) {
@@ -434,6 +451,18 @@ int main(int argc, char *argv[]) {
     error = ma_fingerprint_open(get_user_system_dir(getuid()));
     if (error) {
         LOGE("Failed to open microarray lib\n");
+        return -1;
+    }
+
+    error = ma_fingerprint_set_enroll_times(MAX_ENROLL_TIMES);
+    if (error) {
+        LOGE("Failed to set enroll times\n");
+        return -1;
+    }
+
+    error = ma_fingerprint_set_max_fingers(MAX_ENROLL_FINGERS);
+    if (error) {
+        LOGE("Failed to set max fingers\n");
         return -1;
     }
 
