@@ -76,9 +76,11 @@ static int32_t pm_sleep(void) {
 
     if (strlen(cmd) != write(fd, cmd, strlen(cmd))) {
         LOGE("Failed to entry sleep: %s\n", strerror(errno));
+        close(fd);
         return -1;
     }
 
+    close(fd);
     return 0;
 }
 
