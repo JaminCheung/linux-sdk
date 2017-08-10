@@ -68,6 +68,14 @@ OBJS-y += gpio/gpio_manager.o
 OBJS-y += camera/camera_manager.o
 
 #
+# Cimutils
+#
+OBJS-y += camera_v4l2/cim/capture.o 											\
+		  camera_v4l2/cim/yuv2bmp.o 											\
+ 		  camera_v4l2/cim/jz_mem.o 												\
+ 		  camera_v4l2/camera_v4l2_manager.o
+
+#
 # PWM
 #
 OBJS-y += pwm/pwm_manager.o
@@ -306,6 +314,7 @@ $(TARGET): $(OBJS) $(LIBS)
 # Test unit
 #
 testunit:
+	$(QUITE_TEST_BUILD)test_camerav4l2;make -sC camera_v4l2/testunit all
 	$(QUITE_TEST_BUILD)test_zigbee;make -sC zigbee/testunit all
 	$(QUITE_TEST_BUILD)test_uart;make -sC uart/testunit all
 	$(QUITE_TEST_BUILD)test_gpio;make -sC gpio/testunit all
@@ -335,6 +344,7 @@ testunit:
 	@echo -e '\n  $@: $(shell basename $(OUTDIR))/test_xxx is ready\n'
 
 testunit_clean:
+	$(QUITE_TEST_CLEAN)test_camerav4l2;make -sC camera_v4l2/testunit clean
 	$(QUITE_TEST_CLEAN)test_zigbee;make -sC zigbee/testunit clean
 	$(QUITE_TEST_CLEAN)test_uart;make -sC uart/testunit clean
 	$(QUITE_TEST_CLEAN)test_gpio;make -sC gpio/testunit clean
