@@ -195,7 +195,7 @@ OBJS-n += fingerprint/fingerprint_manager.o                                    \
 #
 # Fingerprint2
 #
-OBJS-y += fingerprint2/fingerprint_manager.o
+OBJS-n += fingerprint2/fingerprint_manager.o
 
 OBJS := $(OBJS-y)
 
