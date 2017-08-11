@@ -18,6 +18,24 @@
  **********************************/
 typedef void (*notify_callback)(int, int, int);
 
+typedef struct Customer_Config
+{
+    //int max_enroll_finger_num;                 /*  1 ~ 100    0 : defalut  */
+    int min_enroll_count_for_one_finger;       /*  3 ~ 8     0 : defalut  */
+    int check_overlay_enable;                  /*  0 , 1      0 : defalut  */
+    int image_dump_enable;                     /*  0 , 1      0 : defalut  */
+    int algo_log_enable;                       /*  0 , 1      0 : defalut  */
+    int enroll_timeout;                        /*  0 ~ ...    0 : defalut  */
+    int authenticate_timeout;                  /*  0 ~ ...    0 : defalut  */
+    int enroll_image_quality_threshold;        /*  50 ~ 100    0 : defalut  */
+    int enroll_coverage_threshold;             /*  10 ~ 100    0 : defalut  */
+    int authenticate_image_quality_threshold;  /*  50 ~ 100    0 : defalut  */
+    int authenticate_coverage_threshold;       /*  10 ~ 100    0 : defalut  */
+    int overlay_threshold;                     /*  1 ~ 100     0 : defalut  */
+    int pre_overlay_threshold;                 /*  1 ~ 100     0 : defalut  */
+    char file_path[100];                       /*  "/xxx/xxx"    0 : defalut  */
+} Customer_Config_t;
+
 
 
 /**********************************
@@ -27,12 +45,12 @@ typedef void (*notify_callback)(int, int, int);
 /******************************************************************************
  *  Description: Init fingerprint sensor
  *
- *  Param: notify_callback function
+ *  Param: notify_callback function, Customer Config Param
  *
  *  Return: 0 success, -1 failure
  *
  *****************************************************************************/
-int fingerprint_init(notify_callback notify);
+int fingerprint_init(notify_callback notify, void *param_config);
 
 /*****************************************************************************
  *  Description: Close fingerprint sensor
@@ -94,26 +112,6 @@ int fingerprint_delete(int fingerprint_id, int type);
  *
  **************************************************************************/
 int fingerprint_cancel(void);
-
-/**************************************************************************
- *  Description: Set timeout of enroll(waiting finger down/up)
- *
- *  Param: enroll_timeout(int), the timeout of enroll(waiting finger down/up)
- *
- *  Return: 0 success, -1 failure
- *
- **************************************************************************/
-int fingerprint_set_enroll_timeout(int enroll_timeout);
-
-/**************************************************************************
- *  Description: Set timeout of authenticate(waiting finger down/up)
- *
- *  Param: authenticate_timeout(int), the timeout of authenticate(waiting finger down/up)
- *
- *  Return: 0 success, -1 failure
- *
- *************************************************************************/
-int fingerprint_set_authenticate_timeout(int authenticate_timeout);
 
 /**************************************************************************
  *  Description: Get template info, including the current template sum

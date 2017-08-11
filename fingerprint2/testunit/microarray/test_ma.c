@@ -14,8 +14,6 @@
 
 #define LOG_TAG "test_microarray_fp"
 
-#define HAL_LIBRARY_PATH1 "/lib/libfprint-mips.so"
-#define HAL_LIBRARY_PATH2 "/usr/lib/libfprint-mips.so"
 #define AUTH_MAX_TIMES 5
 
 #define MAX_ENROLL_TIMES 5
@@ -332,8 +330,6 @@ restart2:
 }
 
 static int do_suspend(void) {
-    int error = 0;
-
     power_manager->sleep();
 
     LOGI("=====> Wakeup <=====\n");
@@ -365,8 +361,7 @@ restart:
 
         print_tips();
 
-        if (fgets(sel_buf, sizeof(sel_buf), stdin) == NULL)
-            goto restart;
+        while (fgets(sel_buf, sizeof(sel_buf), stdin) == NULL);
 
         if (strlen(sel_buf) != 2)
             goto restart;
