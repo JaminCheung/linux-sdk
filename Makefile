@@ -37,6 +37,7 @@ OBJS-y += utils/signal_handler.o                                               \
           utils/common.o                                                       \
           utils/file_ops.o                                                     \
           utils/png_decode.o                                                   \
+          utils/wave_parser.o                                                  \
           utils/runnable/pthread_wrapper.o                                     \
           utils/runnable/default_runnable.o                                    \
           utils/thread_pool/thread_pool.o
@@ -197,6 +198,13 @@ OBJS-n += fingerprint/fingerprint_manager.o                                    \
 #
 OBJS-n += fingerprint2/fingerprint_manager.o
 
+#
+# Audio
+#
+OBJS-y += audio/alsa/wave_pcm_common.o                                         \
+          audio/alsa/wave_player.o                                             \
+          audio/alsa/wave_recoder.o
+
 OBJS := $(OBJS-y)
 
 #
@@ -280,7 +288,7 @@ LIBS-y += lib/uart/libserialport/linux_termios.o                               \
           lib/uart/libserialport/serialport.o
 
 #
-# I2c Lib
+# I2C Lib
 #
 LIBS-y += lib/i2c/libsmbus.o
 
@@ -340,6 +348,8 @@ testunit:
 	$(QUITE_TEST_BUILD)test_default_runnable;make -sC utils/runnable/testunit all
 	$(QUITE_TEST_BUILD)test_fb;make -sC fb/testunit all
 	$(QUITE_TEST_BUILD)test_graphics;make -sC graphics/testunit all
+	$(QUITE_TEST_BUILD)test_wave_play;make -sC audio/alsa/testunit all
+	$(QUITE_TEST_BUILD)test_wave_recod;make -sC audio/alsa/testunit all
 
 	@echo -e '\n  $@: $(shell basename $(OUTDIR))/test_xxx is ready\n'
 
@@ -369,7 +379,8 @@ testunit_clean:
 	$(QUITE_TEST_CLEAN)test_fingerprint2;make -sC fingerprint2/testunit clean
 	$(QUITE_TEST_CLEAN)test_default_runnable;make -sC utils/runnable/testunit clean
 	$(QUITE_TEST_CLEAN)test_graphics;make -sC graphics/testunit clean
-
+	$(QUITE_TEST_BUILD)test_wave_play;make -sC audio/alsa/testunit clean
+	$(QUITE_TEST_BUILD)test_wave_recod;make -sC audio/alsa/testunit clean
 clean: testunit_clean
 	@rm -rf $(LIBS) $(OBJS)
 	@rm -rf $(OUTDIR)

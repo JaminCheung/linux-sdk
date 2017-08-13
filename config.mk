@@ -66,6 +66,7 @@ LDFLAGS := -Wl,-Bstatic -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint
 #
 LDFLAGS += -Wl,-Bdynamic -pthread -lm -lrt -ldl                                \
            -L$(TOPDIR)/lib/openssl -lcrypto -lssl                              \
+           -L$(TOPDIR)/lib/alsa -lasound                                       \
            -L$(TOPDIR)/lib/fingerprint -lfprint-mips
 
 ifndef DEBUG
