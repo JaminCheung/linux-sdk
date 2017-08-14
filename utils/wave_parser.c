@@ -77,9 +77,9 @@ static int check_vaild(WaveContainer* container) {
     if (container->header.magic != WAV_RIFF ||
             container->header.type != WAV_WAVE ||
             container->format.magic != WAV_FMT ||
-            container->format.format_size != LE_INT(16) ||
-           (container->format.channels != LE_SHORT(1) && container->format.channels != LE_SHORT(2)) ||
-           container->chunk_header.type != WAV_DATA) {
+           (container->format.format_size != LE_INT(16) && container->format.format_size != LE_INT(18)) ||
+           (container->format.channels != LE_SHORT(1) && container->format.channels != LE_SHORT(2)) /*||
+            container->chunk_header.type != WAV_DATA */) {
 
            LOGE("Not standard wave file.\n");
            return -1;
