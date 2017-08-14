@@ -71,10 +71,10 @@ OBJS-y += camera/camera_manager.o
 #
 # Cimutils
 #
-OBJS-y += camera_v4l2/cim/capture.o 											\
-		  camera_v4l2/cim/yuv2bmp.o 											\
- 		  camera_v4l2/cim/jz_mem.o 												\
- 		  camera_v4l2/camera_v4l2_manager.o
+OBJS-y += camera_v4l2/cim/capture.o                                            \
+          camera_v4l2/cim/yuv2bmp.o                                            \
+          camera_v4l2/cim/jz_mem.o                                             \
+          camera_v4l2/camera_v4l2_manager.o
 
 #
 # PWM
@@ -203,7 +203,7 @@ OBJS-n += fingerprint2/fingerprint_manager.o
 #
 OBJS-y += audio/alsa/wave_pcm_common.o                                         \
           audio/alsa/wave_player.o                                             \
-          audio/alsa/wave_recoder.o
+          audio/alsa/wave_recorder.o
 
 OBJS := $(OBJS-y)
 

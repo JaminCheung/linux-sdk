@@ -17,4 +17,7 @@
 #ifndef WAVE_RECODER_H
 #define WAVE_RECODER_H
 
+int wave_record_file(const char* snd_device, int fd, int channles,
+        int sample_rate, int sample_length, int duration_time);
+
 #endif /* WAVE_RECODER_H */

@@ -116,7 +116,9 @@ int wave_play_file(const char* snd_device, int fd) {
         goto error;
     }
 
+#ifdef LOCAL_DEBUG
     snd_pcm_dump(pcm_container.handle, pcm_container.out_log);
+#endif
 
     error = play(&pcm_container, &wave_container, fd);
     if (error < 0) {

@@ -38,39 +38,39 @@ const char* format_to_string(uint16_t format) {
 }
 
 static void dump_header(WaveContainer* container) {
-    LOGI("========================================\n");
-    LOGI("Dump wave header.\n");
-    LOGI("File magic: %c%c%c%c\n",
-            (uint8_t)container->header.magic,
-            (uint8_t)container->header.magic >> 8,
-            (uint8_t)container->header.magic >> 16,
-            (uint8_t)container->header.magic >> 24);
-    LOGI("File length: %d\n", container->header.length);
-    LOGI("File type:   %c%c%c%c\n",
-            (uint8_t)container->header.type,
-            (uint8_t)container->header.type >> 8,
-            (uint8_t)container->header.type >> 16,
-            (uint8_t)container->header.type >> 24);
-    LOGI("Fmt magic:   %c%c%c%c\n",
-            (uint8_t)container->format.magic,
-            (uint8_t)container->format.magic >> 8,
-            (uint8_t)container->format.magic >> 16,
-            (uint8_t)container->format.magic >> 24);
-    LOGI("Fmt size:    %d\n", container->format.format_size);
-    LOGI("Fmt format:  %s\n", format_to_string(container->format.format));
-    LOGI("Fmt channels:%d\n", container->format.channels);
-    LOGI("Fmt sample rate: %dHZ\n", container->format.sample_fq);
-    LOGI("Fmt bytes per sec: %d\n", container->format.byte_p_sec);
-    LOGI("Fmt block align: %d\n", container->format.byte_p_spl);
-    LOGI("Fmt sample length: %d\n", container->format.bit_p_spl);
+    LOGD("========================================\n");
+    LOGD("Dump wave header.\n");
+    LOGD("File magic:        %c%c%c%c\n",
+            (uint8_t)(container->header.magic),
+            (uint8_t)(container->header.magic >> 8),
+            (uint8_t)(container->header.magic >> 16),
+            (uint8_t)(container->header.magic >> 24));
+    LOGD("File length:       %d\n", container->header.length);
+    LOGD("File type:         %c%c%c%c\n",
+            (uint8_t)(container->header.type),
+            (uint8_t)(container->header.type >> 8),
+            (uint8_t)(container->header.type >> 16),
+            (uint8_t)(container->header.type >> 24));
+    LOGD("Fmt magic:         %c%c%c%c\n",
+            (uint8_t)(container->format.magic),
+            (uint8_t)(container->format.magic >> 8),
+            (uint8_t)(container->format.magic >> 16),
+            (uint8_t)(container->format.magic >> 24));
+    LOGD("Fmt size:          %d\n", container->format.format_size);
+    LOGD("Fmt format:        %s\n", format_to_string(container->format.format));
+    LOGD("Fmt channels:      %d\n", container->format.channels);
+    LOGD("Fmt sample rate:   %dHZ\n", container->format.sample_fq);
+    LOGD("Fmt bytes per sec: %d\n", container->format.byte_p_sec);
+    LOGD("Fmt block align:   %d\n", container->format.byte_p_spl);
+    LOGD("Fmt sample length: %d\n", container->format.bit_p_spl);
 
-    LOGI("Chunk type: %c%c%c%c\n",
-            (uint8_t)container->chunk_header.type,
-            (uint8_t)container->chunk_header.type >> 8,
-            (uint8_t)container->chunk_header.type >> 16,
-            (uint8_t)container->chunk_header.type >> 24);
-    LOGI("Chunk length: %d\n", container->chunk_header.length);
-    LOGI("========================================\n");
+    LOGD("Chunk type:        %c%c%c%c\n",
+            (uint8_t)(container->chunk_header.type),
+            (uint8_t)(container->chunk_header.type >> 8),
+            (uint8_t)(container->chunk_header.type >> 16),
+            (uint8_t)(container->chunk_header.type >> 24));
+    LOGD("Chunk length:      %d\n", container->chunk_header.length);
+    LOGD("========================================\n");
 }
 
 static int check_vaild(WaveContainer* container) {

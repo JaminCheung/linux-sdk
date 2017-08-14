@@ -16,16 +16,10 @@
 
 #include <utils/log.h>
 #include <utils/assert.h>
-#include <audio/alsa/wave_recoder.h>
+#include <audio/alsa/wave_recorder.h>
 #include "wave_pcm_common.h"
 
 #define LOG_TAG "wave_recoder"
-
-
-#define DEFAULT_CHANNELS         (2)
-#define DEFAULT_SAMPLE_RATE      (8000)
-#define DEFAULT_SAMPLE_LENGTH    (16)
-#define DEFAULT_DURATION_TIME    (10)
 
 static int prepare_wave_params(WaveContainer *wav, int channels, int sample_rate,
         int sample_length, int duration_time) {
@@ -102,7 +96,7 @@ int wave_record_file(const char* snd_device, int fd, int channles,
     snd_output_stdio_attach(&pcm_container.out_log, stderr, 0);
 
     error = snd_pcm_open(&pcm_container.handle, snd_device,
-            SND_PCM_STREAM_PLAYBACK, 0);
+            SND_PCM_STREAM_CAPTURE, 0);
     if (error < 0) {
         LOGE("Failed to snd_pcm_open %s: %s\n", snd_device, snd_strerror(error));
         goto error;
@@ -121,7 +115,9 @@ int wave_record_file(const char* snd_device, int fd, int channles,
         goto error;
     }
 
+#ifdef LOCAL_DEBUG
     snd_pcm_dump(pcm_container.handle, pcm_container.out_log);
+#endif
 
     error = record(&pcm_container, &wave_container, fd);
     if (error < 0) {
