@@ -54,5 +54,6 @@ char* get_user_system_dir(uid_t uid);
 void msleep(uint64_t msec);
 void cold_boot(const char *path);
 enum system_platform_t get_system_platform(void);
+void dump_stack(void);
 
 #endif /* COMMON_H */

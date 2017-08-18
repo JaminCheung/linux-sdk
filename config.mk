@@ -54,15 +54,17 @@ INCLUDES := -I$(TOPDIR)/include                                                \
             -I$(TOPDIR)/include/lib/zlib                                       \
             -I$(TOPDIR)/include/lib/zip/minizip
 
-CFLAGS := -std=gnu11 $(INCLUDES) -fPIC
+CFLAGS := -O2 -g -std=gnu11 $(INCLUDES) -fPIC -D_GNU_SOURCE -mhard-float       \
+          -funwind-tables
 CHECKFLAGS := -Wall -Wuninitialized -Wundef
 LDSHFLAGS := -shared -Wl,-Bsymbolic
+
+LDFLAGS := -rdynamic
 
 #
 # Library link - Static
 #
-
-LDFLAGS := -Wl,-Bstatic -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint
+LDFLAGS += -Wl,-Bstatic -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint
 
 #
 # Library link - Dynamic
@@ -72,10 +74,9 @@ LDFLAGS += -Wl,-Bdynamic -pthread -lm -lrt -ldl                                \
            -L$(TOPDIR)/lib/alsa -lasound                                       \
            -L$(TOPDIR)/lib/fingerprint -lfprint-mips
 
-ifndef DEBUG
-CFLAGS += -Os -mhard-float -D_GNU_SOURCE
-else
-CFLAGS += -D_GNU_SOURCE -g -DLOCAL_DEBUG -DDEBUG
+DEBUG := 1
+ifdef DEBUG
+CFLAGS += -DLOCAL_DEBUG -DDEBUG
 endif
 
 override CFLAGS := $(CHECKFLAGS) $(CFLAGS)
