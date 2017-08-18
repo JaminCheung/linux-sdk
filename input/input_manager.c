@@ -78,8 +78,8 @@ static LIST_HEAD(input_dev_list);
 static LIST_HEAD(listener_list);
 
 static int max_fd;
-static int inited;
-static int started;
+static int init_count;
+static int start_count;
 static pthread_mutex_t device_list_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t listener_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -861,6 +861,7 @@ restart:
     return NULL;
 }
 
+#if 0
 static void unregister_all_listeners(void) {
     struct list_head* pos;
     struct list_head* next_pos;
@@ -884,15 +885,14 @@ static void unregister_all_listeners(void) {
 
     pthread_mutex_unlock(&listener_lock);
 }
+#endif
 
 static int start(void) {
     int error  = 0;
 
     pthread_mutex_lock(&start_lock);
-    if (started == 1) {
-        LOGE("netlink listener already start listener\n");
-        pthread_mutex_unlock(&start_lock);
-        return -1;
+    if (start_count > 0) {
+        goto exit_start;
     }
 
     error = pipe(local_pipe);
@@ -917,8 +917,8 @@ static int start(void) {
 
     pthread_attr_destroy(&attr);
 
-    started = 1;
-
+exit_start:
+    start_count++;
     pthread_mutex_unlock(&start_lock);
 
     return 0;
@@ -928,27 +928,23 @@ static int stop(void) {
     char c = 0;
 
     pthread_mutex_lock(&start_lock);
-    if (started == 0) {
-        LOGE("netlink listener already stop listener\n");
-        goto error;
+    if (start_count == 1) {
+        if (!write(local_pipe[1], &c, 1)) {
+            LOGE("Unable to write pipe: %s\n", strerror(errno));
+            pthread_mutex_unlock(&start_lock);
+            return -1;
+        }
+
+        wait_looper_quit();
     }
 
-    if (!write(local_pipe[1], &c, 1)) {
-        LOGE("Unable to write pipe: %s\n", strerror(errno));
-        goto error;
+    start_count--;
+    if (start_count < 0) {
+        start_count = 0;
     }
-
-    wait_looper_quit();
-
-    started = 0;
 
     pthread_mutex_unlock(&start_lock);
     return 0;
-
-error:
-    pthread_mutex_unlock(&start_lock);
-
-    return -1;
 }
 
 static int init(void) {
@@ -956,63 +952,55 @@ static int init(void) {
 
     pthread_mutex_lock(&init_lock);
 
-    if (inited == 1) {
-        LOGE("input manager already init\n");
-        goto error;
+    if (init_count > 0) {
+        goto exit_init;
     }
 
     error = scan_devices();
     if (error < 0) {
         LOGE("Failed to scan input device\n");
-        goto error;
+        pthread_mutex_unlock(&init_lock);
+        return -1;
     }
-
-    inited = 1;
-
-    pthread_mutex_unlock(&init_lock);
 
     dump_input_device();
 
-    return 0;
-
-error:
+exit_init:
+    init_count++;
     pthread_mutex_unlock(&init_lock);
 
-    return -1;
+    return 0;
 }
 
 static int deinit(void) {
     pthread_mutex_lock(&init_lock);
 
-    if (inited == 0) {
-        LOGE("input manager already deinit\n");
-        pthread_mutex_unlock(&init_lock);
-        return -1;
+    if (init_count == 1) {
+        pthread_mutex_lock(&device_list_lock);
+        struct list_head* pos;
+        struct list_head* next_pos;
+        list_for_each_safe(pos, next_pos, &input_dev_list) {
+            struct input_device* device = list_entry(pos, struct input_device, head);
+
+            list_del(&device->head);
+            free(device);
+        }
+
+        pthread_mutex_unlock(&device_list_lock);
+
+        if (local_pipe[0] > 0)
+            close(local_pipe[0]);
+
+        if (local_pipe[1] > 0)
+            close(local_pipe[1]);
     }
-    inited = 0;
 
-    pthread_mutex_lock(&device_list_lock);
-    struct list_head* pos;
-    struct list_head* next_pos;
-    list_for_each_safe(pos, next_pos, &input_dev_list) {
-        struct input_device* device = list_entry(pos, struct input_device, head);
-
-        list_del(&device->head);
-        free(device);
+    init_count--;
+    if (init_count < 0) {
+        init_count = 0;
     }
-
-    pthread_mutex_unlock(&device_list_lock);
-
-    if (local_pipe[0] > 0)
-        close(local_pipe[0]);
-
-    if (local_pipe[1] > 0)
-        close(local_pipe[1]);
-
-    unregister_all_listeners();
 
     pthread_mutex_unlock(&init_lock);
-
     return 0;
 }
 

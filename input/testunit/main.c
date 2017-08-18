@@ -36,6 +36,8 @@ int main(int argc, char *argv[]) {
     while (1)
         sleep(1000);
 
+    input_manager->unregister_event_listener("gpio-keys", input_event_listener);
+
     error = input_manager->stop();
     if (error < 0) {
         LOGE("Failed to stop input manager\n");

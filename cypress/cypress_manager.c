@@ -124,6 +124,7 @@ static int32_t cypress_init(deal_keys_report_handler keys_handler, \
 static void cypress_deinit(void) {
     if (cypress.is_init) {
         close(cypress.dev_fd);
+        cypress.input_manager->unregister_event_listener(CYPRESS_INPUT_DEV_NAME, cypress_input_event_listener);
         cypress.input_manager->stop();
         cypress.input_manager->deinit();
         cypress.keys_report_handler = NULL;
