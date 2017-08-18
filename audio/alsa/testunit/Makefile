@@ -8,7 +8,7 @@ TESTUNIT_OBJS := test_wave_play.o
 TESTUNIT2 := test_wave_record
 TESTUNIT2_OBJS := test_wave_record.o
 
-LINK_LIBS := -L$(OUTDIR) -l$(TARGET_NAME)
+LINK_LIBS := -L$(LIBS_OUTDIR) -l$(TARGET_NAME)
 
 .PHONY : all clean
 

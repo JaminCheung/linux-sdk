@@ -306,7 +306,7 @@ LIBS-y += lib/gpio/libgpio.o
 LIBS := $(LIBS-y)
 
 
-all: $(TARGET) testunit
+all: $(TARGET) testunit libporter
 
 .PHONY : all testunit testunit_clean clean backup
 
@@ -317,6 +317,12 @@ $(TARGET): $(OBJS) $(LIBS)
 	$(QUIET_LINK)$(LINK_OBJS) $(LDFLAGS) $(LDSHFLAGS) $(OBJS) $(LIBS) -o $(OUTDIR)/$@
 	@$(STRIP) $(OUTDIR)/$@
 	@echo -e '\n  SDK: $(shell basename $(OUTDIR))/$@ is ready\n'
+
+#
+# Libporter
+#
+libporter:
+	@$(TOPDIR)/libporter.sh $(LDFLAGS)
 
 #
 # Test unit
@@ -381,6 +387,7 @@ testunit_clean:
 	$(QUITE_TEST_CLEAN)test_graphics;make -sC graphics/testunit clean
 	$(QUITE_TEST_BUILD)test_wave_play;make -sC audio/alsa/testunit clean
 	$(QUITE_TEST_BUILD)test_wave_recod;make -sC audio/alsa/testunit clean
+
 clean: testunit_clean
 	@rm -rf $(LIBS) $(OBJS)
 	@rm -rf $(OUTDIR)

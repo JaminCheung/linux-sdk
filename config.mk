@@ -19,7 +19,7 @@ SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
         else echo sh; fi; fi)
 
 TARGET_NAME := ingenic
-TARGET := lib$(TARGET_NAME).so
+TARGET := lib/lib$(TARGET_NAME).so
 
 #
 # Top directory
@@ -31,8 +31,11 @@ TOPDIR ?= $(shell pwd)
 #
 OUTDIR := $(TOPDIR)/out
 $(shell [ -d $(OUTDIR) ] || mkdir -p $(OUTDIR))
-OUTDIR := $(shell cd $(OUTDIR) && /bin/pwd)
 $(if $(OUTDIR),,$(error output directory "$(OUTDIR)" does not exist))
+
+LIBS_OUTDIR := $(OUTDIR)/lib
+$(shell [ -d $(LIBS_OUTDIR) ] || mkdir -p $(LIBS_OUTDIR))
+$(if $(LIBS_OUTDIR),,$(error output directory "$(LIBS_OUTDIR)" does not exist))
 
 #
 # Cross compiler

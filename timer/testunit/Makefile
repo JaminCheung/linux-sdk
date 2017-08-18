@@ -23,7 +23,7 @@ TESTUNIT_HARD := test_timer_hard
 TESTUNIT_OBJS_SIMPLE := main_01simple.o
 TESTUNIT_OBJS_HARD := main_02hard.o
 
-LINK_LIBS := -L$(OUTDIR) -l$(TARGET_NAME)
+LINK_LIBS := -L$(LIBS_OUTDIR) -l$(TARGET_NAME)
 
 .PHONY : all clean
 

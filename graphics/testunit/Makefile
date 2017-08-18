@@ -4,7 +4,7 @@ include ../../config.mk
 
 TESTUNIT := test_gr_drawer
 TESTUNIT_OBJS := test_gr_drawer.o
-LINK_LIBS := -L$(OUTDIR) -l$(TARGET_NAME)
+LINK_LIBS := -L$(LIBS_OUTDIR) -l$(TARGET_NAME)
 
 .PHONY : all clean
 

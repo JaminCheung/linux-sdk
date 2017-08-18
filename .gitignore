@@ -1,5 +1,6 @@
 *.o
 /out
+/include/ingenic_api.h
 
 # ctags file
 tags

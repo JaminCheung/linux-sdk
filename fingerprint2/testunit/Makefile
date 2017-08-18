@@ -11,7 +11,7 @@ TESTUNIT2_OBJS := microarray/test_ma.o
 TESTUNIT3 := test_gf_fp
 TESTUNIT3_OBJS := goodix/test_gf.o
 
-LINK_LIBS := -L$(OUTDIR) -l$(TARGET_NAME)
+LINK_LIBS := -L$(LIBS_OUTDIR) -l$(TARGET_NAME)
 
 .PHONY : all clean
 

@@ -24,7 +24,7 @@ TESTUNIT_SWITCH:= test_usb_switch
 TESTUNIT_HID_OBJS := main_hid.o
 TESTUNIT_CRC_ACM_OBJS := main_cdc_acm.o
 TESTUNIT_SWITCH_OBJS := main_switch.o
-LINK_LIBS := -L$(OUTDIR) -l$(TARGET_NAME)
+LINK_LIBS := -L$(LIBS_OUTDIR) -l$(TARGET_NAME)
 
 .PHONY : all clean
 

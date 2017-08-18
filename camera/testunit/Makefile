@@ -4,7 +4,7 @@ include ../../config.mk
 
 TESTUNIT := test_camera
 TESTUNIT_OBJS := main.o sensor.o yuv2bmp.o
-LINK_LIBS := -L$(OUTDIR) -l$(TARGET_NAME)
+LINK_LIBS := -L$(LIBS_OUTDIR) -l$(TARGET_NAME)
 
 .PHONY : all clean
 
