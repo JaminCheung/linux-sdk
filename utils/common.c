@@ -29,6 +29,7 @@
 #include <sys/wait.h>
 #include <errno.h>
 #include <pwd.h>
+#include <execinfo.h>
 
 #include <types.h>
 #include <utils/log.h>
@@ -165,6 +166,29 @@ void cold_boot(const char *path) {
         closedir(d);
     }
 }
+
+void dump_stack(void) {
+    void *buffer[128] = {0};
+    uint32_t size = 0;
+    char** strings = NULL;
+
+    size = backtrace(buffer, 128);
+    strings = backtrace_symbols(buffer, size);
+    if (strings == NULL) {
+        LOGE("Failed to get backtrace symbol: %s\n", strerror(errno));
+        return;
+    }
+
+    LOGI("========================================\n");
+    LOGI("Call trace:\n");
+    for (int i = 0; i < size; i++)
+        LOGI("%s\n", strings[i]);
+    LOGI("========================================\n");
+
+    free(strings);
+    strings = NULL;
+}
+
 
 #if 0
 /**

@@ -19,6 +19,7 @@
 #include <stdlib.h>
 
 #include <utils/log.h>
+#include <utils/common.h>
 
 #define LOG_TAG "assert"
 
@@ -38,6 +39,7 @@ void assert_die_if(bool condition, const char* fmt, ...) {
     LOGE("============ Assert Failed ============\n");
     LOGE("Message: %s", buf);
     LOGE("========== Assert Failed End ==========\n");
+    dump_stack();
 
     exit(-1);
 }
