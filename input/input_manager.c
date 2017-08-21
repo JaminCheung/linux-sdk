@@ -861,7 +861,6 @@ restart:
     return NULL;
 }
 
-#if 0
 static void unregister_all_listeners(void) {
     struct list_head* pos;
     struct list_head* next_pos;
@@ -885,7 +884,6 @@ static void unregister_all_listeners(void) {
 
     pthread_mutex_unlock(&listener_lock);
 }
-#endif
 
 static int start(void) {
     int error  = 0;
@@ -993,6 +991,8 @@ static int deinit(void) {
 
         if (local_pipe[1] > 0)
             close(local_pipe[1]);
+
+        unregister_all_listeners();
     }
 
     init_count--;
