@@ -17,6 +17,14 @@
 #ifndef WAVE_PLAYER_H
 #define WAVE_PLAYER_H
 
-int wave_play_file(const char* snd_device, int fd);
+struct wave_player {
+    int (*init)(void);
+    int (*deinit)(void);
+    int (*play_file)(const char* snd_device, int fd);
+    int (*set_volume)(const char* name, int volume);
+    int (*mute)(const char* name, int mute);
+};
+
+struct wave_player* get_wave_player(void);
 
 #endif /* WAVE_PLAYER_H */

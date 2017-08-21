@@ -23,6 +23,7 @@
 
 struct snd_pcm_container {
     snd_pcm_t * handle;
+    snd_mixer_t *mixer_handle;
     snd_output_t* out_log;
     snd_pcm_uframes_t chunk_size;
     snd_pcm_uframes_t buffer_size;
