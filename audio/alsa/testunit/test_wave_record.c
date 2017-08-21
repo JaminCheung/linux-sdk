@@ -2,6 +2,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <stdlib.h>
 
 #include <types.h>
 #include <utils/log.h>
@@ -24,6 +25,8 @@
  */
 const char* snd_device = "default";
 
+static struct wave_recorder* recorder;
+
 int main(int argc, char *argv[]) {
     int fd;
     int error = 0;
@@ -41,15 +44,36 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    error = wave_record_file(snd_device, fd, DEFAULT_CHANNELS,
+    recorder = get_wave_recorder();
+
+    error = recorder->init();
+    if (error < 0) {
+        LOGE("Failed to init recorder\n");
+        goto error;
+    }
+
+    int volume = strtol(argv[2], NULL, 10);
+
+    error = recorder->set_volume("MERCURY", volume);
+    if (error < 0) {
+        LOGE("Failed to set volume\n");
+        goto error;
+    }
+
+    error = recorder->record_file(snd_device, fd, DEFAULT_CHANNELS,
             DEFAULT_SAMPLE_RATE, DEFAULT_SAMPLE_LENGTH, DEFAULT_DURATION_TIME);
     if (error < 0) {
         LOGE("Failed to record wave file\n");
-        close(fd);
-        return -1;
+        goto error;
     }
 
     close(fd);
 
     return 0;
+
+error:
+    if (fd > 0)
+        close(fd);
+
+    return -1;
 }

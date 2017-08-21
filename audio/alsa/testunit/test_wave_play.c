@@ -33,8 +33,7 @@ int main(int argc, char *argv[]) {
     error = player->init();
     if (error < 0) {
         LOGE("Failed to init player\n");
-        close(fd);
-        return -1;
+        goto error;
     }
 
     int volume = strtol(argv[2], NULL, 10);
@@ -42,8 +41,7 @@ int main(int argc, char *argv[]) {
     error = player->set_volume("MERCURY", volume);
     if (error < 0) {
         LOGE("Failed to set volume\n");
-        close(fd);
-        return -1;
+        goto error;
     }
 
     player->mute("Digital Playback mute", 0);
@@ -51,11 +49,15 @@ int main(int argc, char *argv[]) {
     error = player->play_file(snd_device, fd);
     if (error < 0) {
         LOGE("Failed to play wave\n");
-        close(fd);
-        return -1;
+        goto error;
     }
 
     close(fd);
 
     return 0;
+
+error:
+    if (fd > 0)
+        close(fd);
+    return -1;
 }

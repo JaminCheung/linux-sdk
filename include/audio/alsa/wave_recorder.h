@@ -17,7 +17,15 @@
 #ifndef WAVE_RECODER_H
 #define WAVE_RECODER_H
 
-int wave_record_file(const char* snd_device, int fd, int channles,
-        int sample_rate, int sample_length, int duration_time);
+struct wave_recorder {
+    int (*init)(void);
+    int (*deinit)(void);
+    int (*record_file)(const char* snd_device, int fd, int channels,
+            int sample_rate, int sample_length, int duration_time);
+    int (*set_volume)(const char* name, int volume);
+    int (*get_volume)(const char* name);
+};
+
+struct wave_recorder* get_wave_recorder(void);
 
 #endif /* WAVE_RECODER_H */

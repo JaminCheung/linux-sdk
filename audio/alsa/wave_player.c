@@ -189,6 +189,15 @@ error:
     return -1;
 }
 
+static int get_volume(const char* name) {
+    assert_die_if(name == NULL, "name is NULL\n");
+
+    int volume = 0;
+
+
+    return volume;
+}
+
 static int set_volume(const char* name, int volume) {
     assert_die_if(name == NULL, "name is NULL\n");
 
@@ -359,6 +368,7 @@ static struct wave_player this = {
         .deinit = deinit,
         .play_file = play_file,
         .set_volume = set_volume,
+        .get_volume = get_volume,
         .mute = mute,
 };
 

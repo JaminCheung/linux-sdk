@@ -22,6 +22,7 @@ struct wave_player {
     int (*deinit)(void);
     int (*play_file)(const char* snd_device, int fd);
     int (*set_volume)(const char* name, int volume);
+    int (*get_volume)(const char* name);
     int (*mute)(const char* name, int mute);
 };
 
