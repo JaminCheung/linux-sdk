@@ -14,19 +14,22 @@
  *
  */
 
-#ifndef WAVE_RECODER_H
-#define WAVE_RECODER_H
+#ifndef MIXER_CONTROLLER_H
+#define MIXER_CONTROLLER_H
 
-struct wave_recorder {
-    int (*record_file)(const char* snd_device, int fd, int channels,
-            int sample_rate, int sample_length, int duration_time);
-
-    int (*record_stream)(const char* snd_device, int fd, int channels,
-            int sample_rate, int sample_length, char* buffer);
-
-    int (*stop_record)(void);
+enum {
+    PLAYBACK,
+    CAPTURE
 };
 
-struct wave_recorder* get_wave_recorder(void);
+struct mixer_controller {
+    int (*init)(void);
+    int (*deinit)(void);
+    int (*set_volume)(const char* name, int dir, int volume);
+    int (*get_volume)(const char* name, int dir);
+    int (*mute)(const char* name, int mute);
+};
 
-#endif /* WAVE_RECODER_H */
+struct mixer_controller* get_mixer_controller(void);
+
+#endif /* MIXER_CONTROLLER_H */

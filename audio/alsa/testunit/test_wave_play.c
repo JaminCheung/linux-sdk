@@ -7,11 +7,13 @@
 #include <types.h>
 #include <utils/log.h>
 #include <audio/alsa/wave_player.h>
+#include <audio/alsa/mixer_controller.h>
 
 #define LOG_TAG "test_wave_play"
 
 const char* snd_device = "default";
 static struct wave_player* player;
+static struct mixer_controller* mixer;
 
 int main(int argc, char *argv[]) {
     int fd;
@@ -29,22 +31,31 @@ int main(int argc, char *argv[]) {
     }
 
     player = get_wave_player();
+    mixer = get_mixer_controller();
 
-    error = player->init();
+    error = mixer->init();
     if (error < 0) {
-        LOGE("Failed to init player\n");
+        LOGE("Failed to init mixer\n");
         goto error;
     }
 
     int volume = strtol(argv[2], NULL, 10);
 
-    error = player->set_volume("MERCURY", volume);
+    error = mixer->set_volume("MERCURY", PLAYBACK, volume);
     if (error < 0) {
         LOGE("Failed to set volume\n");
         goto error;
     }
 
-    player->mute("Digital Playback mute", 0);
+    volume = mixer->get_volume("MERCURY", PLAYBACK);
+    if (volume < 0) {
+        LOGE("Failed to get_volume\n");
+        goto error;
+    }
+
+    LOGI("Playback Volume: %d\n", volume);
+
+    mixer->mute("Digital Playback mute", 0);
 
     error = player->play_file(snd_device, fd);
     if (error < 0) {

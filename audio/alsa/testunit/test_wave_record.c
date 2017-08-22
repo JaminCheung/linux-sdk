@@ -7,6 +7,7 @@
 #include <types.h>
 #include <utils/log.h>
 #include <audio/alsa/wave_recorder.h>
+#include <audio/alsa/mixer_controller.h>
 
 #define LOG_TAG "test_wave_record"
 
@@ -24,14 +25,14 @@
  * AMIC
  */
 const char* snd_device = "default";
-
 static struct wave_recorder* recorder;
+static struct mixer_controller* mixer;
 
 int main(int argc, char *argv[]) {
     int fd;
     int error = 0;
 
-    if (argc != 2) {
+    if (argc != 3) {
         LOGE("Usage: %s FILE.wav\n", argv[0]);
         return -1;
     }
@@ -45,8 +46,9 @@ int main(int argc, char *argv[]) {
     }
 
     recorder = get_wave_recorder();
+    mixer = get_mixer_controller();
 
-    error = recorder->init();
+    error = mixer->init();
     if (error < 0) {
         LOGE("Failed to init recorder\n");
         goto error;
@@ -54,11 +56,19 @@ int main(int argc, char *argv[]) {
 
     int volume = strtol(argv[2], NULL, 10);
 
-    error = recorder->set_volume("MERCURY", volume);
+    error = mixer->set_volume("Digital", CAPTURE, volume);
     if (error < 0) {
         LOGE("Failed to set volume\n");
         goto error;
     }
+
+    volume = mixer->get_volume("Digital", CAPTURE);
+    if (volume < 0) {
+        LOGE("Failed to get_volume\n");
+        goto error;
+    }
+
+    LOGI("Record Volume: %d\n", volume);
 
     error = recorder->record_file(snd_device, fd, DEFAULT_CHANNELS,
             DEFAULT_SAMPLE_RATE, DEFAULT_SAMPLE_LENGTH, DEFAULT_DURATION_TIME);

@@ -18,12 +18,9 @@
 #define WAVE_PLAYER_H
 
 struct wave_player {
-    int (*init)(void);
-    int (*deinit)(void);
     int (*play_file)(const char* snd_device, int fd);
-    int (*set_volume)(const char* name, int volume);
-    int (*get_volume)(const char* name);
-    int (*mute)(const char* name, int mute);
+    int (*play_stream)(const char* snd_device, char* buffer, int size);
+    int (*stop_play)(void);
 };
 
 struct wave_player* get_wave_player(void);

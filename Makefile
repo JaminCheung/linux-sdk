@@ -203,7 +203,8 @@ OBJS-n += fingerprint2/fingerprint_manager.o
 #
 OBJS-y += audio/alsa/wave_pcm_common.o                                         \
           audio/alsa/wave_player.o                                             \
-          audio/alsa/wave_recorder.o
+          audio/alsa/wave_recorder.o                                           \
+          audio/alsa/mixer_controller.o
 
 OBJS := $(OBJS-y)
 
@@ -327,7 +328,7 @@ libporter:
 #
 # Test unit
 #
-testunit:
+testunit: $(TARGET)
 	$(QUITE_TEST_BUILD)test_camerav4l2;make -sC camera_v4l2/testunit all
 	$(QUITE_TEST_BUILD)test_zigbee;make -sC zigbee/testunit all
 	$(QUITE_TEST_BUILD)test_uart;make -sC uart/testunit all
