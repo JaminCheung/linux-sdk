@@ -64,7 +64,8 @@ LDFLAGS := -rdynamic
 #
 # Library link - Static
 #
-LDFLAGS += -Wl,-Bstatic -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint
+LDFLAGS += -Wl,-Bstatic -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint       \
+                        -L$(TOPDIR)/lib/fingerprint -lfps_360_linux
 
 #
 # Library link - Dynamic

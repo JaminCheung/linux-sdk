@@ -2,8 +2,8 @@ TOPDIR ?= ../..
 
 include ../../config.mk
 
-TESTUNIT1 := test_fingerprint
-TESTUNIT1_OBJS := main.o
+TESTUNIT1 := test_fpc_fp
+TESTUNIT1_OBJS := fpc/test_fpc_fp.o
 
 TESTUNIT2 := test_ma_fp
 TESTUNIT2_OBJS := microarray/test_ma.o
@@ -15,13 +15,13 @@ LINK_LIBS := -L$(LIBS_OUTDIR) -l$(TARGET_NAME)
 
 .PHONY : all clean
 
-all: $(TESTUNIT2) $(TESTUNIT3)
+all: $(TESTUNIT1) $(TESTUNIT2) $(TESTUNIT3)
 
 %.o:%.c
 	$(QUIET_CC) $(COMPILE_SRC) $< -o $@
 
-#$(TESTUNIT1):$(TESTUNIT1_OBJS)
-#	$(QUIET_LINK)$(LINK_OBJS) $(LINK_LIBS) -o $(OUTDIR)/$@ $(TESTUNIT1_OBJS) $(LDFLAGS)
+$(TESTUNIT1):$(TESTUNIT1_OBJS)
+	$(QUIET_LINK)$(LINK_OBJS) $(LINK_LIBS) -o $(OUTDIR)/$@ $(TESTUNIT1_OBJS) $(LDFLAGS)
 
 $(TESTUNIT2):$(TESTUNIT2_OBJS)
 	$(QUIET_LINK)$(LINK_OBJS) $(LINK_LIBS) -o $(OUTDIR)/$@ $(TESTUNIT2_OBJS) $(LDFLAGS)

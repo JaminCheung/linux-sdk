@@ -199,6 +199,11 @@ OBJS-n += fingerprint/fingerprint_manager.o                                    \
 OBJS-n += fingerprint2/fingerprint_manager.o
 
 #
+# FPC fingerprint wrapper
+#
+OBJS-y += fingerprint2/testunit/fpc/fpc_wrap.o
+
+#
 # Audio
 #
 OBJS-y += audio/alsa/wave_pcm_common.o                                         \
