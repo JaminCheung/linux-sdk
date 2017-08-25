@@ -18,13 +18,13 @@
 #define WAVE_RECODER_H
 
 struct wave_recorder {
-    int (*record_file)(const char* snd_device, int fd, int channels,
-            int sample_rate, int sample_length, int duration_time);
-
+    int (*init)(const char* snd_device);
+    int (*deinit)(void);
+    int (*record_wave)(int fd, int channels, int sample_rate, int sample_length,
+            int duration_time);
     int (*record_stream)(const char* snd_device, int fd, int channels,
             int sample_rate, int sample_length, char* buffer);
-
-    int (*stop_record)(void);
+    int (*cancel_record)(void);
 };
 
 struct wave_recorder* get_wave_recorder(void);

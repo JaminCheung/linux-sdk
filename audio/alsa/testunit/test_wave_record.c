@@ -46,11 +46,16 @@ int main(int argc, char *argv[]) {
     }
 
     recorder = get_wave_recorder();
-    mixer = get_mixer_controller();
-
-    error = mixer->init();
+    error = recorder->init(snd_device);
     if (error < 0) {
         LOGE("Failed to init recorder\n");
+        return -1;
+    }
+
+    mixer = get_mixer_controller();
+    error = mixer->init();
+    if (error < 0) {
+        LOGE("Failed to init mixer\n");
         goto error;
     }
 
@@ -70,12 +75,15 @@ int main(int argc, char *argv[]) {
 
     LOGI("Record Volume: %d\n", volume);
 
-    error = recorder->record_file(snd_device, fd, DEFAULT_CHANNELS,
+    error = recorder->record_wave(fd, DEFAULT_CHANNELS,
             DEFAULT_SAMPLE_RATE, DEFAULT_SAMPLE_LENGTH, DEFAULT_DURATION_TIME);
     if (error < 0) {
         LOGE("Failed to record wave file\n");
         goto error;
     }
+
+    recorder->deinit();
+    mixer->deinit();
 
     close(fd);
 

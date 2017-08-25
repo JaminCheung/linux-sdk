@@ -31,8 +31,14 @@ int main(int argc, char *argv[]) {
     }
 
     player = get_wave_player();
-    mixer = get_mixer_controller();
 
+    error = player->init(snd_device);
+    if (error < 0) {
+        LOGE("Failed to init player\n");
+        goto error;
+    }
+
+    mixer = get_mixer_controller();
     error = mixer->init();
     if (error < 0) {
         LOGE("Failed to init mixer\n");
@@ -55,13 +61,14 @@ int main(int argc, char *argv[]) {
 
     LOGI("Playback Volume: %d\n", volume);
 
-    mixer->mute("Digital Playback mute", 0);
-
-    error = player->play_file(snd_device, fd);
+    error = player->play_wave(fd);
     if (error < 0) {
         LOGE("Failed to play wave\n");
         goto error;
     }
+
+    player->deinit();
+    mixer->deinit();
 
     close(fd);
 

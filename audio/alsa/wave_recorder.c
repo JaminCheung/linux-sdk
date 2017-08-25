@@ -49,7 +49,7 @@ static int prepare_wave_params(WaveContainer *wav, int channels, int sample_rate
     return 0;
 }
 
-static int do_record_file(struct snd_pcm_container* pcm_container,
+static int do_record_wave(struct snd_pcm_container* pcm_container,
         WaveContainer* wave_container, int fd) {
     int error = 0;
     uint64_t count;
@@ -67,7 +67,7 @@ static int do_record_file(struct snd_pcm_container* pcm_container,
         writed = (count <= pcm_container->chunk_bytes) ? count : pcm_container->chunk_bytes;
         frame_size = writed * 8 / pcm_container->bits_per_frame;
 
-        if (wave_pcm_read(pcm_container, frame_size) != frame_size)
+        if (pcm_read(pcm_container, frame_size) != frame_size)
             break;
 
         if (write(fd, pcm_container->data_buf, writed) != writed) {
@@ -81,14 +81,70 @@ static int do_record_file(struct snd_pcm_container* pcm_container,
     return 0;
 }
 
-int record_file(const char* snd_device, int fd, int channles,
-        int sample_rate, int sample_length, int duration_time) {
-    assert_die_if(snd_device == NULL, "snd_device is NULL\n");
+int record_wave(int fd, int channles, int sample_rate, int sample_length,
+        int duration_time) {
     assert_die_if(fd < 0, "Invaild fd\n");
     assert_die_if(channles < 0, "Invaild channels\n");
     assert_die_if(sample_rate < 0, "Invaild sample rate\n");
     assert_die_if(sample_length < 0, "Invaild sample_length\n");
     assert_die_if(duration_time < 0, "Invaild time\n");
+
+    int error = 0;
+    snd_pcm_format_t format;
+
+    error = prepare_wave_params(&wave_container, channles, sample_rate,
+            sample_length, duration_time);
+    if (error < 0) {
+        LOGE("Failed to prepare wave params\n");
+        goto error;
+    }
+
+    error = get_wave_format(&wave_container, &format);
+    if (error < 0) {
+        LOGE("Failed to get snd format\n");
+        goto error;
+    }
+
+    error = pcm_set_params(&pcm_container, format, channles, sample_rate);
+    if (error < 0) {
+        LOGE("Failed to set hw params\n");
+        goto error;
+    }
+
+#ifdef LOCAL_DEBUG
+    snd_pcm_dump(pcm_container.handle, pcm_container.out_log);
+#endif
+
+    error = do_record_wave(&pcm_container, &wave_container, fd);
+    if (error < 0) {
+        LOGE("Failed to record\n");
+        goto error;
+    }
+
+    snd_pcm_drain(pcm_container.handle);
+
+    free(pcm_container.data_buf);
+
+    return 0;
+
+error:
+    if (pcm_container.data_buf)
+        free(pcm_container.data_buf);
+
+    return -1;
+}
+
+static int record_stream(const char* snd_device, int fd, int channels,
+        int sample_rate, int sample_length, char* buffer) {
+    return 0;
+}
+
+static int cancel_record(void) {
+    return 0;
+}
+
+static int init(const char* snd_device) {
+    assert_die_if(snd_device == NULL, "snd_device is NULL\n");
 
     int error = 0;
 
@@ -101,61 +157,28 @@ int record_file(const char* snd_device, int fd, int channles,
         goto error;
     }
 
-    error = prepare_wave_params(&wave_container, channles, sample_rate,
-            sample_length, duration_time);
-    if (error < 0) {
-        LOGE("Failed to prepare wave params\n");
-        goto error;
-    }
-
-    error = wave_pcm_set_params(&pcm_container, &wave_container);
-    if (error < 0) {
-        LOGE("Failed to set hw params\n");
-        goto error;
-    }
-
-#ifdef LOCAL_DEBUG
-    snd_pcm_dump(pcm_container.handle, pcm_container.out_log);
-#endif
-
-    error = do_record_file(&pcm_container, &wave_container, fd);
-    if (error < 0) {
-        LOGE("Failed to record\n");
-        goto error;
-    }
-
-    snd_pcm_drain(pcm_container.handle);
-
-    free(pcm_container.data_buf);
-    snd_output_close(pcm_container.out_log);
-    snd_pcm_close(pcm_container.handle);
-
     return 0;
 
 error:
-    if (pcm_container.data_buf)
-        free(pcm_container.data_buf);
     if (pcm_container.out_log)
         snd_output_close(pcm_container.out_log);
-    if (pcm_container.handle)
-        snd_pcm_close(pcm_container.handle);
 
     return -1;
 }
 
-static int record_stream(const char* snd_device, int fd, int channels,
-        int sample_rate, int sample_length, char* buffer) {
-    return 0;
-}
+static int deinit(void) {
+    snd_output_close(pcm_container.out_log);
+    snd_pcm_close(pcm_container.handle);
 
-static int stop_record(void) {
     return 0;
 }
 
 static struct wave_recorder this = {
-        .record_file = record_file,
+        .init = init,
+        .deinit = deinit,
+        .record_wave = record_wave,
         .record_stream = record_stream,
-        .stop_record = stop_record,
+        .cancel_record = cancel_record,
 };
 
 struct wave_recorder* get_wave_recorder(void) {

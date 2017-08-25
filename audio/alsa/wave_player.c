@@ -44,7 +44,7 @@ static uint32_t safe_read(int fd, void* buf, uint32_t count) {
     return read_sofar;
 }
 
-static int do_play_file(struct snd_pcm_container* pcm_container,
+static int do_play_wave(struct snd_pcm_container* pcm_container,
         WaveContainer* wave_container, int fd) {
     uint64_t writed = 0;
     uint64_t count = LE_INT(wave_container->chunk_header.length);
@@ -76,7 +76,7 @@ static int do_play_file(struct snd_pcm_container* pcm_container,
         } while (load < pcm_container->chunk_bytes);
 
         load = load * 8 / pcm_container->bits_per_frame;
-        ret = wave_pcm_write(pcm_container, load);
+        ret = pcm_write(pcm_container, load);
         if (ret != load)
             break;
 
@@ -88,17 +88,74 @@ static int do_play_file(struct snd_pcm_container* pcm_container,
     return 0;
 }
 
-static int play_file(const char* snd_device, int fd) {
-    assert_die_if(snd_device == NULL, "snd_device is NULL\n");
+static int play_wave(int fd) {
     assert_die_if(fd < 0, "Invaild fd\n");
 
     int error = 0;
+    snd_pcm_format_t format;
 
     error = wave_read_header(fd, &wave_container);
     if (error < 0) {
         LOGE("Failed to read wave header\n");
         goto error;
     }
+
+    error = get_wave_format(&wave_container, &format);
+    if (error < 0) {
+        LOGE("Failed to get snd format\n");
+        goto error;
+    }
+
+    error = pcm_set_params(&pcm_container, format, wave_container.format.channels,
+            wave_container.format.sample_fq);
+    if (error < 0) {
+        LOGE("Failed to set hw params\n");
+        goto error;
+    }
+
+#ifdef LOCAL_DEBUG
+    snd_pcm_dump(pcm_container.handle, pcm_container.out_log);
+#endif
+
+    error = do_play_wave(&pcm_container, &wave_container, fd);
+    if (error < 0) {
+        LOGE("Failed to play\n");
+        goto error;
+    }
+
+    snd_pcm_drain(pcm_container.handle);
+
+    free(pcm_container.data_buf);
+
+    return 0;
+
+error:
+    if (pcm_container.data_buf)
+        free(pcm_container.data_buf);
+
+    return -1;
+}
+
+static int play_stream(const char* snd_device, char* buffer, int size) {
+    return 0;
+}
+
+static int pause_play(void) {
+    return pcm_pause(&pcm_container);
+}
+
+static int resume_play(void) {
+    return pcm_resume(&pcm_container);
+}
+
+static int cancel_play(void) {
+    return 0;
+}
+
+static int init(const char* snd_device) {
+    assert_die_if(snd_device == NULL, "snd_device is NULL\n");
+
+    int error = 0;
 
     snd_output_stdio_attach(&pcm_container.out_log, stderr, 0);
 
@@ -109,33 +166,9 @@ static int play_file(const char* snd_device, int fd) {
         goto error;
     }
 
-    error = wave_pcm_set_params(&pcm_container, &wave_container);
-    if (error < 0) {
-        LOGE("Failed to set hw params\n");
-        goto error;
-    }
-
-#ifdef LOCAL_DEBUG
-    snd_pcm_dump(pcm_container.handle, pcm_container.out_log);
-#endif
-
-    error = do_play_file(&pcm_container, &wave_container, fd);
-    if (error < 0) {
-        LOGE("Failed to play\n");
-        goto error;
-    }
-
-    snd_pcm_drain(pcm_container.handle);
-
-    free(pcm_container.data_buf);
-    snd_output_close(pcm_container.out_log);
-    snd_pcm_close(pcm_container.handle);
-
     return 0;
 
 error:
-    if (pcm_container.data_buf)
-        free(pcm_container.data_buf);
     if (pcm_container.out_log)
         snd_output_close(pcm_container.out_log);
     if (pcm_container.handle)
@@ -144,18 +177,21 @@ error:
     return -1;
 }
 
-static int play_stream(const char* snd_device, char* buffer, int size) {
-    return 0;
-}
+static int deinit(void) {
+    snd_output_close(pcm_container.out_log);
+    snd_pcm_close(pcm_container.handle);
 
-static int stop_play(void) {
     return 0;
 }
 
 static struct wave_player this = {
-        .play_file = play_file,
+        .init = init,
+        .deinit = deinit,
+        .play_wave = play_wave,
         .play_stream = play_stream,
-        .stop_play = stop_play,
+        .pause_play = pause_play,
+        .resume_play = resume_play,
+        .cancel_play = cancel_play,
 };
 
 struct wave_player* get_wave_player(void) {

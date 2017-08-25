@@ -35,8 +35,11 @@ struct snd_pcm_container {
     uint8_t *data_buf;
 };
 
-uint32_t wave_pcm_read(struct snd_pcm_container* pcm_container, uint32_t count);
-uint32_t wave_pcm_write(struct snd_pcm_container* pcm_container, uint32_t count);
-int wave_pcm_set_params(struct snd_pcm_container* pcm_container, WaveContainer *wave_container);
-
+uint32_t pcm_read(struct snd_pcm_container* pcm_container, uint32_t count);
+uint32_t pcm_write(struct snd_pcm_container* pcm_container, uint32_t count);
+int pcm_set_params(struct snd_pcm_container* pcm_container,
+        snd_pcm_format_t format, uint16_t channels, uint32_t sample_fq);
+int get_wave_format(WaveContainer* wave_container, snd_pcm_format_t *format);
+int pcm_resume(struct snd_pcm_container* pcm_container);
+int pcm_pause(struct snd_pcm_container* pcm_container);
 #endif /* WAVE_PCM_COMMON_H */

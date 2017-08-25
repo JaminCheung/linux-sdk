@@ -15,11 +15,12 @@
  */
 
 #include <utils/log.h>
+#include <utils/common.h>
 #include "wave_pcm_common.h"
 
 #define LOG_TAG "wave_pcm_common"
 
-static int get_format(WaveContainer* wave_container, snd_pcm_format_t *format) {
+int get_wave_format(WaveContainer* wave_container, snd_pcm_format_t *format) {
     if (LE_SHORT(wave_container->format.format) != WAV_FMT_PCM)
         return -1;
 
@@ -38,7 +39,7 @@ static int get_format(WaveContainer* wave_container, snd_pcm_format_t *format) {
     return 0;
 }
 
-uint32_t wave_pcm_read(struct snd_pcm_container* pcm_container, uint32_t read_count) {
+uint32_t pcm_read(struct snd_pcm_container* pcm_container, uint32_t read_count) {
     uint32_t count = read_count;
     uint32_t readed;
     uint32_t read_sofar = 0;
@@ -71,7 +72,7 @@ uint32_t wave_pcm_read(struct snd_pcm_container* pcm_container, uint32_t read_co
     return read_count;
 }
 
-uint32_t wave_pcm_write(struct snd_pcm_container* pcm_container, uint32_t write_count) {
+uint32_t pcm_write(struct snd_pcm_container* pcm_container, uint32_t write_count) {
     uint32_t count = write_count;
     uint32_t writed;
     uint32_t write_sofar = 0;
@@ -111,11 +112,10 @@ uint32_t wave_pcm_write(struct snd_pcm_container* pcm_container, uint32_t write_
     return write_sofar;
 }
 
-int wave_pcm_set_params(struct snd_pcm_container* pcm_container,
-        WaveContainer *wave_container) {
+int pcm_set_params(struct snd_pcm_container* pcm_container,
+        snd_pcm_format_t format, uint16_t channles, uint32_t sample_fq) {
     int error = 0;
     snd_pcm_hw_params_t* hw_params;
-    snd_pcm_format_t format;
     uint32_t exact_rate;
     uint32_t buffer_time;
     uint32_t period_time;
@@ -135,12 +135,6 @@ int wave_pcm_set_params(struct snd_pcm_container* pcm_container,
         return -1;
     }
 
-    error = get_format(wave_container, &format);
-    if (error < 0) {
-        LOGE("Failed to get snd format\n");
-        return -1;
-    }
-
     error = snd_pcm_hw_params_set_format(pcm_container->handle, hw_params,
             format);
     if (error < 0) {
@@ -150,26 +144,25 @@ int wave_pcm_set_params(struct snd_pcm_container* pcm_container,
 
     pcm_container->format = format;
 
-
     error = snd_pcm_hw_params_set_channels(pcm_container->handle, hw_params,
-            LE_SHORT(wave_container->format.channels));
+            LE_SHORT(channles));
     if (error < 0) {
         LOGE("Failed to snd_pcm_hw_params_set_channels: %s\n", snd_strerror(error));
         return -1;
     }
 
-    pcm_container->channels = LE_SHORT(wave_container->format.channels);
+    pcm_container->channels = LE_SHORT(channles);
 
-    exact_rate = LE_INT(wave_container->format.sample_fq);
+    exact_rate = LE_INT(sample_fq);
     error = snd_pcm_hw_params_set_rate_near(pcm_container->handle, hw_params,
             &exact_rate, 0);
     if (error < 0) {
         LOGE("Failed to snd_pcm_hw_params_set_rate_near: %s\n", snd_strerror(error));
         return -1;
     }
-    if (LE_INT(wave_container->format.sample_fq) != exact_rate) {
+    if (LE_INT(sample_fq) != exact_rate) {
         LOGW("Sample rate %dHz is not supported, using %dHz instead.\n",
-            LE_INT(wave_container->format.sample_fq), exact_rate);
+            LE_INT(sample_fq), exact_rate);
     }
 
     error = snd_pcm_hw_params_get_buffer_time_max(hw_params, &buffer_time, 0);
@@ -212,7 +205,7 @@ int wave_pcm_set_params(struct snd_pcm_container* pcm_container,
 
     pcm_container->bits_per_sample = snd_pcm_format_physical_width(format);
     pcm_container->bits_per_frame = pcm_container->bits_per_sample
-            * LE_SHORT(wave_container->format.channels);
+            * LE_SHORT(channles);
 
     pcm_container->chunk_bytes = pcm_container->chunk_size
             * pcm_container->bits_per_frame / 8;
@@ -224,4 +217,43 @@ int wave_pcm_set_params(struct snd_pcm_container* pcm_container,
     }
 
     return 0;
+}
+
+int pcm_pause(struct snd_pcm_container* pcm_container) {
+    int error = 0;
+    snd_pcm_hw_params_t* hw_params;
+
+    snd_pcm_hw_params_alloca(&hw_params);
+
+    snd_pcm_hw_params_current(pcm_container->handle, hw_params);
+
+    if (snd_pcm_hw_params_can_pause(hw_params))
+        error = snd_pcm_pause(pcm_container->handle, 1);
+    else
+        error = snd_pcm_drop(pcm_container->handle);
+
+    return error;
+}
+
+int pcm_resume(struct snd_pcm_container* pcm_container) {
+    int error = 0;
+    snd_pcm_hw_params_t* hw_params;
+
+    snd_pcm_hw_params_alloca(&hw_params);
+
+    snd_pcm_hw_params_current(pcm_container->handle, hw_params);
+
+    if (snd_pcm_state(pcm_container->handle) == SND_PCM_STATE_SUSPENDED) {
+
+        while ((error = snd_pcm_resume(pcm_container->handle)) == -EAGAIN)
+            msleep(50);
+
+    } else {
+        if (snd_pcm_hw_params_can_pause(hw_params))
+            error = snd_pcm_pause(pcm_container->handle, 0);
+        else
+            error = snd_pcm_prepare(pcm_container->handle);
+    }
+
+    return error;
 }
