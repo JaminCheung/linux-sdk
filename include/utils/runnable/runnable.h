@@ -21,6 +21,7 @@ struct pthread_wrapper;
 
 struct runnable {
     void (*run)(struct pthread_wrapper* thread, void *param);
+    void (*cleanup)(void);
 };
 
 #endif /* RUNNABLE_H */

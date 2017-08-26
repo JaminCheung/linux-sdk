@@ -49,6 +49,8 @@ uint32_t pcm_read(struct snd_pcm_container* pcm_container, uint32_t read_count) 
         count = pcm_container->chunk_size;
 
     while (count) {
+        pthread_testcancel();
+
         readed = snd_pcm_readi(pcm_container->handle, data, count);
         if (readed == -EAGAIN || (readed >= 0 && readed < count)) {
             snd_pcm_wait(pcm_container->handle, 1000);
@@ -78,6 +80,7 @@ uint32_t pcm_write(struct snd_pcm_container* pcm_container, uint32_t write_count
     uint32_t write_sofar = 0;
     uint8_t* data = pcm_container->data_buf;
 
+
     if (count < pcm_container->chunk_size) {
         snd_pcm_format_set_silence(pcm_container->format,
                 data + count * pcm_container->bits_per_frame / 8,
@@ -86,6 +89,8 @@ uint32_t pcm_write(struct snd_pcm_container* pcm_container, uint32_t write_count
     }
 
     while (count) {
+        pthread_testcancel();
+
         writed = snd_pcm_writei(pcm_container->handle, data, count);
         if (writed == -EAGAIN || (writed >= 0 && writed < count)) {
             snd_pcm_wait(pcm_container->handle, 1000);
@@ -256,4 +261,9 @@ int pcm_resume(struct snd_pcm_container* pcm_container) {
     }
 
     return error;
+}
+
+int pcm_cancel(struct snd_pcm_container* pcm_container) {
+    snd_pcm_drop(pcm_container->handle);
+    return 0;
 }

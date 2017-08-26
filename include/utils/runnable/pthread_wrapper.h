@@ -25,6 +25,7 @@ struct pthread_wrapper {
     int (*start)(struct pthread_wrapper* this, struct runnable* runnable,
             void* param);
     void (*join)(struct pthread_wrapper* this);
+    void (*cancel)(struct pthread_wrapper* this);
     struct runnable* (*get_runnable)(struct pthread_wrapper* this);
     void* (*get_param)(struct pthread_wrapper* this);
     int (*get_pid)(struct pthread_wrapper* this);

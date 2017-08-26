@@ -94,6 +94,7 @@ static int play_wave(int fd) {
     int error = 0;
     snd_pcm_format_t format;
 
+    lseek(fd, 0, SEEK_SET);
     error = wave_read_header(fd, &wave_container);
     if (error < 0) {
         LOGE("Failed to read wave header\n");
@@ -119,7 +120,7 @@ static int play_wave(int fd) {
 
     error = do_play_wave(&pcm_container, &wave_container, fd);
     if (error < 0) {
-        LOGE("Failed to play\n");
+        LOGE("Failed to do play wave file\n");
         goto error;
     }
 
@@ -149,7 +150,7 @@ static int resume_play(void) {
 }
 
 static int cancel_play(void) {
-    return 0;
+    return pcm_cancel(&pcm_container);
 }
 
 static int init(const char* snd_device) {

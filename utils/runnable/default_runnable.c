@@ -33,7 +33,6 @@ static void set_thread_count(struct default_runnable* this, int count) {
 static int start(struct default_runnable* this, void* param) {
     int i = 0;
 
-
     if (this->thread != NULL && this->thread_count < 1)
         return -1;
 
@@ -56,11 +55,25 @@ static int start(struct default_runnable* this, void* param) {
             return i;
     }
 
+    this->is_stop = 0;
+
     return i;
 }
 
 static void stop(struct default_runnable* this) {
-    LOGI("Please implement me.\n");
+    if (this->thread != NULL) {
+        for (int i = 0; i < this->thread_count; i++) {
+            this->thread[i].cancel(&this->thread[i]);
+            this->thread[i].join(&this->thread[i]);
+        }
+
+        for (int i = 0; i < this->thread_count; i++)
+            this->thread[i].destruct(&this->thread[i]);
+
+        free(this->thread);
+        this->thread = NULL;
+    }
+
     this->is_stop = 1;
 }
 
@@ -83,12 +96,7 @@ void construct_default_runnable(struct default_runnable* this) {
 }
 
 void destruct_default_runnable(struct default_runnable* this) {
-    if (this->thread) {
-        for (int i = 0; i < this->thread_count; i++)
-            this->thread[i].destruct(&this->thread[i]);
-
-        free(this->thread);
-    }
+    this->stop(this);
 
     this->set_thread_count = NULL;
     this->start = NULL;

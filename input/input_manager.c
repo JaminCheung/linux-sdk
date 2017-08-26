@@ -835,8 +835,12 @@ restart:
                     continue;
                 }
 
-                for (int i = 0; i < readed / sizeof(struct input_event); i++)
+                for (int i = 0; i < readed / sizeof(struct input_event); i++) {
+                    if (ev[i].type == EV_SYN)
+                        continue;
+
                     on_event(device->name, &ev[i]);
+                }
 
                 FD_CLR(device->fd, &rdfs);
             }

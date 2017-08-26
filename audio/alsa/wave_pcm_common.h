@@ -42,4 +42,6 @@ int pcm_set_params(struct snd_pcm_container* pcm_container,
 int get_wave_format(WaveContainer* wave_container, snd_pcm_format_t *format);
 int pcm_resume(struct snd_pcm_container* pcm_container);
 int pcm_pause(struct snd_pcm_container* pcm_container);
+int pcm_cancel(struct snd_pcm_container* pcm_container);
+
 #endif /* WAVE_PCM_COMMON_H */
