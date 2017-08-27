@@ -15,7 +15,7 @@
 
 #define LOG_TAG "test_wave_play"
 
-//#define KEY_START_STOP 0
+//#define KEY_START_STOP
 
 enum {
     STATE_PLAYING,
@@ -58,7 +58,7 @@ static void input_event_listener(const char* name, struct input_event* event) {
         if (event->value == 1)
             return;
 
-#if (defined KEY_START_STOP == 1)
+#ifdef KEY_START_STOP
         if (play_state == STATE_PLAYING) {
 
             play_state = STATE_CANCEL;
