@@ -70,7 +70,7 @@ LDFLAGS += -Wl,-Bstatic -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint       \
 #
 # Library link - Dynamic
 #
-LDFLAGS += -Wl,-Bdynamic -pthread -lm -lrt -ldl                                \
+LDFLAGS += -Wl,-Bdynamic -pthread -lm -lrt -ldl -lstdc++                       \
            -L$(TOPDIR)/lib/openssl -lcrypto -lssl                              \
            -L$(TOPDIR)/lib/alsa -lasound                                       \
            -L$(TOPDIR)/lib/fingerprint -lfprint-mips                           \
