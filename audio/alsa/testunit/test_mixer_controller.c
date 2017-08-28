@@ -31,12 +31,6 @@ int main(int argc, char *argv[]) {
     }
 
     if (!strcmp(argv[1], "volume")) {
-        playback_vol = mixer->get_volume("MERCURY", PLAYBACK);
-        record_vol = mixer->get_volume("MERCURY", CAPTURE);
-
-        LOGI("playback volume: %d, record volume: %d\n", playback_vol,
-                record_vol);
-
         error = mixer->set_volume("MERCURY", PLAYBACK, strtol(argv[2], NULL, 10));
         if (error < 0) {
             LOGE("Failed to set playback volume\n");
@@ -48,6 +42,12 @@ int main(int argc, char *argv[]) {
             LOGE("Failed to set record volume\n");
             return -1;
         }
+
+        playback_vol = mixer->get_volume("MERCURY", PLAYBACK);
+        record_vol = mixer->get_volume("MERCURY", CAPTURE);
+
+        LOGI("playback volume: %d, record volume: %d\n", playback_vol,
+                record_vol);
 
     } else if (!strcmp(argv[1], "mute")) {
         error = mixer->mute("Digital Playback mute", strtol(argv[2], NULL, 10));

@@ -23,7 +23,7 @@ enum {
     STATE_CANCEL,
 };
 
-const char* snd_device = "default";
+const char* snd_device = "hw:0,0";
 static struct wave_player* player;
 static struct mixer_controller* mixer;
 static struct input_manager* input_manager;
@@ -149,7 +149,6 @@ int main(int argc, char *argv[]) {
     play_runner->runnable.cleanup = play_cleanup;
 
     player = get_wave_player();
-
     error = player->init(snd_device);
     if (error < 0) {
         LOGE("Failed to init player\n");

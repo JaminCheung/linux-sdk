@@ -24,6 +24,7 @@
 
 static WaveContainer wave_container;
 static struct snd_pcm_container pcm_container;
+static int hw_inited;
 
 static uint32_t safe_read(int fd, void* buf, uint32_t count) {
     uint32_t read_sofar = 0;
@@ -92,7 +93,6 @@ static int play_wave(int fd) {
     assert_die_if(fd < 0, "Invaild fd\n");
 
     int error = 0;
-    snd_pcm_format_t format;
 
     lseek(fd, 0, SEEK_SET);
     error = wave_read_header(fd, &wave_container);
@@ -101,21 +101,20 @@ static int play_wave(int fd) {
         goto error;
     }
 
-    error = get_wave_format(&wave_container, &format);
-    if (error < 0) {
-        LOGE("Failed to get snd format\n");
-        goto error;
-    }
+    if (!hw_inited) {
+        error = pcm_set_params(&pcm_container,
+                LE_SHORT(wave_container.format.bit_p_spl),
+                wave_container.format.channels, wave_container.format.sample_fq);
+        if (error < 0) {
+            LOGE("Failed to set hw params\n");
+            goto error;
+        }
 
-    error = pcm_set_params(&pcm_container, format, wave_container.format.channels,
-            wave_container.format.sample_fq);
-    if (error < 0) {
-        LOGE("Failed to set hw params\n");
-        goto error;
+        hw_inited = 1;
     }
 
 #ifdef LOCAL_DEBUG
-    snd_pcm_dump(pcm_container.handle, pcm_container.out_log);
+    snd_pcm_dump(pcm_container.pcm_handle, pcm_container.out_log);
 #endif
 
     error = do_play_wave(&pcm_container, &wave_container, fd);
@@ -124,20 +123,50 @@ static int play_wave(int fd) {
         goto error;
     }
 
-    snd_pcm_drain(pcm_container.handle);
+    snd_pcm_drain(pcm_container.pcm_handle);
 
-    free(pcm_container.data_buf);
+    if (pcm_container.data_buf) {
+        free(pcm_container.data_buf);
+        pcm_container.data_buf = NULL;
+    }
+
 
     return 0;
 
 error:
-    if (pcm_container.data_buf)
+    if (pcm_container.data_buf) {
         free(pcm_container.data_buf);
+        pcm_container.data_buf = NULL;
+    }
 
     return -1;
 }
 
-static int play_stream(const char* snd_device, char* buffer, int size) {
+static int play_stream(int channels, int sample_rate, int sample_length,
+        uint8_t* buffer, int write_count) {
+    int ret = 0;
+    int frame_count;
+
+    if (!hw_inited) {
+        ret = pcm_set_params(&pcm_container, LE_SHORT(sample_length), channels,
+                sample_rate);
+        if (ret < 0) {
+            LOGE("Failed to set hw params\n");
+            return -1;
+        }
+
+        hw_inited = 1;
+    }
+
+    frame_count = (write_count * 8) / pcm_container.bits_per_frame;
+
+    pcm_container.data_buf = buffer;
+    ret = pcm_write(&pcm_container, frame_count);
+    if (ret != frame_count) {
+        LOGE("Failed to pcm write\n");
+        return -1;
+    }
+
     return 0;
 }
 
@@ -150,6 +179,9 @@ static int resume_play(void) {
 }
 
 static int cancel_play(void) {
+    if (pcm_container.data_buf)
+        pcm_container.data_buf = NULL;
+
     return pcm_cancel(&pcm_container);
 }
 
@@ -160,27 +192,32 @@ static int init(const char* snd_device) {
 
     snd_output_stdio_attach(&pcm_container.out_log, stderr, 0);
 
-    error = snd_pcm_open(&pcm_container.handle, snd_device,
+    error = snd_pcm_open(&pcm_container.pcm_handle, snd_device,
             SND_PCM_STREAM_PLAYBACK, 0);
     if (error < 0) {
         LOGE("Failed to snd_pcm_open %s: %s\n", snd_device, snd_strerror(error));
         goto error;
     }
 
+    hw_inited = 0;
+
     return 0;
 
 error:
     if (pcm_container.out_log)
         snd_output_close(pcm_container.out_log);
-    if (pcm_container.handle)
-        snd_pcm_close(pcm_container.handle);
 
     return -1;
 }
 
 static int deinit(void) {
+    hw_inited = 0;
+
+    if (pcm_container.data_buf)
+        pcm_container.data_buf = NULL;
+
     snd_output_close(pcm_container.out_log);
-    snd_pcm_close(pcm_container.handle);
+    snd_pcm_close(pcm_container.pcm_handle);
 
     return 0;
 }

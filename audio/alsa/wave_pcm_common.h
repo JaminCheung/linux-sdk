@@ -22,7 +22,7 @@
 #include <lib/alsa/asoundlib.h>
 
 struct snd_pcm_container {
-    snd_pcm_t * handle;
+    snd_pcm_t *pcm_handle;
     snd_mixer_t *mixer_handle;
     snd_output_t* out_log;
     snd_pcm_uframes_t chunk_size;
@@ -38,8 +38,7 @@ struct snd_pcm_container {
 uint32_t pcm_read(struct snd_pcm_container* pcm_container, uint32_t count);
 uint32_t pcm_write(struct snd_pcm_container* pcm_container, uint32_t count);
 int pcm_set_params(struct snd_pcm_container* pcm_container,
-        snd_pcm_format_t format, uint16_t channels, uint32_t sample_fq);
-int get_wave_format(WaveContainer* wave_container, snd_pcm_format_t *format);
+        uint16_t bit_per_spl, uint16_t channels, uint32_t sample_fq);
 int pcm_resume(struct snd_pcm_container* pcm_container);
 int pcm_pause(struct snd_pcm_container* pcm_container);
 int pcm_cancel(struct snd_pcm_container* pcm_container);
