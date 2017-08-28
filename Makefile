@@ -334,6 +334,7 @@ libporter:
 # Test unit
 #
 testunit: $(TARGET)
+	$(QUITE_TEST_BUILD)test_ilock_app;make -sC ilock_app all
 	$(QUITE_TEST_BUILD)test_face_recognize;make -sC face_recognize/testunit all
 	$(QUITE_TEST_BUILD)test_camerav4l2;make -sC camera_v4l2/testunit all
 	$(QUITE_TEST_BUILD)test_zigbee;make -sC zigbee/testunit all
