@@ -6,6 +6,10 @@
 
 #include <types.h>
 #include <utils/log.h>
+#include <utils/runnable/default_runnable.h>
+#include <utils/common.h>
+#include <utils/signal_handler.h>
+#include <input/input_manager.h>
 #include <audio/alsa/wave_recorder.h>
 #include <audio/alsa/mixer_controller.h>
 
@@ -16,6 +20,11 @@
 #define DEFAULT_SAMPLE_LENGTH    (16)
 #define DEFAULT_DURATION_TIME    (10)
 
+enum {
+    STATE_RECORDING,
+    STATE_CANCEL,
+};
+
 /*
  * DMIC
  */
@@ -24,16 +33,85 @@
 /*
  * AMIC
  */
-const char* snd_device = "default";
+const char* snd_device = "hw:0,0";
 static struct wave_recorder* recorder;
 static struct mixer_controller* mixer;
+static struct input_manager* input_manager;
+static struct default_runnable* record_runner;
+static struct signal_handler* signal_handler;
+static int record_state = STATE_RECORDING;
+static int fd;
+
+static void handle_signal(int signal) {
+    _delete(record_runner);
+
+    if (input_manager) {
+        input_manager->stop();
+        input_manager->deinit();
+    }
+
+    if (recorder)
+        recorder->deinit();
+    if (mixer)
+        mixer->deinit();
+
+    if (fd > 0)
+        close(fd);
+
+    exit(1);
+}
+
+static void input_event_listener(const char* name, struct input_event* event) {
+    int error = 0;
+
+    if (event->code == KEY_POWER) {
+        if (event->value == 1)
+            return;
+
+        if (record_state == STATE_RECORDING) {
+
+            record_state = STATE_CANCEL;
+            error = recorder->cancel_record();
+            if (error < 0) {
+                LOGE("Failed to cancel play\n");
+                return;
+            }
+
+            record_runner->stop(record_runner);
+
+        } else {
+            error = record_runner->start(record_runner, NULL);
+            if (error < 0) {
+                LOGE("Failed to start play runner\n");
+                return;
+            }
+
+            record_state = STATE_RECORDING;
+        }
+
+    }
+}
+
+static void record_thread(struct pthread_wrapper* thread, void* param) {
+    int error = 0;
+
+    error = recorder->record_wave(fd, DEFAULT_CHANNELS,
+            DEFAULT_SAMPLE_RATE, DEFAULT_SAMPLE_LENGTH, DEFAULT_DURATION_TIME);
+    if (error < 0)
+        LOGE("Failed to record wave file\n");
+
+    pthread_exit(NULL);
+}
+
+static void play_cleanup(void) {
+    LOGI("Thread cleanup here\n");
+}
 
 int main(int argc, char *argv[]) {
-    int fd;
     int error = 0;
 
     if (argc != 3) {
-        LOGE("Usage: %s FILE.wav\n", argv[0]);
+        LOGE("Usage: %s FILE.wav VOLUME\n", argv[0]);
         return -1;
     }
 
@@ -44,6 +122,25 @@ int main(int argc, char *argv[]) {
         LOGE("Failed to create %s\n", argv[1]);
         return -1;
     }
+
+    signal_handler = _new(struct signal_handler, signal_handler);
+    signal_handler->set_signal_handler(signal_handler, SIGINT, handle_signal);
+    signal_handler->set_signal_handler(signal_handler, SIGQUIT, handle_signal);
+    signal_handler->set_signal_handler(signal_handler, SIGTERM, handle_signal);
+
+    input_manager = get_input_manager();
+    error = input_manager->init();
+    if (error < 0) {
+        LOGE("Failed to init input_manager\n");
+        return -1;
+    }
+
+    input_manager->register_event_listener("gpio-keys", input_event_listener);
+    input_manager->start();
+
+    record_runner = _new(struct default_runnable, default_runnable);
+    record_runner->runnable.run = record_thread;
+    record_runner->runnable.cleanup = play_cleanup;
 
     recorder = get_wave_recorder();
     error = recorder->init(snd_device);
@@ -75,17 +172,10 @@ int main(int argc, char *argv[]) {
 
     LOGI("Record Volume: %d\n", volume);
 
-    error = recorder->record_wave(fd, DEFAULT_CHANNELS,
-            DEFAULT_SAMPLE_RATE, DEFAULT_SAMPLE_LENGTH, DEFAULT_DURATION_TIME);
-    if (error < 0) {
-        LOGE("Failed to record wave file\n");
-        goto error;
-    }
+    record_runner->start(record_runner, NULL);
 
-    recorder->deinit();
-    mixer->deinit();
-
-    close(fd);
+    while (1)
+        sleep(1000);
 
     return 0;
 
