@@ -77,6 +77,7 @@ static int check_vaild(WaveContainer* container) {
     if (container->header.magic != WAV_RIFF ||
             container->header.type != WAV_WAVE ||
             container->format.magic != WAV_FMT ||
+            container->format.format != WAV_FMT_PCM ||
             container->format.format_size != LE_INT(16) ||
            (container->format.channels != LE_SHORT(1) && container->format.channels != LE_SHORT(2)) ||
             container->chunk_header.type != WAV_DATA ) {

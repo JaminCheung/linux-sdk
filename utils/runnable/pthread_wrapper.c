@@ -59,7 +59,7 @@ static void* looper(void* param) {
         this->get_runnable(this)->run(this, this->get_param(this));
         pthread_testcancel();
 
-        pthread_cleanup_pop(0);
+        pthread_cleanup_pop_restore_np(0);
     }
 
     return (void*)NULL;
