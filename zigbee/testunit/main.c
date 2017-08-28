@@ -165,7 +165,7 @@ int main(int argc, char *argv[]) {
 
     LOGI("set rote: %d\n", ZIGBEE_ROLE);
     if (ZIGBEE_ROLE == ZIGBEE_ROLE_COOR) {
-        thread_mutex_lock(&cfg_mutex);
+        pthread_mutex_lock(&cfg_mutex);
         ret = zb_m->set_role(ZIGBEE_ROLE);
         if (ret < 0) {
             LOGE("set role send fail, err: %d\r\n",ret);
@@ -210,7 +210,6 @@ static int8_t info_rsp_handle(uint8_t* info, uint16_t len)
 {
 #define K(x)  zb_info.key[x]
 
-    uint8_t channel;
     struct zb_info_t zb_info = {0};
 
     if (info == NULL) {

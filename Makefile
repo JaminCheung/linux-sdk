@@ -40,7 +40,8 @@ OBJS-y += utils/signal_handler.o                                               \
           utils/wave_parser.o                                                  \
           utils/runnable/pthread_wrapper.o                                     \
           utils/runnable/default_runnable.o                                    \
-          utils/thread_pool/thread_pool.o
+          utils/thread_pool/thread_pool.o                                      \
+          utils/yuv2bmp.o
 
 #
 # Timer
@@ -72,7 +73,6 @@ OBJS-y += camera/camera_manager.o
 # Cimutils
 #
 OBJS-y += camera_v4l2/cim/capture.o                                            \
-          camera_v4l2/cim/yuv2bmp.o                                            \
           camera_v4l2/cim/jz_mem.o                                             \
           camera_v4l2/camera_v4l2_manager.o
 
@@ -334,6 +334,7 @@ libporter:
 # Test unit
 #
 testunit: $(TARGET)
+	$(QUITE_TEST_BUILD)test_face_recognize;make -sC face_recognize/testunit all
 	$(QUITE_TEST_BUILD)test_camerav4l2;make -sC camera_v4l2/testunit all
 	$(QUITE_TEST_BUILD)test_zigbee;make -sC zigbee/testunit all
 	$(QUITE_TEST_BUILD)test_uart;make -sC uart/testunit all
@@ -366,6 +367,7 @@ testunit: $(TARGET)
 	@echo -e '\n  $@: $(shell basename $(OUTDIR))/test_xxx is ready\n'
 
 testunit_clean:
+	$(QUITE_TEST_BUILD)test_face_recognize;make -sC face_recognize/testunit clean
 	$(QUITE_TEST_CLEAN)test_camerav4l2;make -sC camera_v4l2/testunit clean
 	$(QUITE_TEST_CLEAN)test_zigbee;make -sC zigbee/testunit clean
 	$(QUITE_TEST_CLEAN)test_uart;make -sC uart/testunit clean

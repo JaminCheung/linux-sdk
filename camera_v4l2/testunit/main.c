@@ -1,3 +1,18 @@
+/*
+ *  Copyright (C) 2017, Monk Su<rongjin.su@ingenic.com, MonkSu@outlook.com>
+ *
+ *  Ingenic Linux plarform SDK project
+ *
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under  the terms of the GNU General  Public License as published by the
+ *  Free Software Foundation;  either version 2 of the License, or (at your
+ *  option) any later version.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -19,6 +34,27 @@
 /*
  * Macro
  */
+#define LOG_TAG                         "camera_v4l2"
+
+
+#define DEFAULT_WIDTH                    320
+#define DEFAULT_HEIGHT                   240
+#define DEFAULT_BPP                      16
+#define DEFAULT_NBUF                     1
+#define DEFAULT_ACTION                   PREVIEW_PICTURE
+#define DEFAULT_DOUBLE_CHANNEL           0
+#define DEFAULT_CHANNEL                  CHANNEL_SEQUEUE_COLOR
+
+#define MK_PIXEL_FMT(x)                                 \
+        do{                                             \
+            x.rbit_len = fbm->get_redbit_length();      \
+            x.rbit_off = fbm->get_redbit_offset();      \
+            x.gbit_len = fbm->get_greenbit_length();    \
+            x.gbit_off = fbm->get_greenbit_offset();    \
+            x.bbit_len = fbm->get_bluebit_length();     \
+            x.bbit_off = fbm->get_bluebit_offset();     \
+        }while(0)
+
 
 typedef enum {
     CHANNEL_SEQUEUE_COLOR             = 0x00,
@@ -31,18 +67,6 @@ typedef enum {
     PREVIEW_PICTURE,
 } action_m;
 
-#define DEFAULT_WIDTH                    320
-#define DEFAULT_HEIGHT                   240
-#define DEFAULT_BPP                      16
-#define DEFAULT_NBUF                     1
-#define DEFAULT_ACTION   				 PREVIEW_PICTURE
-#define DEFAULT_DOUBLE_CHANNEL           0
-#define DEFAULT_CHANNEL                  CHANNEL_SEQUEUE_COLOR
-
-
-
-#define LOG_TAG                         "camera_v4l2"
-
 struct camera_v4l2_manager* cimm;
 struct fb_manager* fbm;
 
@@ -50,8 +74,8 @@ struct _capt_op{
     action_m action;            // action capture or preview
     chselect_m channel;         // select operate ch for action
     char double_ch;             // channel num
-    char* filename;             // picture save name when action is capture picture
-    short *ppbuf;               // map lcd piexl buf
+    uint8_t* filename;             // picture save name when action is capture picture
+    uint16_t *ppbuf;               // map lcd piexl buf
 }capt_op;
 
 static const char short_options[] = "c:phmn:rux:y:ds:";
@@ -94,16 +118,16 @@ static void usage(FILE *fp, int argc, char *argv[])
 }
 
 
-static void frame_receive_cb(unsigned char* buf, unsigned int width, unsigned int height, unsigned char seq)
+static void frame_receive_cb(uint8_t* buf, uint32_t width, uint32_t height, uint8_t seq)
 {
     int ret;
-    unsigned char *yuvbuf = buf;
-    unsigned char *rgbbuf = NULL;
-    int monkt;
-    //return;
-    rgbbuf = (unsigned char *)malloc(width * height * 3);
+    uint8_t *yuvbuf = buf;
+    uint8_t *rgbbuf = NULL;
+    struct rgb_pixel_fmt pixel_fmt;
+
+    rgbbuf = (uint8_t *)malloc(width * height * 3);
     if (!rgbbuf) {
-        fprintf(stderr, "malloc rgbbuf failed!!\n");
+        LOGE("malloc rgbbuf failed!!\n");
         return;
     }
 
@@ -112,27 +136,28 @@ static void frame_receive_cb(unsigned char* buf, unsigned int width, unsigned in
         seq = capt_op.channel;
     }
 
-    if (seq == capt_op.channel)
-    {
+    if (seq == capt_op.channel) {
         ret = cimm->yuv2rgb(yuvbuf, rgbbuf, width, height);
         if (ret < 0){
-            printf("yuv 2 rgb fail, errno: %d\n", ret);
+            LOGE("yuv 2 rgb fail, errno: %d\n", ret);
             free(rgbbuf);
             return;
         }
 
         if (capt_op.action == CAPTURE_PICTURE){
-            ret = cimm->build_bmp(rgbbuf, width, height, capt_op.filename);
+            ret = cimm->build_bmp(rgbbuf, width, height, (uint8_t*)capt_op.filename);
             if (ret < 0){
-                printf("make bmp picutre fail, errno: %d\n",ret);
+                LOGE("make bmp picutre fail, errno: %d\n",ret);
             }
         } else if (capt_op.action == PREVIEW_PICTURE) {
-            cimm->rgb2pixel(rgbbuf, capt_op.ppbuf, width, height);
+            MK_PIXEL_FMT(pixel_fmt);
+            cimm->rgb2pixel(rgbbuf, capt_op.ppbuf, width, height, pixel_fmt);
             fbm->display();
         }
     }
 
     free(rgbbuf);
+    return;
 }
 
 int main(int argc, char *argv[])
@@ -144,7 +169,7 @@ int main(int argc, char *argv[])
     capt_param.bpp    = DEFAULT_BPP;
     capt_param.nbuf   = DEFAULT_NBUF;
     capt_param.io     = METHOD_MMAP;
-    capt_param.fr_cb  = frame_receive_cb;
+    capt_param.fr_cb  = (frame_receive)frame_receive_cb;
 
     capt_op.double_ch = DEFAULT_DOUBLE_CHANNEL;
     capt_op.channel   = DEFAULT_CHANNEL;
@@ -165,9 +190,7 @@ int main(int argc, char *argv[])
 
         case 'h':
             usage(stdout, argc, argv);
-            exit(EXIT_SUCCESS);
-            break;
-
+            return 0;
         case 'm':
             capt_param.io = METHOD_MMAP;
             break;
@@ -194,8 +217,7 @@ int main(int argc, char *argv[])
 
         case 'c':
             capt_op.action = CAPTURE_PICTURE;
-            capt_op.filename = optarg;
-            printf(" %s ---\n", capt_op.filename);
+            capt_op.filename = (uint8_t*)optarg;
             break;
 
         case 'p':
@@ -211,22 +233,22 @@ int main(int argc, char *argv[])
             break;
         default:
             usage(stderr, argc, argv);
-            exit(EXIT_FAILURE);
-            break;
+            LOGE("Invalid parameter %c.\n",oc);
+            return -1;
         }
     }
 
     fbm = get_fb_manager();
 
     if (fbm->init() < 0) {
-        printf("Failed to init fb_manager\n");
-        exit(EXIT_FAILURE);
+        LOGE("Failed to init fb_manager\n");
+        return -1;
     }
 
     capt_op.ppbuf = (uint16_t *)fbm->get_fbmem();
     if (capt_op.ppbuf == NULL) {
-        printf("Failed to get fbmem\n");
-        exit(EXIT_FAILURE);
+        LOGE("Failed to get fbmem\n");
+        return -1;
     }
 
     cimm = get_camera_v4l2_manager();

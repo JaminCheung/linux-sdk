@@ -1,7 +1,7 @@
 /*
- *  Copyright (C) 2017, Monk <rongjin.su@ingenic.com, MonkSu@outlook.com>
+ *  Copyright (C) 2017, Monk Su<rongjin.su@ingenic.com, MonkSu@outlook.com>
  *
- *  Ingenic SDK Project
+ *  Ingenic Linux plarform SDK project
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under  the terms of the GNU General  Public License as published by the

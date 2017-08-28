@@ -1,7 +1,7 @@
 /*
  *  Copyright (C) 2017, Monk Su<rongjin.su@ingenic.com, MonkSu@outlook.com>
  *
- *  Ingenic QRcode SDK Project
+ *  Ingenic Linux plarform SDK project
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under  the terms of the GNU General  Public License as published by the
@@ -97,7 +97,7 @@ static uint8_t gen_sn(void)
 
     return sn++;
 }
-
+/*
 static void forearch_buf(pro_src_st* src)
 {
     int16_t i,read = src->read;
@@ -111,7 +111,7 @@ static void forearch_buf(pro_src_st* src)
 
     return;
 }
-
+*/
 /**
  *  @fn      buf_mov_r_a_byte
  *
@@ -143,6 +143,7 @@ static void buf_mov_r_a_byte(uint8_t* buf, uint16_t len)
  *
  *  @return  none
  */
+/*
 static void rbuf_mov_l_a_byte(pro_src_st* src, uint16_t ls)
 {
     uint16_t i,ml;
@@ -159,7 +160,7 @@ static void rbuf_mov_l_a_byte(pro_src_st* src, uint16_t ls)
 
     return;
 }
-
+*/
 
 /**
  *  @fn      extract_trans_char
