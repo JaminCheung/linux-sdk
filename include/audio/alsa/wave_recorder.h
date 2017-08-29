@@ -22,8 +22,8 @@ struct wave_recorder {
     int (*deinit)(void);
     int (*record_wave)(int fd, int channels, int sample_rate, int sample_length,
             int duration_time);
-    int (*record_stream)(const char* snd_device, int fd, int channels,
-            int sample_rate, int sample_length, char* buffer);
+    int (*record_stream)(int channels, int sample_rate, int sample_length,
+            uint8_t** buffer);
     int (*cancel_record)(void);
 };
 

@@ -21,7 +21,8 @@ struct wave_player {
     int (*init)(const char* snd_device);
     int (*deinit)(void);
     int (*play_wave)(int fd);
-    int (*play_stream)(const char* snd_device, char* buffer, int size);
+    int (*play_stream)(int channels, int sample_rate, int sample_length,
+            uint8_t* buffer, int size);
     int (*pause_play)(void);
     int (*resume_play)(void);
     int (*cancel_play)(void);

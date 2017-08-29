@@ -14,6 +14,8 @@
  *
  */
 
+#include <string.h>
+
 #include <utils/log.h>
 #include <utils/common.h>
 #include <utils/runnable/pthread_wrapper.h>
@@ -32,6 +34,7 @@ static void set_thread_count(struct default_runnable* this, int count) {
 
 static int start(struct default_runnable* this, void* param) {
     int i = 0;
+    int error = 0;
 
     if (this->thread != NULL && this->thread_count < 1)
         return -1;
@@ -51,13 +54,25 @@ static int start(struct default_runnable* this, void* param) {
     }
 
     for (i = 0; i < this->thread_count; i++) {
-        if (this->thread[i].start(&this->thread[i], &this->runnable, param))
-            return i;
+        error = this->thread[i].start(&this->thread[i], &this->runnable, param);
+        if (error != 0) {
+            LOGE("Failed to start thread %d: %s\n", error, strerror(error));
+            goto error;
+        }
     }
 
     this->is_stop = 0;
 
     return i;
+
+error:
+    for (i = 0; i < this->thread_count; i++)
+        this->thread[i].destruct(&this->thread[i]);
+
+    free(this->thread);
+    this->thread = NULL;
+
+    return -1;
 }
 
 static void stop(struct default_runnable* this) {
