@@ -83,7 +83,7 @@ typedef struct fingerprint_msg {
     } data;
 } fingerprint_msg_t;
 
-#define FINGERPRINT_LIMIT 50
+#define FINGERPRINT_LIMIT 20
 #define VERSION_TRAIL    0
 #define VERSION_RELEASE  1
 
