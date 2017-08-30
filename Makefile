@@ -1,7 +1,7 @@
  #
- #  Copyright (C) 2016, Zhang YanMing <jamincheung@126.com>
+ #  Copyright (C) 2017, Zhang YanMing <yanmin.zhang@ingenic.com, jamincheung@126.com>
  #
- #  Ingenic QRcode SDK Project
+ #  Ingenic Linux plarform SDK project
  #
  #  This program is free software; you can redistribute it and/or modify it
  #  under  the terms of the GNU General  Public License as published by the
@@ -201,7 +201,7 @@ OBJS-n += fingerprint2/fingerprint_manager.o
 #
 # FPC fingerprint wrapper
 #
-OBJS-y += fingerprint2/testunit/fpc/fpc_wrap.o
+OBJS-y += fingerprint2/fpc_wrap.o
 
 #
 # Audio
@@ -312,9 +312,9 @@ LIBS-y += lib/gpio/libgpio.o
 LIBS := $(LIBS-y)
 
 
-all: $(TARGET) testunit libporter
+all: $(TARGET) examples libporter
 
-.PHONY : all testunit testunit_clean clean backup
+.PHONY : all clean backup examples examples_clean
 
 #
 # Targets
@@ -331,72 +331,16 @@ libporter:
 	@$(TOPDIR)/libporter.sh $(LDFLAGS)
 
 #
-# Test unit
+# Examples
 #
-testunit: $(TARGET)
-	$(QUITE_TEST_BUILD)test_face_recognize;make -sC face_recognize/testunit all
-	$(QUITE_TEST_BUILD)test_camerav4l2;make -sC camera_v4l2/testunit all
-	$(QUITE_TEST_BUILD)test_zigbee;make -sC zigbee/testunit all
-	$(QUITE_TEST_BUILD)test_uart;make -sC uart/testunit all
-	$(QUITE_TEST_BUILD)test_gpio;make -sC gpio/testunit all
-	$(QUITE_TEST_BUILD)test_camera;make -sC camera/testunit all
-	$(QUITE_TEST_BUILD)test_pwm;make -sC pwm/testunit all
-	$(QUITE_TEST_BUILD)test_timer;make -sC timer/testunit all
-	$(QUITE_TEST_BUILD)test_watchdog;make -sC watchdog/testunit all
-	$(QUITE_TEST_BUILD)test_power;make -sC power/testunit all
-	$(QUITE_TEST_BUILD)test_i2c;make -sC i2c/testunit all
-	$(QUITE_TEST_BUILD)test_flash;make -sC flash/testunit all
-	$(QUITE_TEST_BUILD)test_efuse;make -sC efuse/testunit all
-	$(QUITE_TEST_BUILD)test_rtc;make -sC rtc/testunit all
-	$(QUITE_TEST_BUILD)test_spi;make -sC spi/testunit all
-	$(QUITE_TEST_BUILD)test_usb;make -sC usb/testunit all
-	$(QUITE_TEST_BUILD)test_security;make -sC security/testunit all
-	$(QUITE_TEST_BUILD)test_battery;make -sC battery/testunit all
-	$(QUITE_TEST_BUILD)test_mount;make -sC mount/testunit all
-	$(QUITE_TEST_BUILD)test_74hc595;make -sC 74hc595/testunit all
-	$(QUITE_TEST_BUILD)test_cypress;make -sC cypress/testunit all
-	$(QUITE_TEST_BUILD)test_input;make -sC input/testunit all
-	$(QUITE_TEST_BUILD)test_vibrator;make -sC vibrator/testunit all
-	$(QUITE_TEST_BUILD)test_fingerprint2;make -sC fingerprint2/testunit all
-	$(QUITE_TEST_BUILD)test_default_runnable;make -sC utils/runnable/testunit all
-	$(QUITE_TEST_BUILD)test_fb;make -sC fb/testunit all
-	$(QUITE_TEST_BUILD)test_graphics;make -sC graphics/testunit all
-	$(QUITE_TEST_BUILD)test_wave_play;make -sC audio/alsa/testunit all
-	$(QUITE_TEST_BUILD)test_wave_recod;make -sC audio/alsa/testunit all
+examples: $(TARGET)
+	@$(MAKE) -sC examples all
+	@echo -e '\n  $@: $(shell basename $(EXAMPLES_OUTDIR))/test_xxx is ready\n'
 
-	@echo -e '\n  $@: $(shell basename $(OUTDIR))/test_xxx is ready\n'
+examples_clean:
+	@$(MAKE) -sC examples clean
 
-testunit_clean:
-	$(QUITE_TEST_BUILD)test_face_recognize;make -sC face_recognize/testunit clean
-	$(QUITE_TEST_CLEAN)test_camerav4l2;make -sC camera_v4l2/testunit clean
-	$(QUITE_TEST_CLEAN)test_zigbee;make -sC zigbee/testunit clean
-	$(QUITE_TEST_CLEAN)test_uart;make -sC uart/testunit clean
-	$(QUITE_TEST_CLEAN)test_gpio;make -sC gpio/testunit clean
-	$(QUITE_TEST_CLEAN)test_camera;make -sC camera/testunit clean
-	$(QUITE_TEST_CLEAN)test_pwm;make -sC pwm/testunit clean
-	$(QUITE_TEST_CLEAN)test_timer;make -sC timer/testunit clean
-	$(QUITE_TEST_CLEAN)test_watchdog;make -sC watchdog/testunit clean
-	$(QUITE_TEST_CLEAN)test_power;make -sC power/testunit clean
-	$(QUITE_TEST_CLEAN)test_i2c;make -sC i2c/testunit clean
-	$(QUITE_TEST_CLEAN)test_flash;make -sC flash/testunit clean
-	$(QUITE_TEST_CLEAN)test_efuse;make -sC efuse/testunit clean
-	$(QUITE_TEST_CLEAN)test_rtc;make -sC rtc/testunit clean
-	$(QUITE_TEST_CLEAN)test_spi;make -sC spi/testunit clean
-	$(QUITE_TEST_CLEAN)test_usb;make -sC usb/testunit clean
-	$(QUITE_TEST_CLEAN)test_security;make -sC security/testunit clean
-	$(QUITE_TEST_CLEAN)test_battery;make -sC battery/testunit clean
-	$(QUITE_TEST_CLEAN)test_mount;make -sC mount/testunit clean
-	$(QUITE_TEST_CLEAN)test_74hc595;make -sC 74hc595/testunit clean
-	$(QUITE_TEST_CLEAN)test_cypress;make -sC cypress/testunit clean
-	$(QUITE_TEST_CLEAN)test_input;make -sC input/testunit clean
-	$(QUITE_TEST_CLEAN)test_vibrator;make -sC vibrator/testunit clean
-	$(QUITE_TEST_CLEAN)test_fingerprint2;make -sC fingerprint2/testunit clean
-	$(QUITE_TEST_CLEAN)test_default_runnable;make -sC utils/runnable/testunit clean
-	$(QUITE_TEST_CLEAN)test_graphics;make -sC graphics/testunit clean
-	$(QUITE_TEST_BUILD)test_wave_play;make -sC audio/alsa/testunit clean
-	$(QUITE_TEST_BUILD)test_wave_recod;make -sC audio/alsa/testunit clean
-
-clean: testunit_clean
+clean: examples_clean
 	@rm -rf $(LIBS) $(OBJS)
 	@rm -rf $(OUTDIR)
 

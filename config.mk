@@ -1,7 +1,7 @@
  #
- #  Copyright (C) 2016, Zhang YanMing <jamincheung@126.com>
+ #  Copyright (C) 2017, Zhang YanMing <yanmin.zhang@ingenic.com, jamincheung@126.com>
  #
- #  Linux recovery updater
+ #  Ingenic Linux plarform SDK project
  #
  #  This program is free software; you can redistribute it and/or modify it
  #  under  the terms of the GNU General  Public License as published by the
@@ -36,6 +36,10 @@ $(if $(OUTDIR),,$(error output directory "$(OUTDIR)" does not exist))
 LIBS_OUTDIR := $(OUTDIR)/lib
 $(shell [ -d $(LIBS_OUTDIR) ] || mkdir -p $(LIBS_OUTDIR))
 $(if $(LIBS_OUTDIR),,$(error output directory "$(LIBS_OUTDIR)" does not exist))
+
+EXAMPLES_OUTDIR := $(OUTDIR)/examples
+$(shell [ -d $(EXAMPLES_OUTDIR) ] || mkdir -p $(EXAMPLES_OUTDIR))
+$(if $(EXAMPLES_OUTDIR),,$(error output directory "$(EXAMPLES_OUTDIR)" does not exist))
 
 #
 # Cross compiler

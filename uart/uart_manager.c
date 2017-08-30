@@ -14,16 +14,8 @@
  *
  */
 
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <time.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <utime.h>
-#include <sys/stat.h>
-#include <sys/types.h>
+
 #include <types.h>
 #include <utils/log.h>
 #include <utils/assert.h>
@@ -32,42 +24,42 @@
 #include <lib/uart/libserialport_internal.h>
 #include <uart/uart_manager.h>
 
- struct uart_port_dev {
+#define LOG_TAG "uart_manager"
+
+struct uart_port_dev {
     char name[NAME_MAX];
     struct sp_port* sp_port;
     struct sp_port_config *sp_config;
     uint8_t in_use;
 };
 
-#define LOG_TAG "uart"
-
 static struct uart_port_dev port_dev[UART_MAX_CHANNELS];
 
-static  struct uart_port_dev* get_in_use_channel(char *devname) {
+static struct uart_port_dev* get_in_use_channel(char *devname) {
     struct uart_port_dev *dev;
-    int i;
 
-    assert_die_if(devname == NULL, "devname is null\n");
-    for (i = 0; i < sizeof(port_dev)/sizeof(port_dev[0]); i++) {
+    for (int i = 0; i < ARRAY_SIZE(port_dev); i++) {
         dev = &port_dev[i];
         if (dev->in_use && !strcmp(devname, dev->name)) {
             return dev;
         }
     }
+
     return NULL;
 }
 
 static struct uart_port_dev* get_prepared_channel(char *devname) {
     struct uart_port_dev *dev;
-    for (int i = 0; i < sizeof(port_dev)/sizeof(port_dev[0]); i++) {
+
+    for (int i = 0; i < ARRAY_SIZE(port_dev); i++) {
         dev = &port_dev[i];
         if (!dev->in_use){
-            strncpy(dev->name, devname, sizeof(dev->name));
-            dev->name[sizeof(dev->name) - 1] = '\0';
+            strncpy(dev->name, devname, strlen(devname) + 1);
             dev->in_use = 1;
             return dev;
         }
     }
+
     return NULL;
 }
 
@@ -99,8 +91,9 @@ static int free_channel(char *devname) {
     return 0;
 }
 
-static int32_t uart_init(char* devname, uint32_t baudrate, uint8_t date_bits, uint8_t parity,
-        uint8_t stop_bits) {
+static int32_t uart_init(char* devname, uint32_t baudrate, uint8_t date_bits,
+        uint8_t parity, uint8_t stop_bits) {
+    assert_die_if(devname == NULL, "device name is NULL\n");
 
     struct uart_port_dev *dev;
 
@@ -127,6 +120,11 @@ static int32_t uart_init(char* devname, uint32_t baudrate, uint8_t date_bits, ui
 
     if (sp_get_config(dev->sp_port, dev->sp_config) < 0) {
         LOGE("Failed to get current port config\n");
+        goto out;
+    }
+
+    if (sp_set_config_xon_xoff(dev->sp_config, SP_XONXOFF_DISABLED) < 0) {
+        LOGE("Failed to disable port xon/xoff\n");
         goto out;
     }
 
@@ -166,6 +164,7 @@ out:
 }
 
 static int32_t uart_deinit(char* devname) {
+    assert_die_if(devname == NULL, "device name is NULL\n");
 
     struct uart_port_dev* dev;
     if (!(dev = get_in_use_channel(devname))) {
@@ -177,47 +176,57 @@ static int32_t uart_deinit(char* devname) {
         LOGE("Failed to close\n");
         return -1;
     }
+
     if (dev->sp_config) {
         sp_free_config(dev->sp_config);
         dev->sp_config = NULL;
     }
+
     if (dev->sp_port) {
         sp_free_port(dev->sp_port);
         dev->sp_port = NULL;
     }
+
     free_channel(devname);
+
     return 0;
 }
 
 static int32_t uart_flow_control(char* devname, uint8_t flow_ctl) {
+    assert_die_if(devname == NULL, "device name is NULL\n");
+
     struct uart_port_dev* dev;
 
     if (!(dev = get_in_use_channel(devname))) {
         LOGE("uart device %s is not in use\n", devname);
         goto out;
     }
+
     if (sp_set_flowcontrol(dev->sp_port, flow_ctl) < 0) {
         LOGE("failed to issue flow control on uart %s\n", devname);
         goto out;
     }
     return 0;
+
 out:
     return -1;
 }
 
 static int32_t uart_write(char* devname, void* buf, uint32_t count,
         uint32_t timeout_ms) {
+    assert_die_if(devname == NULL, "device name is NULL\n");
+    assert_die_if(buf == NULL, "buf is NULL\n");
+
     struct uart_port_dev* dev;
     uint32_t writen = 0;
 
-    assert_die_if(buf == NULL, "parameter buf is null\n");
     if (!(dev = get_in_use_channel(devname))) {
         LOGE("uart device %s is not in use\n", devname);
         goto out;
     }
 
-    if (((writen  = sp_blocking_write(dev->sp_port, buf, count, timeout_ms)) < 0)
-        || (writen < count)) {
+    if (((writen  = sp_blocking_write(dev->sp_port, buf, count,
+            timeout_ms)) < 0) || (writen < count)) {
         LOGE("Failed to write on uart %s\n", devname);
         goto out;
     }
@@ -232,31 +241,34 @@ out:
     return -1;
 }
 
-static int32_t uart_read(char* devname, void* buf, uint32_t count, uint32_t timeout_ms) {
+static int32_t uart_read(char* devname, void* buf, uint32_t count,
+        uint32_t timeout_ms) {
+    assert_die_if(devname == NULL, "device name is NULL\n");
+    assert_die_if(buf == NULL, "buf is NULL\n");
+
     struct uart_port_dev* dev;
     int32_t lower_buffer_count;
     uint32_t read_count = 0;
 
-    assert_die_if(buf == NULL, "parameter buf is null\n");
     if (!(dev = get_in_use_channel(devname))) {
         LOGE("uart device %s is not in use\n", devname);
         goto out;
     }
+
     lower_buffer_count = sp_input_waiting(dev->sp_port);
     if (lower_buffer_count < 0) {
         LOGE("Failed to wait input\n");
         goto out;
     }
 
-    if ((read_count = sp_blocking_read(dev->sp_port, buf, count, timeout_ms)) < 0) {
+    if ((read_count = sp_blocking_read(dev->sp_port, buf, count,
+            timeout_ms)) < 0) {
         LOGE("Failed to read on uart %s\n", devname);
         goto out;
     }
-    if (read_count < count) {
-        //LOGW("timeout occured, but read size is not sufficient\n");
-    }
 
     return read_count;
+
 out:
     return -1;
 }
