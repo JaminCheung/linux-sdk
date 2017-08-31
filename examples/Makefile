@@ -111,8 +111,7 @@ $(EXAMPLE_BATTERY_CLEAN):
 EXAMPLE_CAMERA_CHAR := test_camera_char
 EXAMPLE_CAMERA_CHAR_CLEAN := test_camera_char_clean
 EXAMPLE_CAMERA_CHAR_OBJ := camera/main.o                                       \
-                           camera/sensor.o                                     \
-                           camera/yuv2bmp.o
+                           camera/sensor.o
 $(EXAMPLE_CAMERA_CHAR): $(EXAMPLE_CAMERA_CHAR_OBJ)
 	$(call build_example,$^,$@)
 $(EXAMPLE_CAMERA_CHAR_CLEAN):

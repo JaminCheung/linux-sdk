@@ -124,8 +124,8 @@ static int32_t spi_init(enum spi id, uint8_t mode, uint8_t bits, uint32_t speed)
 
     assert_die_if(id >= SPI_DEVICE_MAX, "SPI-%d is invalid!\n", id);
     if (spi_dev[id].is_init == true) {
-        close(spi_dev[id].fd);
-        spi_dev[id].is_init = false;
+        LOGE("SPI-%d has been initialized\n", id);
+        return -1;
     }
 
     snprintf(node, sizeof(node), "/dev/spidev0.%d", id);

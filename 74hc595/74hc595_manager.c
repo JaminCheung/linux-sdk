@@ -157,8 +157,8 @@ static int32_t sn74hc595_init(enum sn74hc595 id) {
 
     assert_die_if(id >= SN74HC595_DEVICE_NUM, "SN74HC595 dev%d is invalid!\n", id);
     if (sndev[id].is_init) {
-        LOGI("WARNING: 74HC595 has been initialized\n");
-        return 0;
+        LOGE("74HC595 dev%d has been initialized\n", id);
+        return -1;
     }
 
     snprintf(devname, sizeof(devname), "/dev/sn74hc595_%d", id);

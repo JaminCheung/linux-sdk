@@ -14,11 +14,11 @@
 
 #define LOG_TAG "test_uart"
 
-#define PORT_S1_DEVNAME     "/dev/ttyS2"
-#define PORT_S1_BAUDRATE    3000000
-#define PORT_S1_DATABITS      8
-#define PORT_S1_PRARITY         UART_PARITY_NONE
-#define PORT_S1_STOPBITS       1
+#define PORT_S1_DEVNAME             "/dev/ttyS2"
+#define PORT_S1_BAUDRATE            3000000
+#define PORT_S1_DATABITS            8
+#define PORT_S1_PARITY              UART_PARITY_NONE
+#define PORT_S1_STOPBITS            1
 #define PORT_S1_TRANSMIT_TIMEOUT    3000  //ms
 #define PORT_S1_TRANSMIT_LENGTH     10
 
@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
     }
 
     int_ret = (int)uart->init(PORT_S1_DEVNAME, PORT_S1_BAUDRATE,
-            PORT_S1_DATABITS, PORT_S1_PRARITY, PORT_S1_STOPBITS);
+            PORT_S1_DATABITS, PORT_S1_PARITY, PORT_S1_STOPBITS);
     if (int_ret < 0) {
         LOGE("uart init called failed\n\r");
         return -1;
@@ -49,8 +49,8 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 #endif
-    int i;
-    for (i = 0; i < 32; i++) {
+
+    for (int i = 0; i < 32; i++) {
         int_ret = uart->write(PORT_S1_DEVNAME,
                 write_buf, sizeof(write_buf), PORT_S1_TRANSMIT_TIMEOUT);
         if ((int_ret < 0) || (int_ret < sizeof(write_buf))) {

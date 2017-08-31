@@ -172,6 +172,7 @@ extern void (*sp_debug_handler)(const char *format, ...);
 	if (sp_debug_handler) \
 		sp_debug_handler(fmt ".\n", __VA_ARGS__); \
 } while (0)
+#undef DEBUG
 #define DEBUG(msg) DEBUG_FMT(msg, NULL)
 #define DEBUG_ERROR(err, msg) DEBUG_FMT("%s returning " #err ": " msg, __func__)
 #define DEBUG_FAIL(msg) do {               \

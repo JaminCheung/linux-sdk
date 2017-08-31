@@ -71,7 +71,7 @@ int main(int argc, const char *argv[])
     int cmd_len;
     int to_send = 0;
     fd_set rfds;
-    int i, retval;
+    int retval;
 
     if (argc != 2) {
         fprintf(stderr, "Usage: %s devname\n",
@@ -90,6 +90,7 @@ int main(int argc, const char *argv[])
         printf("USB cdc acm init failed \n");
         return -1;
     }
+
      /* 通信测试 */
     printf("read unit size is %d\n", max_read_size);
     runner->start(runner, NULL);
@@ -124,6 +125,7 @@ int main(int argc, const char *argv[])
             }
         }
     }
+
     return 0;
 out:
     cdc_acm->deinit(filename);

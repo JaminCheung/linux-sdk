@@ -81,6 +81,17 @@ struct uart_manager {
      */
     int32_t (*deinit)(char* devname);
     /**
+     * Function: uart_is_init
+     * Description: 判断串口设备是否已经被初始化
+     * Input:
+     *      devname: 串口设备名称
+     *         例如: 普通串口设备/dev/ttySX， usb转串口/dev/ttyUSBX; X为设备序号
+     * Output: 无
+     * Return: true: 已经初始化， false: 还没初始化
+     * Others: 在多线程对uart初始化前, 可以调用此函数判断uart设备是否已经初始化
+     */
+    bool (*is_init)(char* devname);
+    /**
      * Function: uart_flow_control
      * Description: 串口流控
      * Input:

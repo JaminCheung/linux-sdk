@@ -51,11 +51,13 @@
  */
 struct i2c_bus {
     int fd;
-    int count;
+    int dev_count;
     bool is_init;
+    pthread_mutex_t lock;
 };
 
 static struct i2c_bus i2c_bus[I2C_BUS_MAX];
+static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /*
  * Functions
@@ -158,20 +160,23 @@ static int32_t i2c_check_chip_addr(struct i2c_unit *i2c) {
     int i;
     int retval;
 
-    assert_die_if(i2c_bus[i2c->id].fd < 0, "Error: i2c_bus[%d].fd < 0 !\n", i2c->id);
-
+    pthread_mutex_lock(&i2c_bus[i2c->id].lock);
     retval = i2c_smbus_set_slave_addr(i2c_bus[i2c->id].fd, i2c->chip_addr, true);
     if (retval < 0) {
         LOGE("Failed to set I2C-%d chip addr: %s\n", i2c->id, strerror(errno));
-        return -1;
+        goto exit;
     }
 
     for (i = 0; i < 5; i++) {
         retval = i2c_read_byte(i2c_bus[i2c->id].fd, I2C_CHECK_READ_ADDR + i);
-        if (retval >= 0)
+        if (retval >= 0) {
+            pthread_mutex_unlock(&i2c_bus[i2c->id].lock);
             return 0;
+        }
     }
 
+exit:
+    pthread_mutex_unlock(&i2c_bus[i2c->id].lock);
     return -1;
 }
 
@@ -186,21 +191,27 @@ static int32_t i2c_write(struct i2c_unit *i2c, uint8_t *buf, int addr, int count
         return -1;
     }
 
+    pthread_mutex_lock(&i2c_bus[i2c->id].lock);
     retval = i2c_smbus_set_slave_addr(i2c_bus[i2c->id].fd, i2c->chip_addr, true);
     if (retval < 0) {
         LOGE("Failed to set I2C-%d chip addr: %s\n", i2c->id, strerror(errno));
-        return -1;
+        goto err_write;
     }
 
     for (i = 0; i < count; i++) {
         retval = i2c_write_byte(i2c_bus[i2c->id].fd, addr + i, buf[i]);
         if (retval < 0) {
             LOGE("Failed to write I2C-%d: %s\n", i2c->id, strerror(errno));
-            return -1;
+            goto err_write;
         }
     }
 
+    pthread_mutex_unlock(&i2c_bus[i2c->id].lock);
     return 0;
+
+err_write:
+    pthread_mutex_unlock(&i2c_bus[i2c->id].lock);
+    return retval;
 }
 
 static int32_t i2c_read(struct i2c_unit *i2c, uint8_t *buf, int addr, int count) {
@@ -214,21 +225,27 @@ static int32_t i2c_read(struct i2c_unit *i2c, uint8_t *buf, int addr, int count)
         return -1;
     }
 
+    pthread_mutex_lock(&i2c_bus[i2c->id].lock);
     retval = i2c_smbus_set_slave_addr(i2c_bus[i2c->id].fd, i2c->chip_addr, true);
     if (retval < 0) {
         LOGE("Failed to set I2C-%d chip addr: %s\n", i2c->id, strerror(errno));
-        return -1;
+        goto err_read;
     }
 
     for (i = 0; i < count; i++) {
         buf[i] = i2c_read_byte(i2c_bus[i2c->id].fd, addr + i);
         if(buf[i] < 0) {
             LOGE("Failed to read I2C-%d: %s\n", i2c->id, strerror(errno));
-            return -1;
+            goto err_read;
         }
     }
 
+    pthread_mutex_unlock(&i2c_bus[i2c->id].lock);
     return 0;
+
+err_read:
+    pthread_mutex_unlock(&i2c_bus[i2c->id].lock);
+    return retval;
 }
 
 static int32_t i2c_init(struct i2c_unit *i2c) {
@@ -238,13 +255,21 @@ static int32_t i2c_init(struct i2c_unit *i2c) {
 
     assert_die_if(i2c->id >= I2C_BUS_MAX, "I2C-%d is invalid!\n", i2c->id);
 
+    pthread_mutex_lock(&init_lock);
     if (i2c_bus[i2c->id].is_init == false) {
         retval = i2c_smbus_open(i2c->id);
-        assert_die_if(retval < 0, "Failed to open %s: %s\n", filename, strerror(errno));
+        if(retval < 0) {
+            LOGE("Failed to open %s: %s\n", filename, strerror(errno));
+            goto err_init;
+        }
         i2c_bus[i2c->id].fd = retval;
 
         retval = i2c_smbus_get_funcs_matrix(i2c_bus[i2c->id].fd, &funcs);
-        assert_die_if(retval < 0, "Failed to get I2C-%d functions: %s\n", i2c->id, strerror(errno));
+        if(retval < 0) {
+            LOGE("Failed to get I2C-%d functions: %s\n", i2c->id, strerror(errno));
+            i2c_smbus_close(i2c_bus[i2c->id].fd);
+            goto err_init;
+        }
 
         CHECK_I2C_FUNC(funcs, I2C_FUNC_SMBUS_READ_BYTE);
         CHECK_I2C_FUNC(funcs, I2C_FUNC_SMBUS_WRITE_BYTE);
@@ -252,30 +277,43 @@ static int32_t i2c_init(struct i2c_unit *i2c) {
         CHECK_I2C_FUNC(funcs, I2C_FUNC_SMBUS_WRITE_BYTE_DATA);
         CHECK_I2C_FUNC(funcs, I2C_FUNC_SMBUS_READ_WORD_DATA);
         CHECK_I2C_FUNC(funcs, I2C_FUNC_SMBUS_WRITE_WORD_DATA);
+
+        pthread_mutex_init(&i2c_bus[i2c->id].lock, NULL);
     }
 
     retval = i2c_check_chip_addr(i2c);
-    assert_die_if(retval < 0, "Failed to check I2C-%d chip addr: %0x\n", i2c->id, i2c->chip_addr);
+    if(retval < 0) {
+        LOGE("Failed to check I2C-%d chip addr: %0x\n", i2c->id, i2c->chip_addr);
+        goto err_init;
+    }
 
     i2c_bus[i2c->id].is_init = true;
-    i2c_bus[i2c->id].count++;
+    i2c_bus[i2c->id].dev_count++;
+    pthread_mutex_unlock(&init_lock);
     return 0;
+
+err_init:
+    pthread_mutex_unlock(&init_lock);
+    return retval;
 }
 
 static void i2c_deinit(struct i2c_unit *i2c) {
     assert_die_if(i2c->id >= I2C_BUS_MAX, "I2C-%d is invalid!\n", i2c->id);
 
-    if (i2c_bus[i2c->id].count == 1) {
+    pthread_mutex_lock(&init_lock);
+    if (i2c_bus[i2c->id].dev_count == 1) {
         i2c_smbus_close(i2c_bus[i2c->id].fd);
         i2c_bus[i2c->id].fd = -1;
         i2c_bus[i2c->id].is_init = false;
+        pthread_mutex_destroy(&i2c_bus[i2c->id].lock);
     }
 
-    i2c_bus[i2c->id].count--;
-    if (i2c_bus[i2c->id].count < 0)
-        i2c_bus[i2c->id].count = 0;
+    i2c_bus[i2c->id].dev_count--;
+    if (i2c_bus[i2c->id].dev_count < 0)
+        i2c_bus[i2c->id].dev_count = 0;
 
     i2c->id = I2C_BUS_MAX;
+    pthread_mutex_unlock(&init_lock);
 }
 
 struct i2c_manager i2c_manager = {

@@ -30,19 +30,24 @@ struct uart_port_dev {
     char name[NAME_MAX];
     struct sp_port* sp_port;
     struct sp_port_config *sp_config;
-    uint8_t in_use;
+    bool is_init;
+    pthread_mutex_t lock;
 };
 
 static struct uart_port_dev port_dev[UART_MAX_CHANNELS];
+static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 
-static struct uart_port_dev* get_in_use_channel(char *devname) {
+static struct uart_port_dev* get_is_init_channel(char *devname) {
     struct uart_port_dev *dev;
 
     for (int i = 0; i < ARRAY_SIZE(port_dev); i++) {
         dev = &port_dev[i];
-        if (dev->in_use && !strcmp(devname, dev->name)) {
+        pthread_mutex_lock(&init_lock);
+        if (dev->is_init && !strcmp(devname, dev->name)) {
+            pthread_mutex_unlock(&init_lock);
             return dev;
         }
+        pthread_mutex_unlock(&init_lock);
     }
 
     return NULL;
@@ -53,9 +58,12 @@ static struct uart_port_dev* get_prepared_channel(char *devname) {
 
     for (int i = 0; i < ARRAY_SIZE(port_dev); i++) {
         dev = &port_dev[i];
-        if (!dev->in_use){
+        if (!dev->is_init) {
+            pthread_mutex_lock(&init_lock);
             strncpy(dev->name, devname, strlen(devname) + 1);
-            dev->in_use = 1;
+            pthread_mutex_init(&dev->lock, NULL);
+            dev->is_init = true;
+            pthread_mutex_unlock(&init_lock);
             return dev;
         }
     }
@@ -66,7 +74,7 @@ static struct uart_port_dev* get_prepared_channel(char *devname) {
 static struct uart_port_dev* alloc_channel(char *devname) {
     struct uart_port_dev *dev;
 
-    if (get_in_use_channel(devname)) {
+    if (get_is_init_channel(devname)) {
         LOGE("uart device %s is already in use\n", devname);
         return NULL;
     }
@@ -82,12 +90,16 @@ static struct uart_port_dev* alloc_channel(char *devname) {
 static int free_channel(char *devname) {
     struct uart_port_dev *dev;
 
-    if ((dev = get_in_use_channel(devname)) == NULL) {
+    if ((dev = get_is_init_channel(devname)) == NULL) {
         LOGE("uart device %s is not allocated yet\n", devname);
         return -1;
     }
 
-    dev->in_use = 0;
+    pthread_mutex_lock(&init_lock);
+    memset(dev->name, 0, sizeof(dev->name));
+    pthread_mutex_destroy(&dev->lock);
+    dev->is_init = false;
+    pthread_mutex_unlock(&init_lock);
     return 0;
 }
 
@@ -98,11 +110,12 @@ static int32_t uart_init(char* devname, uint32_t baudrate, uint8_t date_bits,
     struct uart_port_dev *dev;
 
     dev = alloc_channel(devname);
-    if (dev == NULL){
+    if (dev == NULL) {
         LOGE("Cannot alloc channel on port %s\n", devname);
         goto out;
     }
 
+    pthread_mutex_lock(&dev->lock);
     if (sp_new_config(&dev->sp_config) < 0) {
         LOGE("Failed to create new config\n");
         goto out;
@@ -148,7 +161,9 @@ static int32_t uart_init(char* devname, uint32_t baudrate, uint8_t date_bits,
         goto out;
     }
 
+    pthread_mutex_unlock(&dev->lock);
     return 0;
+
 out:
     if (dev->sp_config) {
         sp_free_config(dev->sp_config);
@@ -158,6 +173,7 @@ out:
         sp_free_port(dev->sp_port);
         dev->sp_port = NULL;
     }
+    pthread_mutex_unlock(&dev->lock);
 
     free_channel(devname);
     return -1;
@@ -167,11 +183,12 @@ static int32_t uart_deinit(char* devname) {
     assert_die_if(devname == NULL, "device name is NULL\n");
 
     struct uart_port_dev* dev;
-    if (!(dev = get_in_use_channel(devname))) {
+    if (!(dev = get_is_init_channel(devname))) {
         LOGE("uart device %s is not in use\n", devname);
         return -1;
     }
 
+    pthread_mutex_lock(&dev->lock);
     if (sp_close(dev->sp_port) < 0) {
         LOGE("Failed to close\n");
         return -1;
@@ -186,10 +203,26 @@ static int32_t uart_deinit(char* devname) {
         sp_free_port(dev->sp_port);
         dev->sp_port = NULL;
     }
+    pthread_mutex_unlock(&dev->lock);
 
     free_channel(devname);
-
     return 0;
+}
+
+static bool uart_is_init(char *devname) {
+    struct uart_port_dev *dev;
+
+    for (int i = 0; i < ARRAY_SIZE(port_dev); i++) {
+        dev = &port_dev[i];
+        pthread_mutex_lock(&init_lock);
+        if (dev->is_init && !strcmp(devname, dev->name)) {
+            pthread_mutex_unlock(&init_lock);
+            return true;
+        }
+        pthread_mutex_unlock(&init_lock);
+    }
+
+    return false;
 }
 
 static int32_t uart_flow_control(char* devname, uint8_t flow_ctl) {
@@ -197,18 +230,21 @@ static int32_t uart_flow_control(char* devname, uint8_t flow_ctl) {
 
     struct uart_port_dev* dev;
 
-    if (!(dev = get_in_use_channel(devname))) {
+    if (!(dev = get_is_init_channel(devname))) {
         LOGE("uart device %s is not in use\n", devname);
-        goto out;
+        return -1;
     }
 
+    pthread_mutex_lock(&dev->lock);
     if (sp_set_flowcontrol(dev->sp_port, flow_ctl) < 0) {
         LOGE("failed to issue flow control on uart %s\n", devname);
         goto out;
     }
+    pthread_mutex_unlock(&dev->lock);
     return 0;
 
 out:
+    pthread_mutex_unlock(&dev->lock);
     return -1;
 }
 
@@ -220,24 +256,27 @@ static int32_t uart_write(char* devname, void* buf, uint32_t count,
     struct uart_port_dev* dev;
     uint32_t writen = 0;
 
-    if (!(dev = get_in_use_channel(devname))) {
+    if (!(dev = get_is_init_channel(devname))) {
         LOGE("uart device %s is not in use\n", devname);
-        goto out;
+        return -1;
     }
 
+    pthread_mutex_lock(&dev->lock);
     if (((writen  = sp_blocking_write(dev->sp_port, buf, count,
             timeout_ms)) < 0) || (writen < count)) {
         LOGE("Failed to write on uart %s\n", devname);
-        goto out;
+        goto err_write;
     }
 
     if (sp_drain(dev->sp_port) < 0) {
         LOGE("Failed to wait out buffer drain\n");
-        goto out;
+        goto err_write;
     }
+    pthread_mutex_unlock(&dev->lock);
 
     return writen;
-out:
+err_write:
+    pthread_mutex_unlock(&dev->lock);
     return -1;
 }
 
@@ -250,32 +289,36 @@ static int32_t uart_read(char* devname, void* buf, uint32_t count,
     int32_t lower_buffer_count;
     uint32_t read_count = 0;
 
-    if (!(dev = get_in_use_channel(devname))) {
+    if (!(dev = get_is_init_channel(devname))) {
         LOGE("uart device %s is not in use\n", devname);
-        goto out;
+        return -1;
     }
 
+    pthread_mutex_lock(&dev->lock);
     lower_buffer_count = sp_input_waiting(dev->sp_port);
     if (lower_buffer_count < 0) {
         LOGE("Failed to wait input\n");
-        goto out;
+        goto err_read;
     }
 
     if ((read_count = sp_blocking_read(dev->sp_port, buf, count,
             timeout_ms)) < 0) {
         LOGE("Failed to read on uart %s\n", devname);
-        goto out;
+        goto err_read;
     }
 
+    pthread_mutex_unlock(&dev->lock);
     return read_count;
 
-out:
+err_read:
+    pthread_mutex_unlock(&dev->lock);
     return -1;
 }
 
 struct uart_manager uart_manager = {
     .init   = uart_init,
     .deinit = uart_deinit,
+    .is_init = uart_is_init,
     .flow_control = uart_flow_control,
     .write  = uart_write,
     .read   = uart_read,

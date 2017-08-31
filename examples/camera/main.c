@@ -17,11 +17,11 @@
 #include <sys/types.h>
 
 #include <utils/log.h>
+#include <utils/yuv2bmp.h>
 #include <utils/assert.h>
 #include <camera/camera_manager.h>
 
 #include "sensor.h"
-#include "yuv2bmp.h"
 
 /*
  * Macros
