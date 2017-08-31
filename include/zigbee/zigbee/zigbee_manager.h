@@ -65,6 +65,15 @@ struct zb_info_t{
     uint16_t poll_rate;
 };
 
+struct zb_uart_cfg_t{
+    char* devname;
+    uint32_t baudrate;
+    uint8_t date_bits;
+    uint8_t parity;
+    uint8_t stop_bits;
+};
+
+
 enum {
     DEV_STATUS_NONE = 0,
     DEV_STATUS_POWER_ON,
@@ -92,16 +101,15 @@ struct uart_zigbee_manager{
      *  @param   处理解析到完整数据包后的回调函数，由用户编写并传入
      *
      *  @return   0 - 成功
-     *           -1 - 入参非法
-     *           -2 - 硬件设备初始化失败
-     *           -3 - 线程逻辑初始化失败
+     *           -1 - 失败
      */
-    int (*init)(uart_zigbee_recv_cb recv_cb);
+    int (*init)(uart_zigbee_recv_cb recv_cb, struct zb_uart_cfg_t uart_cfg);
     /**
      *  @brief  硬件复位
      *
      *
-     *  @return  -1 - 操作失败
+     *  @return  0  发送成功
+     *           -1 - 操作失败
      */
     int (*reset)(void);
     /**
@@ -110,9 +118,8 @@ struct uart_zigbee_manager{
      *  @param   pl - 控制数据的载荷部分
      *  @param   len - 载荷数据长度
      *
-     *  @return   0 发送成功
-     *           －1  入参非法
-     *           －2  发送失败
+     *  @return   0  发送成功
+     *           －1 失败
      */
     int (*ctrl)(uint8_t* pl, uint16_t len);
     /**
@@ -120,8 +127,7 @@ struct uart_zigbee_manager{
      *
      *
      *  @return   0 发送成功
-     *           －1  入参非法
-     *           －2  发送失败
+     *           －1  失败
      */
     int (*get_info)(void);
     /**
@@ -161,7 +167,7 @@ struct uart_zigbee_manager{
     /**
      *  @brief   释放模块
      */
-    void (*deinit)(void);
+    int (*deinit)(void);
 };
 
 

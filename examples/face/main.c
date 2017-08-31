@@ -228,15 +228,15 @@ static void draw_png(uint8_t index)
     gr_drawer->draw_png(draw_pngs[index].p_surface, draw_pngs[index].pos_x, draw_pngs[index].pos_y);
 }
 
-#if 0
+
 /*
  * save image data to a file
  */
-static int save_image(uint8_t* data, char type)
+__attribute__((unused)) static int save_image(uint8_t* data, char type)
 {
     char filename[64];
     static int filelen, cnt = 0;
-    #define FIMENAME    "Monk"
+    #define FIMENAME    "Test"
     FILE *fp;
 
     sprintf(filename,"%s%d-%d",FIMENAME,cnt++,type);
@@ -251,7 +251,7 @@ static int save_image(uint8_t* data, char type)
     }
     fclose(fp);
 }
-#endif
+
 /*
  * extract y value from yuv iamge
  */
@@ -631,7 +631,7 @@ static void camera_deinit()
     cimm->deinit();
 }
 
- static int set_system_time()
+static int set_system_time()
 {
     struct tm _tm;
     struct timeval tv;

@@ -163,6 +163,7 @@ static void frame_receive_cb(uint8_t* buf, uint32_t width, uint32_t height, uint
 int main(int argc, char *argv[])
 {
     struct capt_param_t capt_param;
+    int ret;
 
     capt_param.width  = DEFAULT_WIDTH;
     capt_param.height = DEFAULT_HEIGHT;
@@ -191,6 +192,7 @@ int main(int argc, char *argv[])
         case 'h':
             usage(stdout, argc, argv);
             return 0;
+
         case 'm':
             capt_param.io = METHOD_MMAP;
             break;
@@ -253,13 +255,25 @@ int main(int argc, char *argv[])
 
     cimm = get_camera_v4l2_manager();
 
-    cimm->init(&capt_param);
+    ret = cimm->init(&capt_param);
+    if (ret < 0) {
+        LOGE("Failed to init camera manager\n");
+        return -1;
+    }
+
     cimm->start();
+    if (ret < 0) {
+        LOGE("Failed to start.\n");
+        return -1;
+    }
+
     if (capt_op.action == PREVIEW_PICTURE){
-        while(1);
+        while(getchar() != 'Q')
+            LOGI("Enter 'Q' to exit\n");
     } else if (capt_op.action == CAPTURE_PICTURE) {
         sleep(1);
     }
+
     cimm->stop();
     cimm->deinit();
     return 0;

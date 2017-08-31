@@ -7,14 +7,15 @@
 
 #ifndef _YUV2BMP_H
 #define _YUV2BMP_H
+#include <types.h>
 
 #define FAR
-#define DWORD unsigned int
-#define WORD  unsigned short
+#define DWORD uint32_t
+#define WORD  uint16_t
 #ifndef LONG
-#define LONG  unsigned long
+#define LONG  uint64_t
 #endif
-#define BYTE  unsigned char
+#define BYTE  uint8_t
 
 #ifndef PACKED
 #define PACKED
@@ -89,8 +90,8 @@ typedef PACKED struct tagBITMAPFILEHEADER
 /*
  * Extern functions
  */
-int yuv2rgb(unsigned char *yuv, unsigned char *rgb, unsigned int width, unsigned height);
-int rgb2bmp(char *filename, unsigned int width, unsigned int height,\
-        int iBitCount, unsigned char *rgbbuf);
+int yuv2rgb(uint8_t *yuv, uint8_t *rgb, uint32_t width, uint32_t height);
+int rgb2bmp(char *filename, uint32_t width, uint32_t height,\
+        int iBitCount, uint8_t *rgbbuf);
 
 #endif /* _YUV2BMP_H */

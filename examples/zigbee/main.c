@@ -19,6 +19,14 @@
 
 #define LOG_TAG                         "zigbee_test"
 
+#define PORT_S1_DEVNAME                 "/dev/ttyS1"
+#define PORT_S1_BAUDRATE                115200
+#define PORT_S1_DATABITS                8
+#define PORT_S1_PRARITY                 0
+#define PORT_S1_STOPBITS                1
+
+
+
 #define ZIGBEE_ROLE_COOR                0x00
 #define ZIGBEE_ROLE_ROUTER              0x01
 #define ZIGBEE_ROLE_ENDEV               0x02
@@ -49,10 +57,6 @@ static char* status_str[] = {
 };
 
 
-
-
-
-
 static struct uart_zigbee_manager* zb_m;
 
 static pthread_mutex_t cfg_mutex  = PTHREAD_MUTEX_INITIALIZER;
@@ -61,10 +65,7 @@ static pthread_mutex_t join_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t join_cond   = PTHREAD_COND_INITIALIZER;
 
 
-
 static void zb_uart_recv_cb(uint8_t cmd, uint8_t* const pl, uint16_t len);
-
-
 
 
 int main(int argc, char *argv[]) {
@@ -73,10 +74,17 @@ int main(int argc, char *argv[]) {
     uint8_t send[10] = {0,1,2,3,4,5,6,7,8,9};
     uint8_t key[16] = {0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,\
                        0x09,0x10,0x11,0x12,0x13,0x14,0x15,0x16};
+    struct zb_uart_cfg_t uart_cfg;
+
+    uart_cfg.devname   = PORT_S1_DEVNAME;
+    uart_cfg.baudrate  = PORT_S1_BAUDRATE;
+    uart_cfg.date_bits = PORT_S1_DATABITS;
+    uart_cfg.parity    = PORT_S1_PRARITY;
+    uart_cfg.stop_bits = PORT_S1_STOPBITS;
 
     zb_m = get_zigbee_manager();
 
-    ret = zb_m->init(zb_uart_recv_cb);
+    ret = zb_m->init(zb_uart_recv_cb, uart_cfg);
     if (ret < 0) {
         LOGE("zigbee init fail. err: %d\n", ret);
         return -1;
@@ -193,7 +201,7 @@ int main(int argc, char *argv[]) {
         if (ret < 0) {
             LOGI("ctrl send fail. err: %d\n",ret);
         } else {
-            LOGI("monk send: ");
+            LOGI("app send: ");
             for (i = 0; i < sizeof(send); ++i) {
                 printf(" 0x%x", send[i]);
             }
@@ -250,7 +258,7 @@ static void zb_uart_recv_cb(uint8_t cmd, uint8_t* const pl, uint16_t len)
     switch (cmd)
     {
         case UART_CMD_DATA_REPORT:
-            LOGI("monk recv: ");
+            LOGI("app recv: ");
             for (i = 0; i < len; ++i) {
                 printf(" 0x%x", pl[i]);
             }

@@ -49,8 +49,7 @@ struct uart_pro_manager{
      *  @param   src - 应用模块的资源
      *
      *  @return  0 - 成功
-     *           -1 - 入参非法
-     *           -2 - 内存申请失败
+     *           -1  失败
      */
     int16_t (*init)(pro_src_st* src);
     /**
@@ -60,8 +59,7 @@ struct uart_pro_manager{
      *  @param   buf - 串口接收到的数据
      *  @param   len - 串口数据长度
      *
-     *  @return  -1 - 入参非法
-     *           >0 - 已接收的数据长度
+     *  @return  已接收的数据长度
      */
     int16_t (*receive)(pro_src_st* src, uint8_t* buf, uint16_t len);
     /**
@@ -73,8 +71,7 @@ struct uart_pro_manager{
      *  @param   pllen - 载荷数据长度
      *  @param   hd  -  平台串口发送的接口，传入给串口协议模块调用，由应用模块封装后传入
      *
-     *  @return  -1 - 入参非法
-     *           >0 - 实际发送的数据长度，包括串口协议部分
+     *  @return  hd return value
      *
      */
     int16_t (*send)(pro_src_st* src, uint8_t cmd, uint8_t* pl, uint16_t pllen, uart_pro_send_hd hd);
@@ -85,19 +82,15 @@ struct uart_pro_manager{
      *  @param   src - 应用模块的资源
      *  @param   cb - 应用的回调函数
      *
-     *  @return  0 - 处理成功
-     *           -1 - 入参非法
      */
-    int16_t (*handle)(pro_src_st* src, uart_pro_recv_cb cb);
+    void (*handle)(pro_src_st* src, uart_pro_recv_cb cb);
     /**
      *  @brief   释放应用资源
      *
      *  @param   src - 应用模块的资源
      *
-     *  @return  0 - 操作成功
-     *           -1 - 入参非法
      */
-    int16_t (*deinit)(pro_src_st* src);
+    void (*deinit)(pro_src_st* src);
 };
 
 

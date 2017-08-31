@@ -22,6 +22,7 @@
 #include <pthread.h>
 #include <sys/ioctl.h>
 #include <utils/log.h>
+#include <utils/assert.h>
 #include <uart/uart_manager.h>
 #include <zigbee/zigbee/zigbee_manager.h>
 #include <zigbee/protocol/uart_protocol.h>
@@ -45,11 +46,6 @@
 #define INTERRUPT_DISABLE               0
 
 
-#define PORT_S1_DEVNAME                 "/dev/ttyS1"
-#define PORT_S1_BAUDRATE                115200
-#define PORT_S1_DATABITS                8
-#define PORT_S1_PRARITY                 0
-#define PORT_S1_STOPBITS                1
 #define PORT_S1_TRANSMIT_TIMEOUT        300  //ms
 #define PORT_S1_TRANSMIT_LENGTH         10
 
@@ -110,6 +106,7 @@ static struct timer_manager *timer;
 
 struct dev_ctrl{
     int fd;                             // dev/zigbee  fd
+    int inited;
     pthread_t poll_ptid;                // poll receive thread
     pthread_mutex_t init_mutex;         // init mutex lock
     pthread_mutex_t send_mutex;         // send mutex lock
@@ -119,16 +116,18 @@ struct dev_ctrl{
     uint8_t send_cmd;
     int8_t send_result;
     uint16_t send_len;
+    char *uart_devname;
     uart_zigbee_recv_cb recv_cb;        // register to protocol receive callback
 };
 
 
 struct dev_ctrl devc = {
-    .fd = -1,
+    .fd         = -1,
+    .inited     = 0,
     .init_mutex = PTHREAD_MUTEX_INITIALIZER,
     .send_mutex = PTHREAD_MUTEX_INITIALIZER,
-    .cond = PTHREAD_COND_INITIALIZER,
-    .send_len = 0,
+    .cond       = PTHREAD_COND_INITIALIZER,
+    .send_len   = 0,
 };
 
 /**
@@ -163,7 +162,8 @@ static void zb_uart_recv_cb(uint8_t cmd, uint8_t* const pl, uint16_t len)
 
     if (cmd == UART_CMD_DATA_REQUEST) {
         if (devc.send_len > 0) {
-            uart_pro->send(&src, devc.send_cmd, devc.send_buf, devc.send_len, zb_uart_send);
+            uart_pro->send(&src, devc.send_cmd, devc.send_buf,
+                                    devc.send_len, zb_uart_send);
         }
     } else if (cmd == UART_CMD_DATA_CONFIRM) {
         CLEAN_SEND_BUF();
@@ -178,7 +178,8 @@ static void zb_uart_recv_cb(uint8_t cmd, uint8_t* const pl, uint16_t len)
 
     } else {
         if (devc.recv_cb != NULL) {
-            ret = uart_pro->send(&src, UART_CMD_DATA_CONFIRM, NULL, 0, zb_uart_send);
+            ret = uart_pro->send(&src, UART_CMD_DATA_CONFIRM,
+                                        NULL, 0, zb_uart_send);
             devc.recv_cb(cmd, pl, len);
         }
     }
@@ -228,10 +229,10 @@ static void* zb_poll(void* p)
     (void)p;
 
     pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldstate);
-
     while(1) {
         pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &oldstate);
-        ret = uart->read(PORT_S1_DEVNAME, devc.read_buf, READ_BUF_LEN, PORT_S1_TRANSMIT_TIMEOUT);
+        ret = uart->read(devc.uart_devname, devc.read_buf,
+                        READ_BUF_LEN, PORT_S1_TRANSMIT_TIMEOUT);
         pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
         if (ret > 0) {
             uart_pro->receive(&src, devc.read_buf, ret);
@@ -267,44 +268,46 @@ static int16_t zb_data_request(void)
  *
  *  @return  none
  */
-static int zb_dev_init(void)
+static int zb_dev_init(struct zb_uart_cfg_t uart_cfg)
 {
     int ret;
 
     devc.fd = open(ZIGBEE_DEV_NAME, O_RDWR);
     if (devc.fd < 0) {
         LOGE("%s dev: %s open fail\n",__FUNCTION__,ZIGBEE_DEV_NAME);
-        ret = -1;
         goto err_dev_open_fail;
     }
 
+    ret = asprintf(&devc.uart_devname, uart_cfg.devname);
+    if (ret < 0) {
+        LOGE("%s dev %s uart devname malloc fail\n",
+                                __FUNCTION__,ZIGBEE_DEV_NAME);
+        goto err_uart_devname_malloc;
+    }
+
     uart = get_uart_manager();
-    ret = uart->init(PORT_S1_DEVNAME, PORT_S1_BAUDRATE, PORT_S1_DATABITS,
-                                      PORT_S1_PRARITY,  PORT_S1_STOPBITS);
+    ret = uart->init(devc.uart_devname, uart_cfg.baudrate, uart_cfg.date_bits,
+                     uart_cfg.parity,  uart_cfg.stop_bits);
     if (ret < 0) {
         LOGE("uart init called failed\n\r");
-        ret = -3;
         goto err_uart_init_fail;
     }
 
-    ret = uart->flow_control(PORT_S1_DEVNAME, UART_FLOWCONTROL_NONE);
+    ret = uart->flow_control(devc.uart_devname, UART_FLOWCONTROL_NONE);
     if (ret < 0) {
         LOGE("uart flow_control called failed\n\r");
-        ret = -3;
         goto err_uart_cfg_fail;
     }
     uart_pro = get_uart_pro_manager();
     ret = uart_pro->init(&src);
     if (ret < 0) {
         LOGE("uart protocol init failed\n\r");
-        ret = -4;
         goto err_pro_init_fail;
     }
 
     timer = get_timer_manager();
     ret = timer->init(TIMER_ID, TIMER_PERIOD, 1, send_timeout_cb, NULL);
     if (ret < 0 || (ret != TIMER_ID)) {
-        ret = -5;
         LOGE("timer init fail\n");
         goto err_timer_init_fail;
     }
@@ -315,11 +318,13 @@ err_timer_init_fail:
     uart_pro->deinit(&src);
 err_pro_init_fail:
 err_uart_cfg_fail:
-    uart->deinit(PORT_S1_DEVNAME);
+    uart->deinit(devc.uart_devname);
 err_uart_init_fail:
+    free(devc.uart_devname);
+err_uart_devname_malloc:
     close(devc.fd);
 err_dev_open_fail:
-    return ret;
+    return -1;
 }
 /**
  *  @fn      zb_dev_deinit
@@ -333,7 +338,8 @@ static void zb_dev_deinit(void)
 {
     timer->deinit(TIMER_ID);
     uart_pro->deinit(&src);
-    uart->deinit(PORT_S1_DEVNAME);
+    uart->deinit(devc.uart_devname);
+    free(devc.uart_devname);
     close(devc.fd);
 }
 
@@ -392,32 +398,37 @@ static void zb_logic_deinit(void)
  *           -3  dev init fail
  *           -4  logic init fail
  */
-static int zb_init(uart_zigbee_recv_cb recv_cb)
+static int zb_init(uart_zigbee_recv_cb recv_cb,
+                  struct zb_uart_cfg_t uart_cfg)
 {
     int ret;
 
-    ret = pthread_mutex_trylock(&(devc.init_mutex));
-    if (ret != 0) {
-        printf(" pthread tyr lock fail ret: %d\n", ret);
-        return -2;
-    }
+    assert_die_if(recv_cb == NULL, "recv_cb is NULL\n");
+    assert_die_if(uart_cfg.devname == NULL, "uart devname is NULL\n");
 
-    if (recv_cb == NULL) {
+    pthread_mutex_lock(&(devc.init_mutex));
+    if (devc.inited == 1) {
+        LOGE(" zigbee already init.\n");
+        pthread_mutex_unlock(&devc.init_mutex);
         return -1;
     }
+    pthread_mutex_unlock(&devc.init_mutex);
 
-    ret = zb_dev_init();
+    ret = zb_dev_init(uart_cfg);
     if (ret < 0) {
         LOGE("zigbee dev init ret: %d\n", ret);
-        return -3;
+        return -1;
     }
 
     ret = zb_logic_init(recv_cb);
     if (ret < 0) {
         LOGE("zigbee logic init ret: %d\n", ret);
         zb_dev_deinit();
-        return -4;
+        return -1;
     }
+
+    devc.inited = 1;
+
     return 0;
 }
 
@@ -436,7 +447,6 @@ static int zb_trigger_send(void)
     int ret;
 
     pthread_mutex_lock(&devc.send_mutex);
-
     if (devc.fd >= 0) {
         ret = ioctl(devc.fd, ZB_CC2530_IOC_WAKE, 0);
         if (ret < 0) {
@@ -474,10 +484,9 @@ static int16_t zb_uart_send(uint8_t* buf, uint16_t len)
 {
     int ret;
 
-    if (buf == NULL)
-        return -1;
+    assert_die_if(buf == NULL, "buf is NULL\n");
 
-    ret = uart->write(PORT_S1_DEVNAME, buf, len, PORT_S1_TRANSMIT_TIMEOUT);
+    ret = uart->write(devc.uart_devname, buf, len, PORT_S1_TRANSMIT_TIMEOUT);
     if (ret < 0) {
         LOGE("uart write failed\n\r");
     }
@@ -501,17 +510,15 @@ static int zb_ctrl(uint8_t* pl, uint16_t len)
 {
     int ret;
 
-    if (pl == NULL || len == 0 || len > SEND_BUF_LEN) {
-        LOGE("zigbee ctrl data invalid\r\n");
-        return -1;
-    }
+    assert_die_if(pl == NULL, "pl is NULL\n");
+    assert_die_if(len == 0 || len > SEND_BUF_LEN, "payload len error\n");
 
     MKSEND_BUF(pl,UART_CMD_CTRL,len);
 
     ret = zb_trigger_send();
     if (ret < 0) {
         LOGW("%s send timeout\r\n",__FUNCTION__);
-        return -2;
+        return -1;
     }
 
     return 0;
@@ -564,7 +571,8 @@ static int zb_hard_reset(void)
     return 0;
 }
 
-static int zb_cfg_reboot(void) {
+static int zb_cfg_reboot(void)
+{
     uint8_t sendbuf[1] = {0};
     int ret = -1;
 
@@ -586,8 +594,7 @@ static int zb_cfg_role(uint8_t role)
     uint8_t sendbuf[2] = {0};
     int ret = -1;
 
-    if (role > 2)
-        return -1;
+    assert_die_if(role > 2, "role %d is unknow\n", role);
 
     sendbuf[0] = ZB_CFG_ROLE;
     sendbuf[1] = role;
@@ -597,7 +604,7 @@ static int zb_cfg_role(uint8_t role)
     ret = zb_trigger_send();
     if (ret < 0) {
         LOGW("%s send timeout\r\n",__FUNCTION__);
-        return -2;
+        return -1;
     }
 
     return 0;
@@ -629,8 +636,8 @@ static int zb_cfg_channel(uint8_t channel)
     uint8_t sendbuf[2] = {0};
     int ret = -1;
 
-    if (channel > 0x1A || channel < 0x0B)
-        return -1;
+    assert_die_if(channel > 0x1A || channel < 0x0B,
+                 "channel %d is unknow\n", channel);
 
     sendbuf[0] = ZB_CFG_CHANNEL;
     sendbuf[1] = channel;
@@ -640,7 +647,7 @@ static int zb_cfg_channel(uint8_t channel)
     ret = zb_trigger_send();
     if (ret < 0) {
         LOGW("%s send timeout\r\n",__FUNCTION__);
-        return -2;
+        return -1;
     }
 
     return 0;
@@ -650,8 +657,8 @@ static int zb_cfg_seckey(uint8_t* key, uint8_t keylen)
 {
     uint8_t sendbuf[17] = {0};
     int ret = -1;
-    if (key == NULL || keylen != 16)
-        return -1;
+    assert_die_if(key == NULL, "key is NULL\n");
+    assert_die_if(keylen != 16, "keylen is error\n");
 
     sendbuf[0] = ZB_CFG_SECKEY;
     memcpy(&sendbuf[1], key, keylen);
@@ -661,7 +668,7 @@ static int zb_cfg_seckey(uint8_t* key, uint8_t keylen)
     ret = zb_trigger_send();
     if (ret < 0) {
         LOGW("%s send timeout\r\n",__FUNCTION__);
-        return -2;
+        return -1;
     }
 
     return 0;
@@ -691,8 +698,7 @@ static int zb_cfg_cast_type(uint8_t type, uint16_t addr)
     uint8_t sendbuf[4] = {0};
     int ret = -1;
 
-    if (type > 2)
-        return -1;
+    assert_die_if(type > 2, "cast type is unknow\n");
 
     sendbuf[0] = ZB_CFG_CASETYPE;
     sendbuf[1] = type;
@@ -704,7 +710,7 @@ static int zb_cfg_cast_type(uint8_t type, uint16_t addr)
     ret = zb_trigger_send();
     if (ret < 0) {
         LOGW("%s send timeout\r\n",__FUNCTION__);
-        return -2;
+        return -1;
     }
 
     return 0;
@@ -769,11 +775,22 @@ static int zb_cfg_tx_power(int8_t power)
     return 0;
 }
 
-static void zb_deinit(void)
+static int zb_deinit(void)
 {
+    pthread_mutex_lock(&(devc.init_mutex));
+    if (devc.inited == 0) {
+        LOGE(" zigbee already deinit.\n");
+        pthread_mutex_unlock(&devc.init_mutex);
+        return -1;
+    }
+    pthread_mutex_unlock(&devc.init_mutex);
+
     zb_logic_deinit();
     zb_dev_deinit();
-    pthread_mutex_unlock(&devc.init_mutex);
+
+    devc.inited = 0;
+
+    return 0;
 }
 
 

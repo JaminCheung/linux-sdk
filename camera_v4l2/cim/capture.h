@@ -1,13 +1,21 @@
-/*************************************************************************
-    > Filename: capture.h
-    >   Author: Qiuwei.wang
-    >    Email: qiuwei.wang@ingenic.com
-    > Datatime: Fri 02 Dec 2016 10:07:17 AM CST
- ************************************************************************/
-
+/*
+ *  Copyright (C) 2017, Monk Su<rongjin.su@ingenic.com, MonkSu@outlook.com>
+ *
+ *  Ingenic Linux plarform SDK project
+ *
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under  the terms of the GNU General  Public License as published by the
+ *  Free Software Foundation;  either version 2 of the License, or (at your
+ *  option) any later version.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 #ifndef _CAPTURE_H
 #define _CAPTURE_H
-
+#include <types.h>
 
 /*
  * Struct
@@ -27,18 +35,18 @@ struct buffer {
 struct capture_t {
     char *dev_name;
     int fd;
-    unsigned int width;
-    unsigned int height;
-    unsigned int bpp;
-    unsigned int sizeimage;
-    unsigned int nbuf;
-    unsigned int count;
+    uint32_t width;
+    uint32_t height;
+    uint32_t bpp;
+    uint32_t sizeimage;
+    uint32_t nbuf;
+    uint32_t count;
 
     io_method io;
     struct buffer *pbuf;
 };
 
-typedef void (*frame_process)(unsigned char* buf, unsigned int width, unsigned int height, unsigned char seq);
+typedef void (*frame_process)(uint8_t* buf, uint32_t width, uint32_t height, uint8_t seq);
 
 /*
  * Extern functions

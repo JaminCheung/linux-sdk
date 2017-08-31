@@ -1,23 +1,35 @@
-/*************************************************************************
-    > Filename: capture.c
-    >   Author: Qiuwei.wang
-    >    Email: qiuwei.wang@ingenic.com / panddio@163.com
-    > Datatime: Mon 28 Nov 2016 06:05:39 PM CST
- ************************************************************************/
+/*
+ *  Copyright (C) 2017, Wang Qiuwei <qiuwei.wang@ingenic.com, panddio@163.com>
+ *
+ *  Ingenic Linux plarform SDK project
+ *
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under  the terms of the GNU General  Public License as published by the
+ *  Free Software Foundation;  either version 2 of the License, or (at your
+ *  option) any later version.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <utils/yuv2bmp.h>
+#include <utils/log.h>
+#include <types.h>
 
 
+#define LOG_TAG                          "yuv2bmp"
 /*
  * Functions
  */
 
-static unsigned int yuv2rgb_pixel(int y, int u, int v)
+static uint32_t yuv2rgb_pixel(int y, int u, int v)
 {
-    unsigned int rgb_24 = 0;
-    unsigned char *pixel = (unsigned char *)&rgb_24;
+    uint32_t rgb_24 = 0;
+    uint8_t *pixel = (uint8_t *)&rgb_24;
     int r, g, b;
 #if 0
     r = y + (1.370705 * (v - 128));
@@ -47,13 +59,13 @@ static unsigned int yuv2rgb_pixel(int y, int u, int v)
 /*
  * YUV422 to RGB24
  */
-int yuv2rgb(unsigned char *yuv, unsigned char *rgb, unsigned int width, unsigned height)
+int yuv2rgb(uint8_t *yuv, uint8_t *rgb, uint32_t width, uint32_t height)
 {
-    unsigned int in = 0, out = 0;
-    unsigned int pixel_16;
-    unsigned char pixel_24[3];
-    unsigned int rgb_24;
-    unsigned int y0, u, y1, v;
+    uint32_t in = 0, out = 0;
+    uint32_t pixel_16;
+    uint8_t pixel_24[3];
+    uint32_t rgb_24;
+    uint32_t y0, u, y1, v;
 
     for(in = 0; in < width * height * 2; in +=4) {
         pixel_16 = yuv[in + 3] << 24 |
@@ -104,15 +116,15 @@ int yuv2rgb(unsigned char *yuv, unsigned char *rgb, unsigned int width, unsigned
     return 0;
 }
 
-int rgb2bmp(char *filename, unsigned int width, unsigned int height,\
-        int iBitCount, unsigned char *rgbbuf)
+int rgb2bmp(char *filename, uint32_t width, uint32_t height,\
+            int iBitCount, uint8_t *rgbbuf)
 {
-    unsigned char *dstbuf;
-    unsigned int i, j;
-    unsigned long linesize, rgbsize;
+    uint8_t *dstbuf;
+    uint32_t i, j;
+    uint64_t linesize, rgbsize;
 
-    // printf("sizeof(BITMAPFILEHEADER) = 0x%02x\n", (unsigned int)sizeof(BITMAPFILEHEADER));
-    // printf("sizeof(BITMAPINFOHEADER) = 0x%02x\n", (unsigned int)sizeof(BITMAPINFOHEADER));
+    // LOGE("sizeof(BITMAPFILEHEADER) = 0x%02x\n", (uint32_t)sizeof(BITMAPFILEHEADER));
+    // LOGE("sizeof(BITMAPINFOHEADER) = 0x%02x\n", (uint32_t)sizeof(BITMAPINFOHEADER));
 
     if(iBitCount == 24) {
         FILE *fp;
@@ -121,7 +133,7 @@ int rgb2bmp(char *filename, unsigned int width, unsigned int height,\
         BITMAPINFO bmpInfo;
 
         if((fp = fopen(filename, "wb")) == NULL) {
-            printf("Can not create BMP file: %s\n", filename);
+            LOGE("Can not create BMP file: %s\n", filename);
             return -1;
         }
 
@@ -147,16 +159,16 @@ int rgb2bmp(char *filename, unsigned int width, unsigned int height,\
 
         if((ret = fwrite(&bmpHeader, 1, sizeof(BITMAPFILEHEADER), fp))
                 != sizeof(BITMAPFILEHEADER))
-            printf("write BMP file header failed: ret=%ld\n", ret);
+            LOGE("write BMP file header failed: ret=%ld\n", ret);
 
         if((ret = fwrite(&(bmpInfo.bmiHeader), 1, sizeof(BITMAPINFOHEADER), fp))
                 != sizeof(BITMAPINFOHEADER))
-            printf("write BMP file info failed: ret=%ld\n", ret);
+            LOGE("write BMP file info failed: ret=%ld\n", ret);
 
         /* convert rgbbuf */
-        dstbuf = (unsigned char *)malloc(rgbsize);
+        dstbuf = (uint8_t *)malloc(rgbsize);
         if(!dstbuf) {
-            printf("malloc dstbuf failed !!\n");
+            LOGE("malloc dstbuf failed !!\n");
             return -1;
         }
 
@@ -165,14 +177,14 @@ int rgb2bmp(char *filename, unsigned int width, unsigned int height,\
             memcpy((dstbuf + (linesize * j)), (rgbbuf + (linesize * i)), linesize);
 
         if((ret = fwrite(dstbuf, 1, rgbsize, fp)) != rgbsize)
-            printf("write BMP file date failed: ret=%ld\n", ret);
+            LOGE("write BMP file date failed: ret=%ld\n", ret);
 
         free(dstbuf);
         fclose(fp);
 
         return 0;
     } else {
-        printf("%s: error iBitCount != 24\n", __FUNCTION__);
+        LOGE("%s: error iBitCount != 24\n", __FUNCTION__);
         return -1;
     }
 }

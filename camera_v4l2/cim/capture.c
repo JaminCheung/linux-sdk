@@ -1,9 +1,18 @@
-/*************************************************************************
-    > Filename: capture.c
-    >   Author: Qiuwei.wang
-    >    Email: qiuwei.wang@ingenic.com / panddio@163.com
-    > Datatime: Mon 28 Nov 2016 06:05:39 PM CST
- ************************************************************************/
+/*
+ *  Copyright (C) 2017, Monk Su<rongjin.su@ingenic.com, MonkSu@outlook.com>
+ *
+ *  Ingenic Linux plarform SDK project
+ *
+ *  This program is free software; you can redistribute it and/or modify it
+ *  under  the terms of the GNU General  Public License as published by the
+ *  Free Software Foundation;  either version 2 of the License, or (at your
+ *  option) any later version.
+ *
+ *  You should have received a copy of the GNU General Public License along
+ *  with this program; if not, write to the Free Software Foundation, Inc.,
+ *  675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,23 +27,19 @@
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
-#include <asm/types.h>          /* for videodev2.h */
+#include <asm/types.h>
 #include <linux/videodev2.h>
 #include "jz_mem.h"
 #include <utils/yuv2bmp.h>
 #include "capture.h"
 #include <sys/time.h>
 #include <utils/log.h>
+#include <types.h>
 
 #define TRUE                            1
 #define FALSE                           0
 
 #define LOG_TAG                          "capture"
-
-#define CLEAR(x)                        memset (&(x), 0, sizeof (x))
-
-
-
 
 
 static frame_process frame_process_cb = NULL;
@@ -71,15 +76,17 @@ static int init_mmap(struct capture_t *capt)
 {
     int i;
     struct v4l2_requestbuffers req;
+    struct v4l2_buffer buf;
 
-    CLEAR(req);
+    memset(&req, 0, sizeof(req));
     req.count  = capt->nbuf;
     req.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     req.memory = V4L2_MEMORY_MMAP;
 
     /* Request buffer */
     if (-1 == ioctl(capt->fd, VIDIOC_REQBUFS, &req)) {
-        LOGE("%s Failed to ioctl: VIDIOC_REQBUFS %d %s\n", capt->dev_name, errno, strerror(errno));
+        LOGE("%s Failed to ioctl: VIDIOC_REQBUFS %d %s\n",
+                                    capt->dev_name, errno, strerror(errno));
         goto err_ioctl_reqbufs;
     }
 
@@ -96,22 +103,22 @@ static int init_mmap(struct capture_t *capt)
 
     /* Update the value of nbuf */
     capt->nbuf = req.count;
-    printf("%s req.count: %d\n", __FUNCTION__,req.count);
+    LOGI("%s req.count: %d\n", __FUNCTION__,req.count);
     for (i = 0; i < req.count; i++) {
-        struct v4l2_buffer buf;
-
-        CLEAR(buf);
+        memset(&buf, 0, sizeof(buf));
         buf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
         buf.index  = i;
 
         /* Get address and length of the frame buffer */
         if (-1 == ioctl(capt->fd, VIDIOC_QUERYBUF, &buf)) {
-            LOGE("%s Failed to ioctl: VIDIOC_QUERYBUF %d %s\n", capt->dev_name, errno, strerror(errno));
+            LOGE("%s Failed to ioctl: VIDIOC_QUERYBUF %d %s\n",
+                                        capt->dev_name, errno, strerror(errno));
             goto err_ioctl_querybuf;
         }
 
-        printf("%s index %d offset: 0x%x lenth: %d\n", __FUNCTION__, i, buf.m.offset ,buf.length);
+        LOGI("%s index %d offset: 0x%x lenth: %d\n",
+                                    __FUNCTION__, i, buf.m.offset ,buf.length);
         /* memory map */
         capt->pbuf[i].length = buf.length;
         capt->pbuf[i].start  = mmap(NULL,
@@ -121,7 +128,8 @@ static int init_mmap(struct capture_t *capt)
                                     capt->fd, buf.m.offset);
 
         if (MAP_FAILED == capt->pbuf[i].start) {
-            LOGE("%s Failed to mmap %d %s\n", capt->dev_name, errno, strerror(errno));
+            LOGE("%s Failed to mmap %d %s\n",
+                                    capt->dev_name, errno, strerror(errno));
             goto err_mmap;
         }
     }
@@ -139,21 +147,22 @@ err_ioctl_reqbufs:
 static int init_userp(struct capture_t *capt)
 {
     int i;
-    unsigned int page_size;
-    unsigned int buffer_size;
+    uint32_t page_size;
+    uint32_t buffer_size;
     struct v4l2_requestbuffers req;
 
     page_size = getpagesize();
     buffer_size = (capt->sizeimage + page_size - 1) & ~(page_size - 1);
 
-    CLEAR(req);
+    memset(&req, 0, sizeof(req));
     req.count  = capt->nbuf;
     req.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     req.memory = V4L2_MEMORY_USERPTR;
 
     /* Request buffer */
     if (-1 == ioctl(capt->fd, VIDIOC_REQBUFS, &req)) {
-        LOGE("%s Failed to ioctl: VIDIOC_REQBUFS %d %s\n", capt->dev_name, errno, strerror(errno));
+        LOGE("%s Failed to ioctl: VIDIOC_REQBUFS %d %s\n",
+                                            capt->dev_name, errno, strerror(errno));
         goto err_ioctl_reqbufs;
     }
 
@@ -173,7 +182,7 @@ static int init_userp(struct capture_t *capt)
 
     for (i = 0; i < capt->nbuf; i++) {
         capt->pbuf[i].length = buffer_size;
-        capt->pbuf[i].start  = JZMalloc(128, buffer_size);
+        capt->pbuf[i].start  = jz_mem_alloc(128, buffer_size);
 
         if (!capt->pbuf[i].start) {
             LOGE("%s %s Out of memory start.\n",capt->dev_name,__FUNCTION__);
@@ -191,7 +200,7 @@ err_ioctl_reqbufs:
 }
 
 
-static void process_image(unsigned char* buf, unsigned int width, unsigned int height, unsigned int seq)
+static void process_image(uint8_t* buf, uint32_t width, uint32_t height, uint32_t seq)
 {
     if (frame_process_cb != NULL) {
         frame_process_cb(buf, width, height, seq);
@@ -202,13 +211,14 @@ static void process_image(unsigned char* buf, unsigned int width, unsigned int h
 static int read_frame(struct capture_t *capt)
 {
     struct v4l2_buffer buf;
-    unsigned int i, ret;
+    uint32_t i, ret;
 
     switch (capt->io) {
     case IO_METHOD_READ:
         ret = read(capt->fd, capt->pbuf[0].start, capt->pbuf[0].length);
         if (-1 == ret) {
-            LOGE("%s Failed to Read frame %d %s\n", capt->dev_name, errno, strerror(errno));
+            LOGE("%s Failed to Read frame %d %s\n",
+                                    capt->dev_name, errno, strerror(errno));
             return -1;
         }
 
@@ -216,26 +226,27 @@ static int read_frame(struct capture_t *capt)
         break;
 
     case IO_METHOD_MMAP:
-        CLEAR(buf);
+        memset(&buf, 0, sizeof(buf));
         buf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         buf.memory = V4L2_MEMORY_MMAP;
 
         while (-1 != ioctl(capt->fd, VIDIOC_DQBUF, &buf)) {
             assert(buf.index < capt->nbuf);
-            process_image(capt->pbuf[buf.index].start, capt->width, capt->height, buf.sequence);
+            process_image(capt->pbuf[buf.index].start, capt->width,
+                                        capt->height, buf.sequence);
             if (-1 == ioctl(capt->fd, VIDIOC_QBUF, &buf)) {
-                LOGE("%s Failed to ioctl: VIDIOC_QBUF %d %s\n", capt->dev_name, errno, strerror(errno));
+                LOGE("%s Failed to ioctl: VIDIOC_QBUF %d %s\n",
+                                    capt->dev_name, errno, strerror(errno));
                 return -1;
             }
         }
-
         break;
 
     case IO_METHOD_USERPTR:
         {
-            unsigned int page_size;
-            unsigned int buffer_size;
-            CLEAR(buf);
+            uint32_t page_size;
+            uint32_t buffer_size;
+            memset(&buf, 0, sizeof(buf));
             buf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             buf.memory = V4L2_MEMORY_USERPTR;
 
@@ -250,10 +261,12 @@ static int read_frame(struct capture_t *capt)
                 }
 
                 assert(i < capt->nbuf);
-                process_image(capt->pbuf[i].start, capt->width, capt->height, buf.sequence);
+                process_image(capt->pbuf[i].start, capt->width,
+                                    capt->height, buf.sequence);
 
                 if (-1 == ioctl(capt->fd, VIDIOC_QBUF, &buf)) {
-                    LOGE("%s Failed to ioctl: VIDIOC_QBUF %d %s\n", capt->dev_name, errno, strerror(errno));
+                    LOGE("%s Failed to ioctl: VIDIOC_QBUF %d %s\n",
+                                    capt->dev_name, errno, strerror(errno));
                     return -1;
                 }
             }
@@ -268,6 +281,7 @@ int v4l2_start_capturing(struct capture_t *capt)
 {
     int i;
     enum v4l2_buf_type type;
+    struct v4l2_buffer buf;
 
     switch (capt->io) {
     case IO_METHOD_READ:
@@ -277,33 +291,30 @@ int v4l2_start_capturing(struct capture_t *capt)
     case IO_METHOD_MMAP:
         /* Add to buffer queue */
         for (i = 0; i < capt->nbuf; i++) {
-            struct v4l2_buffer buf;
-
-            CLEAR(buf);
+            memset(&buf, 0, sizeof(buf));
             buf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             buf.memory = V4L2_MEMORY_MMAP;
             buf.index  = i;
 
             if (-1 == ioctl(capt->fd, VIDIOC_QBUF, &buf)) {
-                LOGE("%s Failed to ioctl: VIDIOC_QBUF %d %s\n", capt->dev_name, errno, strerror(errno));
+                LOGE("%s Failed to ioctl: VIDIOC_QBUF %d %s\n",
+                                    capt->dev_name, errno, strerror(errno));
                 return -1;
             }
         }
 
         type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         if (-1 == ioctl(capt->fd, VIDIOC_STREAMON, &type)) {
-            LOGE("%s Failed to ioctl: VIDIOC_STREAMON %d %s\n", capt->dev_name, errno, strerror(errno));
+            LOGE("%s Failed to ioctl: VIDIOC_STREAMON %d %s\n",
+                                    capt->dev_name, errno, strerror(errno));
             return -1;
         }
-
         break;
 
     case IO_METHOD_USERPTR:
         /* Add to buffer queue */
         for (i = 0; i < capt->nbuf; i++) {
-            struct v4l2_buffer buf;
-
-            CLEAR(buf);
+            memset(&buf, 0, sizeof(buf));
             buf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
             buf.memory = V4L2_MEMORY_USERPTR;
             buf.index  = i;
@@ -311,14 +322,16 @@ int v4l2_start_capturing(struct capture_t *capt)
             buf.m.userptr = (unsigned long)capt->pbuf[i].start;
 
             if (-1 == ioctl(capt->fd, VIDIOC_QBUF, &buf)) {
-                LOGE("%s Failed to ioctl: VIDIOC_QBUF %d %s\n", capt->dev_name, errno, strerror(errno));
+                LOGE("%s Failed to ioctl: VIDIOC_QBUF %d %s\n",
+                                    capt->dev_name, errno, strerror(errno));
                 return -1;
             }
         }
 
         type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         if (-1 == ioctl(capt->fd, VIDIOC_STREAMON, &type)) {
-            LOGE("%s Failed to ioctl: VIDIOC_STREAMON %d %s\n", capt->dev_name, errno, strerror(errno));
+            LOGE("%s Failed to ioctl: VIDIOC_STREAMON %d %s\n",
+                                    capt->dev_name, errno, strerror(errno));
             return -1;
         }
         break;
@@ -340,7 +353,8 @@ int v4l2_stop_capturing(struct capture_t *capt)
     case IO_METHOD_USERPTR:
         type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         if (-1 == ioctl(capt->fd, VIDIOC_STREAMOFF, &type)) {
-            LOGE("%s Failed to ioctl: VIDIOC_STREAMOFF %d %s\n", capt->dev_name, errno, strerror(errno));
+            LOGE("%s Failed to ioctl: VIDIOC_STREAMOFF %d %s\n",
+                                    capt->dev_name, errno, strerror(errno));
             return -1;
         }
         break;
@@ -354,7 +368,8 @@ int v4l2_open_device(struct capture_t *capt)
     struct stat st;
 
     if (-1 == stat(capt->dev_name, &st)) {
-        LOGE("%s Cannot identify %d %s\n", capt->dev_name, errno, strerror(errno));
+        LOGE("%s Cannot identify %d %s\n",
+                            capt->dev_name, errno, strerror(errno));
         return -1;
     }
 
@@ -366,7 +381,8 @@ int v4l2_open_device(struct capture_t *capt)
     capt->fd = open(capt->dev_name, O_RDWR | O_NONBLOCK, 0);
 
     if (capt->fd < 0) {
-        LOGE("%s Cannot open. %d %s\n", capt->dev_name, errno, strerror(errno));
+        LOGE("%s Cannot open. %d %s\n",
+                            capt->dev_name, errno, strerror(errno));
         return -1;
     }
 
@@ -376,7 +392,8 @@ int v4l2_open_device(struct capture_t *capt)
 int v4l2_close_device(struct capture_t *capt)
 {
     if (-1 == close(capt->fd)) {
-        LOGE("%s Cannot close. %d %s\n", capt->dev_name, errno, strerror(errno));
+        LOGE("%s Cannot close. %d %s\n",
+                            capt->dev_name, errno, strerror(errno));
         return -1;
     }
     capt->fd = -1;
@@ -389,7 +406,7 @@ int v4l2_close_device(struct capture_t *capt)
 int v4l2_init_device(struct capture_t *capt, frame_process fp_cb)
 {
     int ret;
-    unsigned int min;
+    uint32_t min;
     struct v4l2_capability cap;
     struct v4l2_cropcap cropcap;
     struct v4l2_crop crop;
@@ -400,7 +417,8 @@ int v4l2_init_device(struct capture_t *capt, frame_process fp_cb)
     }
 
     if (-1 == ioctl(capt->fd, VIDIOC_QUERYCAP, &cap)) {
-        LOGE("%s Failed to ioctl: VIDIOC_QUERYCAP %d %s\n", capt->dev_name, errno, strerror(errno));
+        LOGE("%s Failed to ioctl: VIDIOC_QUERYCAP %d %s\n",
+                                capt->dev_name, errno, strerror(errno));
         return -1;
     }
 
@@ -415,7 +433,6 @@ int v4l2_init_device(struct capture_t *capt, frame_process fp_cb)
             LOGE("%s does not support read i/o.\n", capt->dev_name);
             return -1;
         }
-
         break;
 
     case IO_METHOD_MMAP:
@@ -428,21 +445,21 @@ int v4l2_init_device(struct capture_t *capt, frame_process fp_cb)
     }
 
     /* Select video input, video standard and tune here */
-    CLEAR(cropcap);
-
+    memset(&cropcap, 0, sizeof(cropcap));
     cropcap.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if (0 == ioctl(capt->fd, VIDIOC_CROPCAP, &cropcap)) {
         crop.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
         crop.c = cropcap.defrect; /* reset to default */
 
         if (-1 == ioctl(capt->fd, VIDIOC_S_CROP, &crop)) {
-            LOGE("%s Failed to ioctl: VIDIOC_S_CROP %d %s\n", capt->dev_name, errno, strerror(errno));
+            LOGE("%s Failed to ioctl: VIDIOC_S_CROP %d %s\n",
+                            capt->dev_name, errno, strerror(errno));
         }
     } else {
         /* Errors ignored */
     }
 
-    CLEAR(fmt);
+    memset(&fmt, 0, sizeof(fmt));
     fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     fmt.fmt.pix.width       = capt->width;
     fmt.fmt.pix.height      = capt->height;
@@ -450,7 +467,8 @@ int v4l2_init_device(struct capture_t *capt, frame_process fp_cb)
     fmt.fmt.pix.field       = V4L2_FIELD_NONE; //V4L2_FIELD_INTERLACED;
 
     if (-1 == ioctl(capt->fd, VIDIOC_S_FMT, &fmt)) {
-        LOGE("%s Failed to ioctl: VIDIOC_S_FMT %d %s\n", capt->dev_name, errno, strerror(errno));
+        LOGE("%s Failed to ioctl: VIDIOC_S_FMT %d %s\n",
+                            capt->dev_name, errno, strerror(errno));
         return -1;
     }
 
@@ -510,7 +528,8 @@ int v4l2_free_device(struct capture_t *capt)
         for (i = 0; i < capt->nbuf; i++) {
             if (-1 == munmap(capt->pbuf[i].start, \
                             capt->pbuf[i].length)) {
-                LOGE("%s Failed to munmap %d %s\n", capt->dev_name, errno, strerror(errno));
+                LOGE("%s Failed to munmap %d %s\n",
+                                capt->dev_name, errno, strerror(errno));
                 return -1;
             }
         }
@@ -518,7 +537,7 @@ int v4l2_free_device(struct capture_t *capt)
         break;
 
     case IO_METHOD_USERPTR:
-        jz47_free_alloc_mem();
+        jz_free_alloc_mem();
         break;
     }
 
@@ -542,7 +561,8 @@ int v4l2_loop(struct capture_t *capt)
 
         ret = select(capt->fd + 1, &fds, NULL, NULL, &tv);
         if (ret <= 0) {
-            LOGE("%s Failed to select %d %s\n", capt->dev_name, errno, strerror(errno));
+            LOGE("%s Failed to select %d %s\n",
+                                capt->dev_name, errno, strerror(errno));
             continue;
         }
         ret = read_frame(capt);
