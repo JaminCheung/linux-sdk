@@ -73,7 +73,10 @@ repop:
         offset += count;
         if (offset < ARRAY_SIZE(rd_buf))
             goto repop;
+
     }
+
+    pthread_exit(NULL);
 }
 
 static void thread_exit(void) {
