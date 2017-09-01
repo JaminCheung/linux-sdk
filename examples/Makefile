@@ -448,6 +448,16 @@ $(EXAMPLE_RUNNABLE): $(EXAMPLE_RUNNABLE_OBJ)
 $(EXAMPLE_RUNNABLE_CLEAN):
 	$(call clean_example,$(EXAMPLE_RUNNABLE_OBJ),$(EXAMPLE_RUNNABLE))
 
+#
+# Ring buffer
+#
+EXAMPLE_RING_BUFFER := test_ring_buffer
+EXAMPLE_RING_BUFFER_CLEAN := test_ring_buffer_clean
+EXAMPLE_RING_BUFFER_OBJ :=  utils/ring_buffer/main.o
+$(EXAMPLE_RING_BUFFER): $(EXAMPLE_RING_BUFFER_OBJ)
+	$(call build_example,$^,$@)
+$(EXAMPLE_RING_BUFFER_CLEAN):
+	$(call clean_example,$(EXAMPLE_RING_BUFFER_OBJ),$(EXAMPLE_RING_BUFFER))
 
 
 all:                                                                           \
@@ -484,7 +494,8 @@ all:                                                                           \
 	$(EXAMPLE_USB_SWITCH)                                                      \
 	$(EXAMPLE_VIBRATOR)                                                        \
 	$(EXAMPLE_ZIGBEE)                                                          \
-	$(EXAMPLE_RUNNABLE)
+	$(EXAMPLE_RUNNABLE)                                                        \
+	$(EXAMPLE_RING_BUFFER)
 
 clean:                                                                         \
 	$(EXAMPLE_74HC595_CLEAN)                                                   \
@@ -520,6 +531,7 @@ clean:                                                                         \
 	$(EXAMPLE_USB_SWITCH_CLEAN)                                                \
 	$(EXAMPLE_VIBRATOR_CLEAN)                                                  \
 	$(EXAMPLE_ZIGBEE_CLEAN)                                                    \
-	$(EXAMPLE_RUNNABLE_CLEAN)
+	$(EXAMPLE_RUNNABLE_CLEAN)                                                  \
+	$(EXAMPLE_RING_BUFFER_CLEAN)
 
 

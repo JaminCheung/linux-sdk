@@ -40,6 +40,7 @@ OBJS-y += utils/signal_handler.o                                               \
           utils/wave_parser.o                                                  \
           utils/runnable/pthread_wrapper.o                                     \
           utils/runnable/default_runnable.o                                    \
+          utils/ring_buffer.o                                                  \
           utils/thread_pool/thread_pool.o                                      \
           utils/yuv2bmp.o
 
