@@ -61,8 +61,6 @@ static int start(struct default_runnable* this, void* param) {
         }
     }
 
-    this->is_stop = 0;
-
     return i;
 
 error:
@@ -88,8 +86,6 @@ static void stop(struct default_runnable* this) {
         free(this->thread);
         this->thread = NULL;
     }
-
-    this->is_stop = 1;
 }
 
 static void wait(struct default_runnable* this) {
@@ -99,13 +95,28 @@ static void wait(struct default_runnable* this) {
     }
 }
 
+static int is_running(struct default_runnable* this) {
+    if (this->thread != NULL) {
+        int i;
+
+        for (i = 0; i < this->thread_count; i++) {
+            if (this->thread[i].is_running(&this->thread[i]))
+                break;
+        }
+
+        return (i != this->thread_count);
+    }
+
+    return 0;
+}
+
 void construct_default_runnable(struct default_runnable* this) {
     this->set_thread_count = set_thread_count;
     this->start = start;
+    this->is_running = is_running;
     this->stop = stop;
     this->wait = wait;
 
-    this->is_stop = 0;
     this->thread_count = 1;
     this->thread = NULL;
 }
@@ -115,10 +126,10 @@ void destruct_default_runnable(struct default_runnable* this) {
 
     this->set_thread_count = NULL;
     this->start = NULL;
+    this->is_running = NULL;
     this->stop = NULL;
     this->wait = NULL;
 
-    this->is_stop = 0;
     this->thread_count = -1;
     this->thread = NULL;
 }

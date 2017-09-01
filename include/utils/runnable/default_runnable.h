@@ -28,10 +28,10 @@ struct default_runnable {
     void (*set_thread_count)(struct default_runnable* this, int count);
     int (*start)(struct default_runnable* this, void* param);
     void (*stop)(struct default_runnable* this);
+    int (*is_running)(struct default_runnable* this);
     void (*wait)(struct default_runnable* this);
 
     int thread_count;
-    int is_stop;
     struct pthread_wrapper* thread;
 };
 

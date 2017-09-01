@@ -14,6 +14,7 @@
  *
  */
 
+#include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <pthread.h>
@@ -35,6 +36,8 @@ static pid_t gettid(void) {return (pid_t)syscall(__NR_gettid);}
 static void cleanup_handler(void* param) {
     struct pthread_wrapper* this = (struct pthread_wrapper*) param;
 
+    this->is_start = 0;
+
     if (this->get_runnable(this) && this->get_runnable(this)->cleanup)
         this->get_runnable(this)->cleanup();
 }
@@ -53,12 +56,11 @@ static void* looper(void* param) {
     this->pid = gettid();
 
     if (this->get_runnable(this)) {
+
+        this->is_start = 1;
+
         pthread_cleanup_push_defer_np(cleanup_handler, this);
-
-        pthread_testcancel();
         this->get_runnable(this)->run(this, this->get_param(this));
-        pthread_testcancel();
-
         pthread_cleanup_pop_restore_np(0);
 
         pthread_exit(NULL);
@@ -86,8 +88,8 @@ static void join(struct pthread_wrapper* this) {
     if (this->tid) {
         error = pthread_join(this->tid, &ret);
         if (error)
-            LOGE("Failed to join thread %lu: %d\n", this->tid,
-                    error);
+            LOGE("Failed to join thread %lu: %s\n", this->tid,
+                    strerror(error));
 
         if (ret == PTHREAD_CANCELED)
             LOGD("Thread was canceled.\n");
@@ -96,6 +98,7 @@ static void join(struct pthread_wrapper* this) {
 
         this->tid = 0;
         this->pid = 0;
+        this->is_start = 0;
     }
 }
 
@@ -105,8 +108,8 @@ static void cancel(struct pthread_wrapper* this) {
     if (this->tid) {
         error = pthread_cancel(this->tid);
         if (error)
-            LOGE("Failed to request thread %lu cancel: %d\n", this->tid,
-                    error);
+            LOGE("Failed to request thread %lu cancel: %s\n", this->tid,
+                    strerror(error));
     }
 }
 
@@ -122,14 +125,20 @@ static int get_pid(struct pthread_wrapper* this) {
     return this->pid;
 }
 
+static int is_running(struct pthread_wrapper* this) {
+    return this->is_start;
+}
+
 void construct_pthread_wrapper(struct pthread_wrapper* this) {
     this->start = start;
     this->join = join;
     this->cancel = cancel;
+    this->is_running = is_running;
     this->get_runnable = get_runnable;
     this->get_param = get_param;
     this->get_pid = get_pid;
 
+    this->is_start = 0;
     this->tid = 0;
     this->pid = 0;
     this->param = NULL;
@@ -139,10 +148,12 @@ void destruct_pthread_wrapper(struct pthread_wrapper* this) {
     this->start = NULL;
     this->join = NULL;
     this->cancel = NULL;
+    this->is_running = NULL;
     this->get_runnable = NULL;
     this->get_param = NULL;
     this->get_pid = NULL;
 
+    this->is_start = 0;
     this->tid = 0;
     this->pid = 0;
     this->param = NULL;

@@ -29,10 +29,12 @@ struct pthread_wrapper {
     struct runnable* (*get_runnable)(struct pthread_wrapper* this);
     void* (*get_param)(struct pthread_wrapper* this);
     int (*get_pid)(struct pthread_wrapper* this);
+    int (*is_running)(struct pthread_wrapper* this);
 
     pid_t pid;
     pthread_t tid;
     struct runnable* runnable;
+    int is_start;
     void* param;
 };
 
