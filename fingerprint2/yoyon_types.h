@@ -17,7 +17,7 @@ typedef signed char             T_S8;       /* signed 8 bit integer */
 typedef signed short            T_S16;      /* signed 16 bit integer */
 typedef signed int             T_S32;      /* signed 32 bit integer */
 typedef void                    T_VOID;     /* void */
-typedef	float					T_FLOAT;
+typedef float                   T_FLOAT;
 
 typedef unsigned char           UINT8;       /* unsigned 8 bit integer */
 typedef unsigned short          UINT16;      /* unsigned 16 bit integer */
@@ -27,28 +27,28 @@ typedef signed short            INT16;      /* signed 16 bit integer */
 typedef signed int              INT32;      /* signed 32 bit integer */
 
 /* These types must be 8-bit integer */
-typedef signed char		CHAR;
-typedef unsigned char	UCHAR;
-typedef unsigned char	BYTE;
+typedef signed char     CHAR;
+typedef unsigned char   UCHAR;
+typedef unsigned char   BYTE;
 
 /* These types must be 16-bit integer */
-typedef short			SHORT;
-typedef unsigned short	USHORT;
-typedef unsigned short	WORD;
-typedef unsigned short	WCHAR;
+typedef short           SHORT;
+typedef unsigned short  USHORT;
+typedef unsigned short  WORD;
+typedef unsigned short  WCHAR;
 
 
 
 //#define _WIN64
 
 
-#ifdef _WIN64
-typedef unsigned long long          FULL_UINT;
-typedef signed long long            FULL_INT;
-#else
+//#ifdef _WIN64
+//typedef unsigned long long          FULL_UINT;
+//typedef signed long long            FULL_INT;
+//#else
 typedef unsigned int              FULL_UINT;
 typedef signed int                FULL_INT;
-#endif
+//#endif
 
 
 #endif  //_YOYON_TYPES_H_

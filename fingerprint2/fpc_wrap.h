@@ -14,6 +14,20 @@ typedef struct customer_config
     char file_path[100];                       /*  "/xxx/xxx"    0 : defalut  */
 } customer_config_t;
 
+
+
+typedef enum fpc_msg_type {
+    FPC_ENROLL_SUCCESS          = 1,
+    FPC_ENROLL_FAILED           = 2,
+    FPC_ENROLL_ING              = 3,
+    FPC_ENROLL_DUPLICATE        = 4,
+    FPC_AUTHENTICATE_SUCCESS    = 5,
+    FPC_AUTHENTICATED_FAILED    = 6,
+    FPC_REMOVE_SUCCESS          = 7,
+    FPC_REMOVE_FAILED           = 8
+} fpc_msg_type_t;
+
+
 /******************************************************************************
  *  Description: Init fingerprint sensor
  *
@@ -97,6 +111,6 @@ int fpc_fingerprint_cancel(void);
  *               >=0 success
  *
  *************************************************************************/
-int fpc_fingerprint_get_template_info(int template_info[]);
+int fpc_fingerprint_get_template_info(uint32_t template_info[]);
 
 #endif /* FPC_FINGERPRINT_H */
