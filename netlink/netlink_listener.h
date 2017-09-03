@@ -14,17 +14,24 @@
  *
  */
 
-typedef void (*alarm_listener_t)(void);
+#ifndef NETLINK_LISTENER_H
+#define NETLINK_LISTENER_H
 
-struct alarm_manager {
-    int (*init)(void);
+#define NETLINK_FORMAT_ASCII 0
+#define NETLINK_FORMAT_BINARY 1
+
+#include <netlink/netlink_handler.h>
+
+struct netlink_listener {
+    int (*init)(int socket);
     int (*deinit)(void);
     int (*start)(void);
-    int (*stop)(void);
     int (*is_start)(void);
-    void (*set)(uint64_t when, alarm_listener_t listener);
-    void (*cancel)(alarm_listener_t listener);
-    uint64_t (*get_sys_time_ms)(void);
+    int (*stop)(void);
+    void (*register_handler)(struct netlink_handler *handler);
+    void (*unregister_handler)(struct netlink_handler *handler);
 };
 
-struct alarm_manager* get_alarm_manager(void);
+struct netlink_listener* get_netlink_listener(void);
+
+#endif /* NETLINK_LISTENER_H */

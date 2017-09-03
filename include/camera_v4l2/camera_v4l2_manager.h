@@ -64,6 +64,9 @@ struct camera_v4l2_manager {
      *
      */
     int (*stop)(void);
+
+    int (*is_start)(void);
+
     /**
      *  @brief   释放模块
      *

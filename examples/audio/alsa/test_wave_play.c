@@ -6,12 +6,12 @@
 
 #include <types.h>
 #include <utils/log.h>
-#include <utils/runnable/default_runnable.h>
 #include <utils/common.h>
 #include <utils/signal_handler.h>
 #include <input/input_manager.h>
 #include <audio/alsa/wave_player.h>
 #include <audio/alsa/mixer_controller.h>
+#include <thread/thread.h>
 
 #define LOG_TAG "test_wave_play"
 
@@ -27,7 +27,7 @@ const char* snd_device = "hw:0,0";
 static struct wave_player* player;
 static struct mixer_controller* mixer;
 static struct input_manager* input_manager;
-static struct default_runnable* play_runner;
+static struct thread* play_runner;
 static struct signal_handler* signal_handler;
 static int play_state = STATE_PLAYING;
 static int fd;
@@ -144,7 +144,7 @@ int main(int argc, char *argv[]) {
     input_manager->register_event_listener("gpio-keys", input_event_listener);
     input_manager->start();
 
-    play_runner = _new(struct default_runnable, default_runnable);
+    play_runner = _new(struct thread, thread);
     play_runner->runnable.run = play_thread;
     play_runner->runnable.cleanup = play_cleanup;
 

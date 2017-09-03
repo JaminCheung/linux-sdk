@@ -24,16 +24,19 @@
 #include <sys/time.h>
 
 #include <types.h>
+#include <thread/thread.h>
 #include <utils/log.h>
 #include <utils/list.h>
 #include <utils/assert.h>
+#include <utils/common.h>
 #include <alarm/alarm_manager.h>
 
 static pthread_mutex_t alarms_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t start_lock = PTHREAD_MUTEX_INITIALIZER;
 
-LIST_HEAD(alarm_list);
-LIST_HEAD(trigger_list);
+static LIST_HEAD(alarm_list);
+static LIST_HEAD(trigger_list);
 
 struct alarm {
     int type;
@@ -55,24 +58,24 @@ typedef enum {
 
 } android_alarm_type_t;
 
-#define ANDROID_ALARM_CLEAR(type) _IO('a', 0 | ((type) << 4))
-#define ANDROID_ALARM_WAIT _IO('a', 1)
-#define ANDROID_ALARM_SET(type) _IOW('a', 2 | ((type) << 4), struct timespec)
+#define ANDROID_ALARM_CLEAR(type)         _IO('a', 0 | ((type) << 4))
+#define ANDROID_ALARM_WAIT                _IO('a', 1)
+#define ANDROID_ALARM_SET(type)          _IOW('a', 2 | ((type) << 4), struct timespec)
 #define ANDROID_ALARM_SET_AND_WAIT(type) _IOW('a', 3 | ((type) << 4), struct timespec)
-#define ANDROID_ALARM_GET_TIME(type) _IOW('a', 4 | ((type) << 4), struct timespec)
-#define ANDROID_ALARM_SET_RTC _IOW('a', 5, struct timespec)
-#define ANDROID_ALARM_SET_TIMEZONE _IOW('a', 6, struct timezone)
+#define ANDROID_ALARM_GET_TIME(type)     _IOW('a', 4 | ((type) << 4), struct timespec)
+#define ANDROID_ALARM_SET_RTC            _IOW('a', 5, struct timespec)
+#define ANDROID_ALARM_SET_TIMEZONE       _IOW('a', 6, struct timezone)
 
-#define ANDROID_ALARM_BASE_CMD(cmd) (cmd & ~(_IOC(0, 0, 0xf0, 0)))
+#define ANDROID_ALARM_BASE_CMD(cmd)      (cmd & ~(_IOC(0, 0, 0xf0, 0)))
 #define ANDROID_ALARM_IOCTL_TO_TYPE(cmd) (_IOC_NR(cmd) >> 4)
 
 #define LOG_TAG "alarm_manager"
 
 static const int alarm_type = ANDROID_ALARM_RTC_WAKEUP;
-volatile static int thread_run;
 static int fd;
-static int thread_exit;
-static void *thread_loop(void *param);
+static uint32_t init_count;
+static uint32_t start_count;
+static struct thread* thread;
 
 __attribute__((unused)) static void dump_alarm_list_locked(void) {
     struct list_head* pos;
@@ -85,6 +88,10 @@ __attribute__((unused)) static void dump_alarm_list_locked(void) {
 
     }
     LOGI("========================================\n");
+}
+
+static void dummy_listener(void) {
+
 }
 
 static uint64_t get_sys_time_ms(void) {
@@ -168,64 +175,6 @@ static int add_alarm_locked(struct alarm* alarm) {
     return index;
 }
 
-static int init(void) {
-    pthread_mutex_lock(&init_lock);
-    if (fd > 0) {
-        LOGE("alarm manager already init.\n");
-        pthread_mutex_unlock(&init_lock);
-        return -1;
-    }
-    pthread_mutex_unlock(&init_lock);
-
-    fd = open("/dev/alarm", O_RDWR);
-    if (fd < 0) {
-        LOGE("Failed to open /dev/alarm: %s\n", strerror(errno));
-        return -1;
-    }
-
-    int error = 0;
-
-    pthread_t tid;
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-    error = pthread_create(&tid, &attr, thread_loop, NULL);
-    if (error) {
-        LOGE("pthread_create failed: %s\n", strerror(errno));
-        pthread_attr_destroy(&attr);
-
-        return -1;
-    }
-
-    pthread_attr_destroy(&attr);
-
-    while (!thread_run);
-
-    return 0;
-}
-
-static int deinit(void) {
-    pthread_mutex_lock(&init_lock);
-    if (fd <= 0) {
-        LOGE("alarm manager already deinit.\n");
-        pthread_mutex_unlock(&init_lock);
-        return -1;
-    }
-    pthread_mutex_unlock(&init_lock);
-
-    if (fd > 0) {
-        close(fd);
-        fd = -1;
-    }
-
-    pthread_mutex_lock(&alarms_lock);
-    thread_exit = 1;
-    pthread_mutex_unlock(&alarms_lock);
-
-    return 0;
-}
-
 static int wait_for_alarm(void) {
     int error = 0;
 
@@ -235,7 +184,7 @@ static int wait_for_alarm(void) {
 
     if (error < 0) {
         LOGE("Unable to wait on alarm: %s\n", strerror(errno));
-        return 0;
+        return -1;
     }
 
     return error;
@@ -357,19 +306,14 @@ static void trigger_alarm_locked(void) {
     }
 }
 
-static void *thread_loop(void *param) {
-
-    thread_run = 1;
+static void thread_loop(struct pthread_wrapper* pthread, void *param) {
 
     for (;;) {
-        pthread_mutex_lock(&alarms_lock);
-        if (thread_exit) {
-            pthread_mutex_unlock(&alarms_lock);
-            break;
-        }
-        pthread_mutex_unlock(&alarms_lock);
+        pthread_testcancel();
 
         wait_for_alarm();
+
+        pthread_testcancel();
 
         pthread_mutex_lock(&alarms_lock);
 
@@ -386,7 +330,7 @@ static void *thread_loop(void *param) {
         pthread_mutex_unlock(&alarms_lock);
     }
 
-    return NULL;
+    pthread_exit(NULL);
 }
 
 static void set(uint64_t when, alarm_listener_t listener) {
@@ -401,9 +345,90 @@ static void cancel(alarm_listener_t listener) {
     pthread_mutex_unlock(&alarms_lock);
 }
 
+static int start(void) {
+    pthread_mutex_lock(&start_lock);
+
+    if (start_count++ == 0)
+        thread->start(thread, NULL);
+
+    pthread_mutex_unlock(&start_lock);
+
+    return 0;
+}
+
+static int is_start(void) {
+    pthread_mutex_lock(&start_lock);
+    int started = thread->is_running(thread);
+    pthread_mutex_unlock(&start_lock);
+
+    return started;
+}
+
+static int stop(void) {
+    pthread_mutex_lock(&start_lock);
+
+    if (--start_count == 0) {
+        /*
+         * For wakeup ANDROID_ALARM_WAIT
+         */
+        set(get_sys_time_ms() + 100, dummy_listener);
+
+        thread->stop(thread);
+    }
+
+    pthread_mutex_unlock(&start_lock);
+
+    return 0;
+}
+
+static int init(void) {
+    pthread_mutex_lock(&init_lock);
+
+    if (init_count++ == 0) {
+        fd = open("/dev/alarm", O_RDWR);
+        if (fd < 0) {
+            LOGE("Failed to open /dev/alarm: %s\n", strerror(errno));
+            goto error;
+        }
+
+        thread = _new(struct thread, thread);
+        thread->runnable.run = thread_loop;
+    }
+
+    pthread_mutex_unlock(&init_lock);
+
+    return 0;
+
+error:
+    pthread_mutex_unlock(&init_lock);
+    return -1;
+}
+
+static int deinit(void) {
+    pthread_mutex_lock(&init_lock);
+
+    if (--init_count == 0) {
+        if (fd > 0) {
+            close(fd);
+            fd = -1;
+        }
+
+        if (is_start())
+            stop();
+        _delete(thread);
+    }
+
+    pthread_mutex_unlock(&init_lock);
+
+    return 0;
+}
+
 static struct alarm_manager this = {
         .init = init,
         .deinit = deinit,
+        .start = start,
+        .stop = stop,
+        .is_start = is_start,
         .set = set,
         .cancel = cancel,
         .get_sys_time_ms = get_sys_time_ms,

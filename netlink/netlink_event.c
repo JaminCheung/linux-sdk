@@ -22,7 +22,8 @@
 #include <utils/log.h>
 #include <utils/assert.h>
 #include <netlink/netlink_event.h>
-#include <netlink/netlink_listener.h>
+
+#include "netlink_listener.h"
 
 #define LOG_TAG "netlink_event"
 
@@ -35,16 +36,16 @@ has_prefix(const char* str, const char* end, const char* prefix,
         return NULL;
 }
 
-static bool parseBinaryNetlinkMessage(struct netlink_event* this, char *buffer,
+static int parseBinaryNetlinkMessage(struct netlink_event* this, char *buffer,
         int size) {
-    return false;
+    return -1;
 }
 
 #define CONST_STRLEN(x)  (sizeof(x)-1)
 
 #define HAS_CONST_PREFIX(str,end,prefix)  has_prefix((str),(end),prefix,CONST_STRLEN(prefix))
 
-static bool parseAsciiNetlinkMessage(struct netlink_event* this, char *buffer,
+static int parseAsciiNetlinkMessage(struct netlink_event* this, char *buffer,
         int size) {
     const char *s = buffer;
     const char *end;
@@ -52,7 +53,7 @@ static bool parseAsciiNetlinkMessage(struct netlink_event* this, char *buffer,
     int first = 1;
 
     if (size == 0)
-        return false;
+        return -1;
 
     buffer[size - 1] = '\0';
 
@@ -86,10 +87,10 @@ static bool parseAsciiNetlinkMessage(struct netlink_event* this, char *buffer,
         s += strlen(s) + 1;
     }
 
-    return true;
+    return 0;
 }
 
-static bool decode(struct netlink_event *this, char *buffer, int size,
+static int decode(struct netlink_event *this, char *buffer, int size,
         int format) {
     if (format == NETLINK_FORMAT_BINARY) {
         return parseBinaryNetlinkMessage(this, buffer, size);

@@ -7,7 +7,7 @@
 #include <utils/signal_handler.h>
 #include <power/power_manager.h>
 
-#include "../../fingerprint2/fpc_wrap.h"
+#include <fingerprint/fpc/fpc_fingerprint.h>
 
 #define LOG_TAG                     "test_fpc_fp"
 

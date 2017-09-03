@@ -29,20 +29,29 @@ OBJS-y += netlink/netlink_manager.o                                            \
           netlink/netlink_event.o
 
 #
+# Thread
+#
+OBJS-y += thread/pthread_wrapper.o                                             \
+          thread/thread.o
+
+#
 # Utils
 #
 OBJS-y += utils/signal_handler.o                                               \
           utils/compare_string.o                                               \
           utils/assert.o                                                       \
+          utils/dump_stack.o                                                   \
           utils/common.o                                                       \
           utils/file_ops.o                                                     \
+          utils/thread_pool/thread_pool.o                                      \
           utils/png_decode.o                                                   \
           utils/wave_parser.o                                                  \
-          utils/runnable/pthread_wrapper.o                                     \
-          utils/runnable/default_runnable.o                                    \
-          utils/ring_buffer.o                                                  \
-          utils/thread_pool/thread_pool.o                                      \
           utils/yuv2bmp.o
+
+#
+# Ring buffer
+#
+OBJS-y += ring_buffer/ring_buffer.o
 
 #
 # Timer
@@ -180,29 +189,7 @@ OBJS-y += graphics/gr_drawer.o
 #
 # Fingerprint
 #
-OBJS-n += fingerprint/fingerprint_manager.o                                    \
-          fingerprint/fingerprint.o                                            \
-          fingerprint/fingerprint_list.o                                       \
-          fingerprint/fingerprints_userstate.o                                 \
-          fingerprint/fingerprint_utils.o                                      \
-          fingerprint/authentication_result.o                                  \
-          fingerprint/client_monitor.o                                         \
-          fingerprint/enroll_client.o                                          \
-          fingerprint/removal_client.o                                         \
-          fingerprint/authentication_client.o                                  \
-          fingerprint/enumerate_client.o                                       \
-          fingerprint/hardware/android/hardware.o                              \
-          fingerprint/hardware/fingerprint_device_proxy.o
-
-#
-# Fingerprint2
-#
-OBJS-n += fingerprint2/fingerprint_manager.o
-
-#
-# FPC fingerprint wrapper
-#
-OBJS-y += fingerprint2/fpc_wrap.o
+OBJS-y += fingerprint/fpc/fpc_fingerprint.o
 
 #
 # Audio

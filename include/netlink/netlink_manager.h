@@ -23,6 +23,7 @@ struct netlink_manager {
     int (*init)(void);
     int (*deinit)(void);
     int (*start)(void);
+    int (*is_start)(void);
     int (*stop)(void);
     void (*register_handler)(struct netlink_handler* handler);
     void (*unregister_handler)(struct netlink_handler* handler);

@@ -26,6 +26,7 @@ struct input_manager {
     int (*init)(void);
     int (*deinit)(void);
     int (*start)(void);
+    int (*is_start)(void);
     int (*stop)(void);
     int (*get_devices_count)(void);
     void (*register_event_listener)(const char* name,

@@ -68,8 +68,8 @@ LDFLAGS := -rdynamic
 #
 # Library link - Static
 #
-LDFLAGS += -Wl,-Bstatic -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint
-
+LDFLAGS += -Wl,-Bstatic -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint       \
+                        -L$(TOPDIR)/lib/fingerprint -lfps_360_linux
 
 #
 # Library link - Dynamic
@@ -78,8 +78,7 @@ LDFLAGS += -Wl,-Bdynamic -pthread -lm -lrt -ldl -lstdc++                       \
            -L$(TOPDIR)/lib/openssl -lcrypto -lssl                              \
            -L$(TOPDIR)/lib/alsa -lasound                                       \
            -L$(TOPDIR)/lib/fingerprint -lfprint-mips                           \
-           -L$(TOPDIR)/lib/face -lNmIrFaceSdk								   \
-           -L$(TOPDIR)/lib/fingerprint -lfps_360_linux
+           -L$(TOPDIR)/lib/face -lNmIrFaceSdk
 
 DEBUG := 1
 ifdef DEBUG

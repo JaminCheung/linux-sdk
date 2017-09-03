@@ -30,7 +30,7 @@
 #include <unistd.h>
 #include <usb/usb_manager.h>
 #include <utils/common.h>
-#include <utils/runnable/default_runnable.h>
+#include <thread/thread.h>
 
 /* 传输超时时间 */
 #define TEST_CDC_ACM_WRITE_TIMEOUT    100
@@ -79,7 +79,7 @@ int main(int argc, const char *argv[])
         return -1;
     }
 
-    struct default_runnable *runner = _new(struct default_runnable, default_runnable);
+    struct thread *runner = _new(struct thread, thread);
     runner->runnable.run = thread_loop;
 
     cdc_acm = get_usb_device_manager();

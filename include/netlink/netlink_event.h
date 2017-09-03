@@ -29,7 +29,7 @@
 struct netlink_event {
     void (*construct)(struct netlink_event *this);
     void (*destruct)(struct netlink_event *this);
-    bool (*decode)(struct netlink_event *this, char *buffer, int size,
+    int (*decode)(struct netlink_event *this, char *buffer, int size,
             int format);
     const char *(*find_param)(struct netlink_event *this,
             const char *param_name);

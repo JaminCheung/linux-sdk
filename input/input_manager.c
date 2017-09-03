@@ -28,6 +28,7 @@
 #include <utils/list.h>
 #include <utils/assert.h>
 #include <utils/common.h>
+#include <thread/thread.h>
 #include <input/input_manager.h>
 
 #include "input_event_callback.h"
@@ -77,6 +78,8 @@ struct input_device {
 static LIST_HEAD(input_dev_list);
 static LIST_HEAD(listener_list);
 
+static struct thread* thread;
+
 static int max_fd;
 static int init_count;
 static int start_count;
@@ -85,7 +88,6 @@ static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t listener_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t start_lock = PTHREAD_MUTEX_INITIALIZER;
 
-static int local_pipe[2];
 static const char * const events[EV_MAX + 1] = {
     [0 ... EV_MAX] = NULL,
     NAME_ELEMENT(EV_SYN),           NAME_ELEMENT(EV_KEY),
@@ -763,10 +765,6 @@ static int scan_devices(void) {
     return 0;
 }
 
-static void wait_looper_quit(void) {
-    msleep(5);
-}
-
 static void dump_event(struct input_event* event) {
     LOGI("========================================\n");
     LOGI("Dump input event\n");
@@ -796,7 +794,7 @@ static void on_event(const char* name, struct input_event* event) {
     pthread_mutex_unlock(&listener_lock);
 }
 
-static void* thread_loop(void *param) {
+static void thread_loop(struct pthread_wrapper* pthread, void *param) {
     int readed = 0;
     int error = 0;
     fd_set rdfs;
@@ -812,11 +810,6 @@ static void* thread_loop(void *param) {
             FD_SET(device->fd, &rdfs);
         }
         pthread_mutex_unlock(&device_list_lock);
-
-        if (max_fd < local_pipe[0])
-            max_fd = local_pipe[0];
-
-        FD_SET(local_pipe[0], &rdfs);
 
 restart:
         error = select(max_fd + 1, &rdfs, NULL, NULL, NULL);
@@ -846,23 +839,9 @@ restart:
             }
         }
         pthread_mutex_unlock(&device_list_lock);
-
-        if (FD_ISSET(local_pipe[0], &rdfs)) {
-            char c;
-            error = read(local_pipe[0], &c, 1);
-            if (!error) {
-                 LOGE("Unable to read pipe: %s\n", strerror(errno));
-                 continue;
-             }
-
-            FD_CLR(local_pipe[0], &rdfs);
-
-            LOGI("main thread call me break out\n");
-            break;
-        }
     }
 
-    return NULL;
+    pthread_exit(NULL);
 }
 
 static void unregister_all_listeners(void) {
@@ -890,60 +869,30 @@ static void unregister_all_listeners(void) {
 }
 
 static int start(void) {
-    int error  = 0;
 
     pthread_mutex_lock(&start_lock);
-    if (start_count > 0) {
-        goto exit_start;
-    }
 
-    error = pipe(local_pipe);
-    if (error) {
-        LOGE("Unable to open pipe: %s\n", strerror(errno));
-        pthread_mutex_unlock(&start_lock);
-        return -1;
-    }
+    if (start_count++ == 0)
+        thread->start(thread, NULL);
 
-    pthread_t tid;
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-    error = pthread_create(&tid, &attr, thread_loop, NULL);
-    if (error) {
-        LOGE("pthread_create failed: %s\n", strerror(errno));
-        pthread_attr_destroy(&attr);
-        pthread_mutex_unlock(&start_lock);
-        return -1;
-    }
-
-    pthread_attr_destroy(&attr);
-
-exit_start:
-    start_count++;
     pthread_mutex_unlock(&start_lock);
 
     return 0;
 }
 
-static int stop(void) {
-    char c = 0;
-
+static int is_start(void) {
     pthread_mutex_lock(&start_lock);
-    if (start_count == 1) {
-        if (!write(local_pipe[1], &c, 1)) {
-            LOGE("Unable to write pipe: %s\n", strerror(errno));
-            pthread_mutex_unlock(&start_lock);
-            return -1;
-        }
+    int started = thread->is_running(thread);
+    pthread_mutex_unlock(&start_lock);
 
-        wait_looper_quit();
-    }
+    return started;
+}
 
-    start_count--;
-    if (start_count < 0) {
-        start_count = 0;
-    }
+static int stop(void) {
+    pthread_mutex_lock(&start_lock);
+
+    if (--start_count == 0)
+        thread->stop(thread);
 
     pthread_mutex_unlock(&start_lock);
     return 0;
@@ -954,21 +903,20 @@ static int init(void) {
 
     pthread_mutex_lock(&init_lock);
 
-    if (init_count > 0) {
-        goto exit_init;
+    if (init_count++ == 0) {
+        error = scan_devices();
+        if (error < 0) {
+            LOGE("Failed to scan input device\n");
+            pthread_mutex_unlock(&init_lock);
+            return -1;
+        }
+
+        dump_input_device();
+
+        thread = _new(struct thread, thread);
+        thread->runnable.run = thread_loop;
     }
 
-    error = scan_devices();
-    if (error < 0) {
-        LOGE("Failed to scan input device\n");
-        pthread_mutex_unlock(&init_lock);
-        return -1;
-    }
-
-    dump_input_device();
-
-exit_init:
-    init_count++;
     pthread_mutex_unlock(&init_lock);
 
     return 0;
@@ -977,31 +925,26 @@ exit_init:
 static int deinit(void) {
     pthread_mutex_lock(&init_lock);
 
-    if (init_count == 1) {
+    if (--init_count == 0) {
         pthread_mutex_lock(&device_list_lock);
         struct list_head* pos;
         struct list_head* next_pos;
         list_for_each_safe(pos, next_pos, &input_dev_list) {
             struct input_device* device = list_entry(pos, struct input_device, head);
 
+            if (device->fd > 0)
+                close(device->fd);
             list_del(&device->head);
             free(device);
         }
 
         pthread_mutex_unlock(&device_list_lock);
 
-        if (local_pipe[0] > 0)
-            close(local_pipe[0]);
-
-        if (local_pipe[1] > 0)
-            close(local_pipe[1]);
+        if (is_start())
+            stop();
+        _delete(thread);
 
         unregister_all_listeners();
-    }
-
-    init_count--;
-    if (init_count < 0) {
-        init_count = 0;
     }
 
     pthread_mutex_unlock(&init_lock);
@@ -1106,6 +1049,7 @@ static struct input_manager this = {
         .init = init,
         .deinit = deinit,
         .start = start,
+        .is_start = is_start,
         .stop = stop,
         .get_devices_count = get_device_count,
         .register_event_listener = register_event_listener,

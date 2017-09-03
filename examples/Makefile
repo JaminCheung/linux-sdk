@@ -438,22 +438,22 @@ $(EXAMPLE_ZIGBEE_CLEAN):
 
 
 #
-# Runnable
+# Thread
 #
-EXAMPLE_RUNNABLE := test_runnable
-EXAMPLE_RUNNABLE_CLEAN := test_runnable_clean
-EXAMPLE_RUNNABLE_OBJ :=  utils/runnable/main.o
-$(EXAMPLE_RUNNABLE): $(EXAMPLE_RUNNABLE_OBJ)
+EXAMPLE_THREAD := test_thread
+EXAMPLE_THREAD_CLEAN := test_thread_clean
+EXAMPLE_THREAD_OBJ :=  thread/main.o
+$(EXAMPLE_THREAD): $(EXAMPLE_THREAD_OBJ)
 	$(call build_example,$^,$@)
-$(EXAMPLE_RUNNABLE_CLEAN):
-	$(call clean_example,$(EXAMPLE_RUNNABLE_OBJ),$(EXAMPLE_RUNNABLE))
+$(EXAMPLE_THREAD_CLEAN):
+	$(call clean_example,$(EXAMPLE_THREAD_OBJ),$(EXAMPLE_THREAD))
 
 #
 # Ring buffer
 #
 EXAMPLE_RING_BUFFER := test_ring_buffer
 EXAMPLE_RING_BUFFER_CLEAN := test_ring_buffer_clean
-EXAMPLE_RING_BUFFER_OBJ :=  utils/ring_buffer/main.o
+EXAMPLE_RING_BUFFER_OBJ :=  ring_buffer/main.o
 $(EXAMPLE_RING_BUFFER): $(EXAMPLE_RING_BUFFER_OBJ)
 	$(call build_example,$^,$@)
 $(EXAMPLE_RING_BUFFER_CLEAN):
@@ -494,7 +494,7 @@ all:                                                                           \
 	$(EXAMPLE_USB_SWITCH)                                                      \
 	$(EXAMPLE_VIBRATOR)                                                        \
 	$(EXAMPLE_ZIGBEE)                                                          \
-	$(EXAMPLE_RUNNABLE)                                                        \
+	$(EXAMPLE_THREAD)                                                          \
 	$(EXAMPLE_RING_BUFFER)
 
 clean:                                                                         \
@@ -531,7 +531,7 @@ clean:                                                                         \
 	$(EXAMPLE_USB_SWITCH_CLEAN)                                                \
 	$(EXAMPLE_VIBRATOR_CLEAN)                                                  \
 	$(EXAMPLE_ZIGBEE_CLEAN)                                                    \
-	$(EXAMPLE_RUNNABLE_CLEAN)                                                  \
+	$(EXAMPLE_THREAD_CLEAN)                                                    \
 	$(EXAMPLE_RING_BUFFER_CLEAN)
 
 

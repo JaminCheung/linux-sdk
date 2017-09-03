@@ -14,17 +14,9 @@
  *
  */
 
-typedef void (*alarm_listener_t)(void);
+#ifndef DUMP_STACK_H
+#define DUMP_STACK_H
 
-struct alarm_manager {
-    int (*init)(void);
-    int (*deinit)(void);
-    int (*start)(void);
-    int (*stop)(void);
-    int (*is_start)(void);
-    void (*set)(uint64_t when, alarm_listener_t listener);
-    void (*cancel)(alarm_listener_t listener);
-    uint64_t (*get_sys_time_ms)(void);
-};
+void dump_stack(void);
 
-struct alarm_manager* get_alarm_manager(void);
+#endif /* DUMP_STACK_H */

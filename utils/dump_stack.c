@@ -14,32 +14,33 @@
  *
  */
 
-#include <stdbool.h>
-#include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
+#include <execinfo.h>
 
+#include <types.h>
 #include <utils/log.h>
-#include <utils/dump_stack.h>
 
-#define LOG_TAG "assert"
+#define LOG_TAG "dump_stack"
 
-#define BUF_SIZE    (1024 * 1)
+void dump_stack(void) {
+    void *buffer[128] = {0};
+    uint32_t size = 0;
+    char** strings = NULL;
 
-void assert_die_if(bool condition, const char* fmt, ...) {
-    if (!condition)
+    size = backtrace(buffer, 128);
+    strings = backtrace_symbols(buffer, size);
+    if (strings == NULL) {
+        LOGE("Failed to get backtrace symbol: %s\n", strerror(errno));
         return;
+    }
 
-    va_list ap;
-    char buf[BUF_SIZE] = { 0 };
+    LOGI("========================================\n");
+    LOGI("Call trace:\n");
+    for (int i = 0; i < size; i++)
+        LOGI("%s\n", strings[i]);
+    LOGI("========================================\n");
 
-    va_start(ap, fmt);
-    vsnprintf(buf, BUF_SIZE, fmt, ap);
-    va_end(ap);
-
-    LOGE("============ Assert Failed ============\n");
-    LOGE("Message: %s", buf);
-    LOGE("========== Assert Failed End ==========\n");
-    dump_stack();
-
-    exit(-1);
+    free(strings);
+    strings = NULL;
 }

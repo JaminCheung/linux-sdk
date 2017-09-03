@@ -1,13 +1,17 @@
 #include <unistd.h>
+#include <stdlib.h>
 
 #include <types.h>
 #include <utils/log.h>
+#include <utils/common.h>
+#include <utils/signal_handler.h>
 #include <alarm/alarm_manager.h>
 
 #define LOG_TAG "test_alarm"
 
 
 static struct alarm_manager* alarm_manager;
+static struct signal_handler* signal_handler;
 
 static void alarm_listener1(void) {
     LOGI("=====> %s ring <=====\n", __FUNCTION__);
@@ -21,10 +25,23 @@ static void alarm_listener3(void) {
     LOGI("=====> %s ring <=====\n", __FUNCTION__);
 }
 
+static void handle_signal(int signal) {
+    alarm_manager->stop();
+    alarm_manager->deinit();
+
+    exit(1);
+}
+
 int main(int argc, char *argv[]) {
     alarm_manager = get_alarm_manager();
 
+    signal_handler = _new(struct signal_handler, signal_handler);
+    signal_handler->set_signal_handler(signal_handler, SIGINT, handle_signal);
+    signal_handler->set_signal_handler(signal_handler, SIGQUIT, handle_signal);
+    signal_handler->set_signal_handler(signal_handler, SIGTERM, handle_signal);
+
     alarm_manager->init();
+    alarm_manager->start();
 
     uint64_t cur_timems = alarm_manager->get_sys_time_ms();
 
@@ -38,8 +55,6 @@ int main(int argc, char *argv[]) {
 
     while(1)
         sleep(1000);
-
-    alarm_manager->deinit();
 
     return 0;
 }

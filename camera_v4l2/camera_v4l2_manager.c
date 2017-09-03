@@ -13,6 +13,7 @@
  *  675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,38 +24,39 @@
 #include <errno.h>
 #include <malloc.h>
 #include <pthread.h>
-#include <types.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/time.h>
 #include <sys/mman.h>
 #include <sys/ioctl.h>
+
+#include <types.h>
+#include <thread/thread.h>
 #include <utils/log.h>
+#include <utils/common.h>
 #include <utils/yuv2bmp.h>
 #include <utils/assert.h>
 #include "cim/capture.h"
 
 #include <camera_v4l2/camera_v4l2_manager.h>
 
-#define LOG_TAG                          "camera_v4l2_manager"
+#define LOG_TAG "camera_v4l2_manager"
 
-
-#define DEFAULT_DEVICE                   "/dev/video0"
-
+#define DEFAULT_DEVICE "/dev/video0"
 
 static frame_receive frame_receive_cb = NULL;
 
 struct _camera_v4l2_op
 {
-    int inited;
     struct capture_t capt;
-    pthread_t loop_capt_ptid;
-}camera_v4l2_op;
+} camera_v4l2_op;
 
+static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t start_lock = PTHREAD_MUTEX_INITIALIZER;
 
-
-pthread_mutex_t init_mutex = PTHREAD_MUTEX_INITIALIZER;         // init mutex lock
-
+static struct thread* thread;
+static int init_count;
+static int start_count;
 
 static inline uint32_t  make_pixel(uint32_t r, uint32_t g,
                         uint32_t b, struct rgb_pixel_fmt fmt)
@@ -71,7 +73,7 @@ static void frame_process_cb(char* buf, uint32_t width,
     frame_receive_cb(buf, width, height, seq);
 }
 
-static void* capt_loop(void* p)
+static void capt_loop(struct pthread_wrapper* pthread, void* param)
 {
     int oldstate;
 
@@ -82,7 +84,7 @@ static void* capt_loop(void* p)
         pthread_setcancelstate(PTHREAD_CANCEL_ENABLE, &oldstate);
     }
 
-    return NULL;
+    pthread_exit(NULL);
 }
 
 static int camera_v4l2_init(struct capt_param_t *capt_p)
@@ -97,47 +99,58 @@ static int camera_v4l2_init(struct capt_param_t *capt_p)
     camera_v4l2_op.capt.io       = capt_p->io;
     frame_receive_cb             = capt_p->fr_cb;
 
-    pthread_mutex_lock(&init_mutex);
-    if (camera_v4l2_op.inited == 1) {
-        LOGE("camera already init\n");
-        pthread_mutex_unlock(&init_mutex);
-        return -1;
-    }
-    pthread_mutex_unlock(&init_mutex);
+    pthread_mutex_lock(&init_lock);
 
-    ret = v4l2_open_device(&camera_v4l2_op.capt);
-    if (ret < 0) {
-        LOGE("Failed to open device\n");
-        return -1;
-    }
-    ret = v4l2_init_device(&camera_v4l2_op.capt,
-                            (frame_process)frame_process_cb);
-    if (ret < 0) {
-        LOGE("Failed to init device\n");
-        return -1;
+    if (init_count++ == 0) {
+        ret = v4l2_open_device(&camera_v4l2_op.capt);
+        if (ret < 0) {
+            LOGE("Failed to open device\n");
+            goto error;
+        }
+
+        ret = v4l2_init_device(&camera_v4l2_op.capt,
+                                (frame_process)frame_process_cb);
+        if (ret < 0) {
+            LOGE("Failed to init device\n");
+            goto error;
+        }
+
+        thread = _new(struct thread, thread);
+        thread->runnable.run = capt_loop;
     }
 
-    camera_v4l2_op.inited = 1;
+    pthread_mutex_unlock(&init_lock);
+
     return 0;
+
+error:
+    pthread_mutex_unlock(&init_lock);
+    return -1;
 }
 
 static int camera_v4l2_start()
 {
     int ret;
 
-    ret = v4l2_start_capturing(&camera_v4l2_op.capt);
-    if (ret < 0) {
-        LOGE("Failed to start catpture\n");
-        return -1;
+    pthread_mutex_lock(&start_lock);
+
+    if (start_count++ == 0) {
+        ret = v4l2_start_capturing(&camera_v4l2_op.capt);
+        if (ret < 0) {
+            LOGE("Failed to start catpture\n");
+            goto error;
+        }
+
+        thread->start(thread, NULL);
     }
 
-    if (pthread_create(&camera_v4l2_op.loop_capt_ptid,
-                        NULL, capt_loop, NULL) < 0) {
-        LOGE("Failed to create pthread\n");
-        return -1;
-    }
+    pthread_mutex_unlock(&start_lock);
 
     return 0;
+
+error:
+    pthread_mutex_unlock(&start_lock);
+    return -1;
 }
 
 
@@ -145,19 +158,34 @@ static int camera_v4l2_stop()
 {
     int ret;
 
-    pthread_cancel(camera_v4l2_op.loop_capt_ptid);
-    pthread_join(camera_v4l2_op.loop_capt_ptid, NULL);
+    pthread_mutex_lock(&start_lock);
 
-    ret = v4l2_stop_capturing(&camera_v4l2_op.capt);
-    if (ret < 0) {
-        LOGE("Failed to stop capturing\n");
-        return -1;
+    if (--start_count == 0) {
+        ret = v4l2_stop_capturing(&camera_v4l2_op.capt);
+        if (ret < 0) {
+            LOGE("Failed to stop capturing\n");
+            goto error;
+        }
+
+        thread->stop(thread);
     }
 
+    pthread_mutex_unlock(&start_lock);
+
     return 0;
+
+error:
+    pthread_mutex_unlock(&start_lock);
+    return -1;
 }
 
+static int camera_v4l2_is_start() {
+    pthread_mutex_lock(&start_lock);
+    int started = thread->is_running(thread);
+    pthread_mutex_unlock(&start_lock);
 
+    return started;
+}
 
 static int camera_v4l2_yuv2rgb(uint8_t* yuv, uint8_t* rgb,
                             uint32_t width, uint32_t height)
@@ -218,33 +246,40 @@ static int camera_v4l2_deinit()
 {
     int ret;
 
-    pthread_mutex_lock(&init_mutex);
-    if (camera_v4l2_op.inited == 0) {
-        LOGE("camera already deinit\n");
-        pthread_mutex_unlock(&init_mutex);
-        return -1;
-    }
-    pthread_mutex_unlock(&init_mutex);
+    pthread_mutex_lock(&init_lock);
 
-    ret = v4l2_free_device(&camera_v4l2_op.capt);
-    if (ret < 0) {
-        LOGE("Failed to free device\n");
-        return -1;
-    }
-    ret = v4l2_close_device(&camera_v4l2_op.capt);
-    if (ret < 0) {
-        LOGE("Failed to free device\n");
-        return -1;
+    if (--init_count == 0) {
+        ret = v4l2_free_device(&camera_v4l2_op.capt);
+        if (ret < 0) {
+            LOGE("Failed to free device\n");
+            goto error;
+        }
+
+        ret = v4l2_close_device(&camera_v4l2_op.capt);
+        if (ret < 0) {
+            LOGE("Failed to free device\n");
+            goto error;
+        }
+
+        if (camera_v4l2_is_start())
+            camera_v4l2_stop();
+        _delete(thread);
     }
 
-    camera_v4l2_op.inited = 0;
+    pthread_mutex_unlock(&init_lock);
+
     return 0;
+
+error:
+    pthread_mutex_unlock(&init_lock);
+    return -1;
 }
 
 static struct camera_v4l2_manager camera_v4l2_manager = {
     .init      = camera_v4l2_init,
     .start     = camera_v4l2_start,
     .stop      = camera_v4l2_stop,
+    .is_start  = camera_v4l2_is_start,
     .yuv2rgb   = camera_v4l2_yuv2rgb,
     .rgb2pixel = camera_v4l2_rgb2pixel,
     .build_bmp = camera_v4l2_build_bmp,

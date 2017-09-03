@@ -30,7 +30,7 @@ static struct list_head listeners;
 static pthread_mutex_t listener_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 static struct netlink_handler* nh;
-static int inited;
+static uint32_t init_count;
 static struct battery_manager this;
 
 struct listener {
@@ -149,46 +149,6 @@ static void handle_event(struct netlink_handler* nh,
         handle_power_supply_event(nh, event);
 }
 
-static int init(void) {
-    pthread_mutex_lock(&init_lock);
-    if (inited == 1) {
-        LOGE("battery manager already init\n");
-        pthread_mutex_unlock(&init_lock);
-        return -1;
-    }
-
-    nh = (struct netlink_handler *) calloc(1, sizeof(struct netlink_handler));
-    nh->construct = construct_netlink_handler;
-    nh->deconstruct = destruct_netlink_handler;
-    nh->construct(nh, "all sub-system", 0, handle_event, &this);
-
-    INIT_LIST_HEAD(&listeners);
-    inited = 1;
-
-    pthread_mutex_unlock(&init_lock);
-
-    return 0;
-}
-
-static int deinit(void) {
-    pthread_mutex_lock(&init_lock);
-
-    if (inited == 0) {
-        LOGE("battery manager already deinit\n");
-        pthread_mutex_unlock(&init_lock);
-        return -1;
-    }
-    inited = 0;
-
-    nh->deconstruct(nh);
-    free(nh);
-    nh = NULL;
-
-    pthread_mutex_unlock(&init_lock);
-
-    return 0;
-}
-
 static void register_event_listener(battery_event_listener_t listener) {
     assert_die_if(listener == NULL, "listener is NULL\n");
 
@@ -235,6 +195,22 @@ static void unregister_event_listener(battery_event_listener_t listener) {
     pthread_mutex_unlock(&listener_lock);
 }
 
+static void unregister_all_listener(void) {
+    struct list_head* pos;
+    struct list_head* next_pos;
+
+    pthread_mutex_lock(&listener_lock);
+
+    list_for_each_safe(pos, next_pos, &listeners) {
+        struct listener* l = list_entry(pos, struct listener, head);
+
+        list_del(&l->head);
+        free(l);
+    }
+
+    pthread_mutex_unlock(&listener_lock);
+}
+
 static void dump_event(struct battery_event* event) {
     LOGI("========================================\n");
     LOGI("Dump battery event\n");
@@ -251,6 +227,39 @@ static void dump_event(struct battery_event* event) {
 
 static struct netlink_handler* get_netlink_handler(void) {
     return nh;
+}
+
+static int init(void) {
+    pthread_mutex_lock(&init_lock);
+
+    if (init_count++ == 0) {
+        nh = (struct netlink_handler *) calloc(1, sizeof(struct netlink_handler));
+        nh->construct = construct_netlink_handler;
+        nh->deconstruct = destruct_netlink_handler;
+        nh->construct(nh, "all sub-system", 0, handle_event, &this);
+
+        INIT_LIST_HEAD(&listeners);
+    }
+
+    pthread_mutex_unlock(&init_lock);
+
+    return 0;
+}
+
+static int deinit(void) {
+    pthread_mutex_lock(&init_lock);
+
+    if (--init_count == 0) {
+        nh->deconstruct(nh);
+        free(nh);
+        nh = NULL;
+
+        unregister_all_listener();
+    }
+
+    pthread_mutex_unlock(&init_lock);
+
+    return 0;
 }
 
 static struct battery_manager this = {

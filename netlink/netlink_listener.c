@@ -14,6 +14,8 @@
  *
  */
 
+#include "netlink_listener.h"
+
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
@@ -29,25 +31,22 @@
 #include <utils/log.h>
 #include <utils/assert.h>
 #include <utils/common.h>
-#include <netlink/netlink_listener.h>
+#include <thread/thread.h>
 #include <netlink/netlink_handler.h>
 #include <netlink/netlink_event.h>
 
 #define LOG_TAG "netlink_listener"
 
 static int local_socket;
-static int local_pipe[2];
 static char buffer[64 * 1024];
 static struct netlink_handler* head;
-
+static struct thread* thread;
 static pthread_mutex_t handler_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t start_lock = PTHREAD_MUTEX_INITIALIZER;
 
-static int inited;
-static int started;
-
-static void *thread_loop(void *param);
+static uint32_t init_count;
+static uint32_t start_count;
 
 static void dispatch_event(struct netlink_event *event) {
     struct netlink_handler *nh, *next_nh;
@@ -63,27 +62,22 @@ static void dispatch_event(struct netlink_event *event) {
     }
 }
 
-static void *thread_loop(void *param) {
-    struct pollfd fds[2];
+static void thread_loop(struct pthread_wrapper* pthread, void *param) {
+    struct pollfd fds;
 
-    fds[0].fd = local_socket;
-    fds[0].events = POLLIN;
-    fds[0].revents = 0;
-
-    fds[1].fd = local_pipe[0];
-    fds[1].events = POLLIN;
-    fds[1].revents = 0;
+    fds.fd = local_socket;
+    fds.events = POLLIN;
+    fds.revents = 0;
 
     int count;
-    int error;
 
     for (;;) {
 restart:
         do {
-            count = poll(fds, 2, -1);
+            count = poll(&fds, 1, -1);
         } while (count < 0 && errno == EINTR);
 
-        if (fds[0].revents & POLLIN) {
+        if (fds.revents & POLLIN) {
             count = recv(local_socket, buffer, sizeof(buffer), 0);
             if (count < 0) {
                 LOGE("netlink event recv failed: %s\n", strerror(errno));
@@ -103,34 +97,50 @@ restart:
 
             _delete(event);
         }
-
-        if (fds[1].revents & POLLIN) {
-            fds[1].revents = 0;
-            char c;
-            error = read(fds[1].fd, &c, 1);
-            if (!error) {
-                LOGE("Unable to read pipe: %s\n", strerror(errno));
-                continue;
-            }
-
-            LOGI("main thread call me break out\n");
-            break;
-        }
     }
 
-    return NULL;
+    pthread_exit(NULL);
+}
+
+static int start(void) {
+    pthread_mutex_lock(&start_lock);
+
+    if (start_count++ == 0)
+        thread->start(thread, NULL);
+
+    pthread_mutex_unlock(&start_lock);
+
+    return 0;
+}
+
+static int is_start(void) {
+    pthread_mutex_lock(&start_lock);
+    int started = thread->is_running(thread);
+    pthread_mutex_unlock(&start_lock);
+
+    return started;
+}
+
+static int stop(void) {
+    pthread_mutex_lock(&start_lock);
+
+    if (--start_count == 0)
+        thread->stop(thread);
+
+    pthread_mutex_unlock(&start_lock);
+
+    return 0;
 }
 
 static int init(int socket) {
     pthread_mutex_lock(&init_lock);
-    if (inited == 1) {
-        LOGE("netlink handler already init\n");
-        pthread_mutex_unlock(&init_lock);
-        return -1;
+
+    if (init_count++ == 0) {
+        local_socket = socket;
+        thread = _new(struct thread, thread);
+        thread->runnable.run = thread_loop;
     }
 
-    local_socket = socket;
-    inited = 1;
     pthread_mutex_unlock(&init_lock);
 
     return 0;
@@ -139,84 +149,15 @@ static int init(int socket) {
 static int deinit(void) {
     pthread_mutex_lock(&init_lock);
 
-    if (inited == 0) {
-        LOGE("netlink handler already deinit\n");
-        pthread_mutex_unlock(&init_lock);
-        return -1;
+    if (--init_count == 0) {
+        local_socket = -1;
+
+        if (is_start())
+            stop();
+        _delete(thread);
     }
-
-    inited = 0;
-
-    if (local_pipe[0] > 0)
-        close(local_pipe[0]);
-
-    if (local_pipe[1] > 0)
-        close(local_pipe[1]);
 
     pthread_mutex_unlock(&init_lock);
-
-    return 0;
-}
-
-static int start_listener(void) {
-    int error = 0;
-
-    pthread_mutex_lock(&start_lock);
-    if (started == 1) {
-        LOGE("netlink listener already start listener\n");
-        pthread_mutex_unlock(&start_lock);
-        return -1;
-    }
-
-    error = pipe(local_pipe);
-    if (error) {
-        LOGE("Unable to open pipe: %s\n", strerror(errno));
-        pthread_mutex_unlock(&start_lock);
-        return -1;
-    }
-
-    pthread_t tid;
-    pthread_attr_t attr;
-    pthread_attr_init(&attr);
-    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-
-    error = pthread_create(&tid, &attr, thread_loop, NULL);
-    if (error) {
-        LOGE("pthread_create failed: %s\n", strerror(errno));
-        pthread_attr_destroy(&attr);
-
-        pthread_mutex_unlock(&start_lock);
-        return -1;
-    }
-
-    pthread_attr_destroy(&attr);
-
-    started = 1;
-
-    pthread_mutex_unlock(&start_lock);
-
-    return 0;
-}
-
-static int stop_listener(void) {
-    char c = 0;
-
-    pthread_mutex_lock(&start_lock);
-    if (started == 0) {
-        LOGE("netlink listener already stop listener\n");
-        pthread_mutex_unlock(&start_lock);
-        return -1;
-    }
-
-    if (!write(local_pipe[1], &c, 1)) {
-        LOGE("Unable to write pipe: %s\n", strerror(errno));
-        pthread_mutex_unlock(&start_lock);
-        return -1;
-    }
-
-    started = 0;
-
-    pthread_mutex_unlock(&start_lock);
 
     return 0;
 }
@@ -256,8 +197,9 @@ static void unregister_handler(struct netlink_handler* handler) {
 static struct netlink_listener this = {
         .init = init,
         .deinit = deinit,
-        .start_listener = start_listener,
-        .stop_listener = stop_listener,
+        .start = start,
+        .stop = stop,
+        .is_start = is_start,
         .register_handler = register_handler,
         .unregister_handler = unregister_handler,
 };
