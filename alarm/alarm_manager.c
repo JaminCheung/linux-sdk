@@ -408,13 +408,13 @@ static int deinit(void) {
     pthread_mutex_lock(&init_lock);
 
     if (--init_count == 0) {
+        if (is_start())
+            stop();
+
         if (fd > 0) {
             close(fd);
             fd = -1;
         }
-
-        if (is_start())
-            stop();
         _delete(thread);
     }
 

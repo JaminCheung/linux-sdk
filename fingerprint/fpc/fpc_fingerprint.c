@@ -10,6 +10,7 @@
 #include <utils/assert.h>
 #include <utils/common.h>
 #include <thread/thread.h>
+#include <alarm/alarm_manager.h>
 #include <fingerprint/fpc/fpc_fingerprint.h>
 
 #include "yoyon_types.h"
@@ -18,8 +19,6 @@
 #define LOG_TAG                         "fpc_fingerprint"
 
 #define FP_DEVICE_NAME                  "/dev/fpcdev0"
-#define UART_DEVICE_NAME                "/dev/ttyS1"
-
 
 #define FPC_FP_DATA_LIST_NAME           "fpc_fp_data_list"
 #define FPC_FP_ID_LIST_NAME             "fpc_fp_id_list"
@@ -35,8 +34,29 @@
 #define ENABLE_DUP_CHECK                1
 #define DISABLE_DUP_CHECK               0
 
+#define STATUS_RUN                      1
+#define STATUS_IDLE                     0
+
 #define IMAGE_SIZE                      (242*266)
 
+
+#define SET_ENROLL_STATUS(x)                                \
+                do{                                         \
+                    pthread_mutex_lock(&enroll_sta_mutex);  \
+                    enroll_status = x;                      \
+                    pthread_mutex_unlock(&enroll_sta_mutex);\
+                }while(0)
+#define GET_ENROLL_STATUS()              enroll_status
+
+#define SET_AUTH_STATUS(x)                                  \
+                do{                                         \
+                    pthread_mutex_lock(&auth_sta_mutex);  \
+                    auth_status = x;                        \
+                    pthread_mutex_unlock(&auth_sta_mutex);\
+                }while(0)
+#define GET_AUTH_STATUS()              auth_status
+
+static struct alarm_manager* alarm_manager;
 static struct thread* thread_runner;
 static notify_callback callback;
 static customer_config_t config;
@@ -49,7 +69,13 @@ static uint32_t* id_list = NULL;
 static int id_list_fd = -1;
 static uint32_t template_num = 0;
 
+static int enroll_status;
+static int auth_status;
+
 static pthread_mutex_t id_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+static pthread_mutex_t enroll_sta_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t auth_sta_mutex   = PTHREAD_MUTEX_INITIALIZER;
 
 
 enum {
@@ -166,7 +192,7 @@ static int remove_id_list_item(uint32_t id)
         goto file_operate_fail;
     }
 
-    id_num = ret/4;
+    id_num = ret/sizeof(id);
     for (i = 0; i < id_num; ++i) {
         if (id_list[i] == id) {
            id_list[i] = -1;
@@ -217,7 +243,81 @@ static int reset_id_list()
 
     pthread_mutex_unlock(&id_list_mutex);
     return 0;
+}
 
+static void enroll_timeout(void)
+{
+    SET_ENROLL_STATUS(STATUS_IDLE);
+}
+
+
+static void stop_enroll_timeout_check()
+{
+    alarm_manager->cancel(enroll_timeout);
+}
+
+static void start_enroll_timeout_check(int timeout)
+{
+    uint64_t cur_timems;
+
+    cur_timems = alarm_manager->get_sys_time_ms();
+    alarm_manager->set(cur_timems + timeout *1000, enroll_timeout);
+}
+
+
+static int enroll_scapture_image()
+{
+    int ret;
+
+    do {
+        ret = FpCommand(FF_GET_IMAGE_CODE,(FULL_UINT)img_data,0,0);
+        if (GET_ENROLL_STATUS() != STATUS_RUN) {
+            LOGE("Enroll timeout.\n");
+            goto out;
+        }
+    } while(ret != FF_SUCCESS);
+
+    return 0;
+out:
+    return ret;
+}
+
+static int enroll_step(uint8_t step, uint32_t* id)
+{
+    int ret;
+    uint32_t dup_id;
+
+enroll:
+    if (GET_ENROLL_STATUS() != STATUS_RUN) {
+        LOGE("Enroll Canceled.\n");
+        ret = FF_FAIL;
+        goto out;
+    }
+    /*
+     * start to timeout alarm
+     * loop to capture fingerprint image until got or timeout.
+     */
+    start_enroll_timeout_check(config.enroll_timeout);
+    ret = enroll_scapture_image();
+    if (ret != FF_SUCCESS) {
+        LOGE("Failed to scapture image in step %d. ret: %x\n",step, ret);
+        goto out;
+    }
+    stop_enroll_timeout_check();
+
+    ret = FpCommand(FF_ENROLL_CODE,step,(FULL_UINT)(*id),(FULL_UINT)&dup_id);
+    if (ret != FF_SUCCESS) {
+        LOGE("Failed to enroll finger in step %d. ret: %x\n",step, ret);
+        if(ret == FF_ERR_BAD_QUALITY) {
+            callback(FPC_LOW_QUALITY, 0, 0);
+            /* Image is low quality that enroll failed, try again */
+            while(FF_SUCCESS == FpCommand(FF_GET_IMAGE_CODE,(FULL_UINT)img_data,0,0));
+            goto enroll;
+        }
+        goto out;
+    }
+out:
+    return ret;
 }
 
 static int enroll_msg_handle(uint32_t* id)
@@ -225,53 +325,43 @@ static int enroll_msg_handle(uint32_t* id)
     int ret;
     uint32_t dup_id;
 
+    SET_ENROLL_STATUS(STATUS_RUN);
+
     ret = FpCommand(FF_GET_EMPTY_ID_CODE,(FULL_UINT)id,0,0);
     if (ret != FF_SUCCESS) {
-        LOGE("Failed to quit thread runner. ret: %x\n",ret);
+        LOGE("Failed to get empty id code. ret: %x\n",ret);
         goto out;
     }
 
     ret = FpCommand(FF_ENROLL_CODE,0,(FULL_UINT)(*id),(FULL_UINT)&dup_id);
     if (ret != FF_SUCCESS) {
-        LOGE("Failed to quit thread runner. ret: %x\n",ret);
+        LOGE("Failed to enroll finger in step 0. ret: %x\n",ret);
         goto out;
     }
 
-    ret = FpCommand(FF_GET_IMAGE_CODE,(FULL_UINT)img_data,0,0);
+    /* enroll 1st fingerprint*/
+    ret = enroll_step(1, id);
     if (ret != FF_SUCCESS) {
-        LOGE("Failed to scapture image in step 1. ret: %x\n",ret);
-        goto out;
-    }
-
-    ret = FpCommand(FF_ENROLL_CODE,1,(FULL_UINT)(*id),(FULL_UINT)&dup_id);
-    if (ret != FF_SUCCESS) {
-        LOGE("Failed to enroll finger in step 1. ret: %x\n",ret);
+        LOGE("Failed to enroll finger in step 1. ret: %x\n", ret);
         goto out;
     }
     callback(FPC_ENROLL_ING, 33, (*id));
+    /* wait finger release to run next step */
+    while(FF_SUCCESS == FpCommand(FF_GET_IMAGE_CODE,(FULL_UINT)img_data,0,0));
 
-    ret = FpCommand(FF_GET_IMAGE_CODE,(FULL_UINT)img_data,0,0);
+    /* enroll 2ed fingerprint*/
+    ret = enroll_step(2, id);
     if (ret != FF_SUCCESS) {
-        LOGE("Failed to scapture image in step 2. ret: %x\n",ret);
-        goto out;
-    }
-
-    ret = FpCommand(FF_ENROLL_CODE,2,(FULL_UINT)(*id),(FULL_UINT)&dup_id);
-    if (ret != FF_SUCCESS) {
-        LOGE("Failed to enroll finger in step 2. ret: %x\n",ret);
+        LOGE("Failed to enroll finger in step 1. ret: %x\n", ret);
         goto out;
     }
     callback(FPC_ENROLL_ING, 66, (*id));
+    while(FF_SUCCESS == FpCommand(FF_GET_IMAGE_CODE,(FULL_UINT)img_data,0,0));
 
-    ret = FpCommand(FF_GET_IMAGE_CODE,(FULL_UINT)img_data,0,0);
+    /* enroll 3th fingerprint*/
+    ret = enroll_step(3, id);
     if (ret != FF_SUCCESS) {
-        LOGE("Failed to scapture image in step 3. ret: %x\n",ret);
-        goto out;
-    }
-
-    ret = FpCommand(FF_ENROLL_CODE,3,(FULL_UINT)(*id),(FULL_UINT)&dup_id);
-    if (ret != FF_SUCCESS) {
-        LOGE("Failed to enroll finger in step 3. ret: %x\n",ret);
+        LOGE("Failed to enroll finger in step 1. ret: %x\n", ret);
         goto out;
     }
     callback(FPC_ENROLL_ING, 99, (*id));
@@ -297,9 +387,47 @@ static int enroll_msg_handle(uint32_t* id)
     template_num++;
     ret = FF_SUCCESS;
 out:
+
+    SET_AUTH_STATUS(STATUS_IDLE);
     return ret;
 }
 
+
+static void auth_timeout(void)
+{
+    SET_AUTH_STATUS(STATUS_IDLE);
+}
+
+static void stop_auth_timeout_check()
+{
+    alarm_manager->cancel(auth_timeout);
+}
+
+static void start_auth_timeout_check(int timeout)
+{
+    uint64_t cur_timems;
+
+    cur_timems = alarm_manager->get_sys_time_ms();
+    alarm_manager->set(cur_timems + timeout *1000, auth_timeout);
+}
+
+
+static int auth_enroll_scapture_image()
+{
+    int ret;
+
+    do {
+        ret = FpCommand(FF_GET_IMAGE_CODE,(FULL_UINT)img_data,0,0);
+        if (GET_AUTH_STATUS() != STATUS_RUN) {
+            LOGE("Auth timeout.\n");
+            goto out;
+        }
+    } while(ret != FF_SUCCESS);
+
+    return 0;
+out:
+    return ret;
+}
 
 static int authenticate_msg_handle(uint32_t* id)
 {
@@ -307,15 +435,30 @@ static int authenticate_msg_handle(uint32_t* id)
     uint32_t learn_buff;
     uint32_t auto_learn;
 
-    ret = FpCommand(FF_GET_IMAGE_CODE,(FULL_UINT)img_data,0,0);
-    if(ret != FF_SUCCESS){
-        LOGE("Failed to capture authenticate of image. ret: %x\n",ret);
+    SET_AUTH_STATUS(STATUS_RUN);
+
+auth:
+    if (GET_AUTH_STATUS() != STATUS_RUN) {
+        LOGE("Auth Canceled.\n");
+        ret = FF_FAIL;
         goto out;
     }
+    start_auth_timeout_check(config.authenticate_timeout);
+    ret = auth_enroll_scapture_image();
+    if (ret != FF_SUCCESS) {
+        LOGE("Failed to capture image. ret: %x\n",ret);
+        goto out;
+    }
+    stop_auth_timeout_check();
 
     ret = FpCommand(FF_IDENTIFY_CODE,(FULL_UINT)id,(FULL_UINT)&learn_buff,0);
     if(ret != FF_SUCCESS){
         LOGE("Failed to authenticate. ret: %x\n",ret);
+        if(ret == FF_ERR_BAD_QUALITY) {
+            callback(FPC_LOW_QUALITY, 0, 0);
+            while(FF_SUCCESS == FpCommand(FF_GET_IMAGE_CODE,(FULL_UINT)img_data,0,0));
+            goto auth;
+        }
         goto out;
     }
 
@@ -326,6 +469,7 @@ static int authenticate_msg_handle(uint32_t* id)
 
     ret = FF_SUCCESS;
 out:
+    SET_AUTH_STATUS(STATUS_IDLE);
     return ret;
 }
 
@@ -410,7 +554,7 @@ static int handle_msg(struct pipo_msg pp_msg)
     return 0;
 }
 
-static void thread_loop(struct pthread_wrapper* thread, void* param) {
+static void fpc_thread_loop(struct pthread_wrapper* thread, void* param) {
     int count;
     int error;
     struct pipo_msg pp_msg = {0};
@@ -459,9 +603,8 @@ int fpc_fingerprint_init(notify_callback notify, void *param_config)
     }
 
     init_info.Sensor_Dev = fpc_dev_fd;
-    sprintf(init_info.Encrypt_Dev,UART_DEVICE_NAME);
-    sprintf(init_info.Sys_filename,"%s/%s",get_user_system_dir(getuid()),
-                                                FPC_FP_DATA_LIST_NAME);
+    sprintf(init_info.Encrypt_Dev, config.uart_devname);
+    sprintf(init_info.Sys_filename,"%s/%s",config.file_path, FPC_FP_DATA_LIST_NAME);
 
     error = FpCommand(FF_INITIALIZE_CODE,(FULL_UINT)&init_info,0,0);
     if (error != FF_SUCCESS) {
@@ -499,7 +642,7 @@ int fpc_fingerprint_init(notify_callback notify, void *param_config)
         goto err_thread_new;
     }
 
-    thread_runner->runnable.run = thread_loop;
+    thread_runner->runnable.run = fpc_thread_loop;
     error = thread_runner->start(thread_runner, NULL);
     if (error < 0) {
         LOGE("Failed to start thread\n");
@@ -517,7 +660,7 @@ int fpc_fingerprint_init(notify_callback notify, void *param_config)
     }
 
     if (id_list == NULL) {
-        id_list = (uint32_t*)malloc(config.max_enroll_finger_num*4);
+        id_list = (uint32_t*)malloc(config.max_enroll_finger_num*sizeof(uint32_t));
         if (id_list == NULL) {
             LOGE("Failed to malloc id list buffer\n");
             goto err_malloc_id_list;
@@ -530,8 +673,19 @@ int fpc_fingerprint_init(notify_callback notify, void *param_config)
         LOGE("Failed to open %s.\n",filename);
         goto err_file_open;
     }
+
+    alarm_manager = get_alarm_manager();
+    error = alarm_manager->init();
+    if (error < 0) {
+        LOGE("Failed to init alarm.\n");
+        goto err_alarm_init;
+    }
+    alarm_manager->start();
+
     return 0;
 
+err_alarm_init:
+    close(id_list_fd);
 err_file_open:
     free(id_list);
 err_malloc_id_list:
@@ -577,6 +731,8 @@ int fpc_fingerprint_destroy(void)
 
     FpCommand(FF_TERMINATE,0,0,0);
     close(fpc_dev_fd);
+    alarm_manager->stop();
+    alarm_manager->deinit();
     return 0;
 }
 
@@ -647,7 +803,16 @@ int fpc_fingerprint_delete(int fingerprint_id, int type)
     return 0;
 }
 
-int fpc_fingerprint_cancel(void) {
+int fpc_fingerprint_cancel(void)
+{
+    if (GET_ENROLL_STATUS() != STATUS_IDLE) {
+        stop_enroll_timeout_check();
+        SET_ENROLL_STATUS(STATUS_IDLE);
+    }
+    if (GET_AUTH_STATUS() != STATUS_IDLE) {
+        stop_auth_timeout_check();
+        SET_AUTH_STATUS(STATUS_IDLE);
+    }
     return -1;
 }
 

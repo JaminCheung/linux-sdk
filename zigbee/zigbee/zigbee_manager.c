@@ -26,7 +26,7 @@
 #include <uart/uart_manager.h>
 #include <zigbee/zigbee/zigbee_manager.h>
 #include <zigbee/protocol/uart_protocol.h>
-#include <timer/timer_manager.h>
+#include <alarm/alarm_manager.h>
 
 /*
  * ioctl commands
@@ -49,8 +49,7 @@
 #define PORT_S1_TRANSMIT_TIMEOUT        300  //ms
 #define PORT_S1_TRANSMIT_LENGTH         10
 
-#define TIMER_ID                        1
-#define TIMER_PERIOD                    1000
+#define DATA_REQUEST_TIMEOUT            1000 //ms
 
 #define ZB_CFG_RESET                    0x00
 #define ZB_CFG_REBOOT                   0x01
@@ -101,7 +100,7 @@ static pro_src_st src = {
 
 static struct uart_manager* uart;
 static struct uart_pro_manager* uart_pro;
-static struct timer_manager *timer;
+static struct alarm_manager* alarm_manager;
 
 
 struct dev_ctrl{
@@ -146,6 +145,23 @@ static void sig_handler(int sig)
     }
 }
 
+/**
+ *  @fn      send_timeout_cb
+ *
+ *  @brief   timeout of hold data
+ *
+ *  @param   unused
+ *
+ *  @return  none
+ */
+static void send_timeout_cb(void)
+{
+    CLEAN_SEND_BUF();
+    pthread_mutex_lock(&devc.send_mutex);
+    SET_SEND_RESULT(SEND_TIMEOUT);
+    pthread_cond_signal(&devc.cond);
+    pthread_mutex_unlock(&devc.send_mutex);
+}
 
 /**
  *  @fn      zb_uart_recv_cb
@@ -158,8 +174,6 @@ static void sig_handler(int sig)
  */
 static void zb_uart_recv_cb(uint8_t cmd, uint8_t* const pl, uint16_t len)
 {
-    int16_t ret = -1;
-
     if (cmd == UART_CMD_DATA_REQUEST) {
         if (devc.send_len > 0) {
             uart_pro->send(&src, devc.send_cmd, devc.send_buf,
@@ -167,10 +181,7 @@ static void zb_uart_recv_cb(uint8_t cmd, uint8_t* const pl, uint16_t len)
         }
     } else if (cmd == UART_CMD_DATA_CONFIRM) {
         CLEAN_SEND_BUF();
-        ret = timer->stop(TIMER_ID);
-        if (ret < 0) {
-            LOGW("send timeout timer stop fail. err: %d\n", ret);
-        }
+        alarm_manager->cancel(send_timeout_cb);
         pthread_mutex_lock(&devc.send_mutex);
         SET_SEND_RESULT(SEND_SUCCESS);
         pthread_cond_signal(&devc.cond);
@@ -178,40 +189,13 @@ static void zb_uart_recv_cb(uint8_t cmd, uint8_t* const pl, uint16_t len)
 
     } else {
         if (devc.recv_cb != NULL) {
-            ret = uart_pro->send(&src, UART_CMD_DATA_CONFIRM,
+            uart_pro->send(&src, UART_CMD_DATA_CONFIRM,
                                         NULL, 0, zb_uart_send);
             devc.recv_cb(cmd, pl, len);
         }
     }
 }
 
-
-
-/**
- *  @fn      send_timeout_cb
- *
- *  @brief   timeout of hold data
- *
- *  @param   unused
- *
- *  @return  none
- */
-static void send_timeout_cb(void *args)
-{
-    int ret;
-    (void)args;
-
-    ret = timer->stop(TIMER_ID);
-    if (ret < 0) {
-        LOGE("send timeout timer stop fail. err: %d\n", ret);
-    }
-
-    CLEAN_SEND_BUF();
-    pthread_mutex_lock(&devc.send_mutex);
-    SET_SEND_RESULT(SEND_TIMEOUT);
-    pthread_cond_signal(&devc.cond);
-    pthread_mutex_unlock(&devc.send_mutex);
-}
 
 /**
  *  @fn      zb_poll
@@ -263,7 +247,7 @@ static int16_t zb_data_request(void)
 /**
  *  @fn      zb_dev_init
  *
- *  @brief   peripheral initialization zigbee\protocol\uart\timer
+ *  @brief   peripheral initialization zigbee\protocol\uart\alarm
  *
  *
  *  @return  none
@@ -305,16 +289,17 @@ static int zb_dev_init(struct zb_uart_cfg_t uart_cfg)
         goto err_pro_init_fail;
     }
 
-    timer = get_timer_manager();
-    ret = timer->init(TIMER_ID, TIMER_PERIOD, 1, send_timeout_cb, NULL);
-    if (ret < 0 || (ret != TIMER_ID)) {
-        LOGE("timer init fail\n");
-        goto err_timer_init_fail;
+    alarm_manager = get_alarm_manager();
+    ret = alarm_manager->init();
+    if (ret < 0) {
+        LOGE("Failed to init alarm.\n");
+        goto err_alarm_init;
     }
+    alarm_manager->start();
 
     return 0;
 
-err_timer_init_fail:
+err_alarm_init:
     uart_pro->deinit(&src);
 err_pro_init_fail:
 err_uart_cfg_fail:
@@ -329,14 +314,15 @@ err_dev_open_fail:
 /**
  *  @fn      zb_dev_deinit
  *
- *  @brief   peripheral deinitialization zigbee\protocol\uart\timer
+ *  @brief   peripheral deinitialization zigbee\protocol\uart\alarm
  *
  *
  *  @return  none
  */
 static void zb_dev_deinit(void)
 {
-    timer->deinit(TIMER_ID);
+    alarm_manager->stop();
+    alarm_manager->deinit();
     uart_pro->deinit(&src);
     uart->deinit(devc.uart_devname);
     free(devc.uart_devname);
@@ -445,6 +431,7 @@ static int zb_init(uart_zigbee_recv_cb recv_cb,
 static int zb_trigger_send(void)
 {
     int ret;
+    uint64_t cur_timems;
 
     pthread_mutex_lock(&devc.send_mutex);
     if (devc.fd >= 0) {
@@ -455,12 +442,8 @@ static int zb_trigger_send(void)
             return ret;
         }
 
-        ret = timer->start(TIMER_ID);
-        if (ret < 0) {
-            LOGE("send timeout timer start fail. err: %d\n", ret);
-            pthread_mutex_unlock(&devc.send_mutex);
-            return ret;
-        }
+        cur_timems = alarm_manager->get_sys_time_ms();
+        alarm_manager->set(cur_timems + DATA_REQUEST_TIMEOUT, send_timeout_cb);
     }
 
     pthread_cond_wait(&devc.cond, &devc.send_mutex);

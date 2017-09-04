@@ -9,12 +9,17 @@
 
 #include <fingerprint/fpc/fpc_fingerprint.h>
 
-#define LOG_TAG                     "test_fpc_fp"
+#define LOG_TAG                         "test_fpc_fp"
 
-#define AUTH_MAX_TIMES              5
-#define MAX_ENROLL_TIMES            5
-#define MAX_ENROLL_FINGER_NUM       200
+#define UART_DEVICE_NAME                "/dev/ttyS1"
 
+#define AUTH_MAX_TIMES                  5
+#define MAX_ENROLL_TIMES                5
+#define MAX_ENROLL_FINGER_NUM           200
+
+
+#define AUTH_TIMEOUT                    5
+#define ENROLL_TIMEOUT                  5
 
 typedef enum {
     DELETE_BY_ID,
@@ -179,7 +184,9 @@ static void fpc_fp_callback(int msg, int percent, int finger_id)
         case FPC_REMOVE_FAILED:
             LOGD("========> FPC_REMOVE_FAILED\n");
             break;
-
+        case FPC_LOW_QUALITY:
+            LOGD("========> FPC_LOW_QUALITY\n");
+            break;
         default:
             break;
     }
@@ -378,8 +385,11 @@ int main(int argc, char *argv[]) {
     signal_handler->set_signal_handler(signal_handler, SIGTERM, handle_signal);
 
     fpc_finger_config.max_enroll_finger_num = MAX_ENROLL_FINGER_NUM;
+    fpc_finger_config.enroll_timeout        = ENROLL_TIMEOUT;
+    fpc_finger_config.authenticate_timeout  = AUTH_TIMEOUT;
+    fpc_finger_config.uart_devname          = UART_DEVICE_NAME;
     memcpy(fpc_finger_config.file_path, get_user_system_dir(getuid()),
-            sizeof(fpc_finger_config.file_path));
+                                sizeof(fpc_finger_config.file_path));
 
 reinit:
     error = fpc_fingerprint_init(fpc_fp_callback, &fpc_finger_config);

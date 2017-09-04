@@ -8,7 +8,8 @@ typedef struct customer_config
     int min_enroll_count_for_one_finger;       /*  3 ~ 8     0 : defalut  */
     int enroll_timeout;                        /*  0 ~ ...    0 : defalut  */
     int authenticate_timeout;                  /*  0 ~ ...    0 : defalut  */
-    char file_path[100];                       /*  "/xxx/xxx"    0 : defalut  */
+    char*uart_devname;                         /*  /dev/tty*               */
+    char file_path[128];                       /*  "/xxx/xxx"    0 : defalut  */
 } customer_config_t;
 
 
@@ -21,7 +22,8 @@ typedef enum fpc_msg_type {
     FPC_AUTHENTICATE_SUCCESS    = 5,
     FPC_AUTHENTICATED_FAILED    = 6,
     FPC_REMOVE_SUCCESS          = 7,
-    FPC_REMOVE_FAILED           = 8
+    FPC_REMOVE_FAILED           = 8,
+    FPC_LOW_QUALITY             = 9
 } fpc_msg_type_t;
 
 
