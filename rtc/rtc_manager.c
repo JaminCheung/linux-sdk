@@ -33,27 +33,26 @@
 #define JZ_RTC_HIBERNATE_STATUS _IOR('r', 0x01, int)    /* Hibernate wakeup status  */
 
 static int fd;
+static uint32_t init_count;
 static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int32_t init(void) {
     int error = 0;
 
     pthread_mutex_lock(&init_lock);
-    if (fd > 0) {
-        LOGE("rtc manager already init.\n");
-        goto error;
-    }
 
-    fd = open(RTC_DEV, O_RDWR);
-    if(fd < 0) {
-        LOGE("Failed to open %s: %s\n", RTC_DEV, strerror(errno));
-        goto error;
-    }
+    if (init_count++ == 0) {
+        fd = open(RTC_DEV, O_RDWR);
+        if(fd < 0) {
+            LOGE("Failed to open %s: %s\n", RTC_DEV, strerror(errno));
+            goto error;
+        }
 
-    error = ioctl(fd, RTC_AIE_OFF, 0);
-    if (error < 0) {
-        LOGE("Failed to disable rtc aie: %s\n", strerror(errno));
-        goto error;
+        error = ioctl(fd, RTC_AIE_OFF, 0);
+        if (error < 0) {
+            LOGE("Failed to disable rtc aie: %s\n", strerror(errno));
+            goto error;
+        }
     }
 
     pthread_mutex_unlock(&init_lock);
@@ -70,21 +69,15 @@ error:
 
 static int32_t deinit(void) {
     pthread_mutex_lock(&init_lock);
-    if (fd <= 0) {
-        LOGE("rtc manager already deinit.\n");
-        goto error;
-    }
 
-    if (fd > 0)
-        close(fd);
+    if (--init_count == 0) {
+        if (fd > 0)
+            close(fd);
+    }
 
     pthread_mutex_unlock(&init_lock);
 
     return 0;
-
-error:
-    pthread_mutex_unlock(&init_lock);
-    return -1;
 }
 
 static int32_t get_rtc(struct rtc_time *time) {

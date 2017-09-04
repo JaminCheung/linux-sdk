@@ -2,7 +2,7 @@
 
 #include <utils/log.h>
 #include <utils/common.h>
-#include <utils/signal_handler.h>
+#include <signal/signal_handler.h>
 #include <input/input_manager.h>
 
 #define LOG_TAG "test_input"

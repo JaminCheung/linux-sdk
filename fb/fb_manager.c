@@ -45,7 +45,7 @@ static uint32_t screen_size;
 static struct fb_fix_screeninfo fb_fixinfo;
 static struct fb_var_screeninfo fb_varinfo;
 
-static int inited;
+static uint32_t init_count;
 static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static void dump(void) {
@@ -70,61 +70,57 @@ static void dump(void) {
 
 static int init(void) {
     pthread_mutex_lock(&init_lock);
-    if (inited == 1) {
-        LOGE("fb manager already init\n");
-        return 0;
-    }
 
-    fd = open(prefix_fb_dev, O_RDWR | O_SYNC);
-    if (fd < 0) {
-        LOGW("Failed to open %s, try %s\n", prefix_fb_dev, prefix_fb_bak_dev);
-
-        fd = open(prefix_fb_bak_dev, O_RDWR | O_SYNC);
+    if (init_count++ == 0) {
+        fd = open(prefix_fb_dev, O_RDWR | O_SYNC);
         if (fd < 0) {
-            LOGE("Failed to open %s: %s\n", prefix_fb_bak_dev, strerror(errno));
+            LOGW("Failed to open %s, try %s\n", prefix_fb_dev, prefix_fb_bak_dev);
+
+            fd = open(prefix_fb_bak_dev, O_RDWR | O_SYNC);
+            if (fd < 0) {
+                LOGE("Failed to open %s: %s\n", prefix_fb_bak_dev, strerror(errno));
+                goto error;
+            }
+        }
+
+        if (ioctl(fd, FBIOGET_VSCREENINFO, &fb_varinfo) < 0) {
+            LOGE("Failed to get screen var info: %s\n", strerror(errno));
+            goto error;
+        }
+
+        if(ioctl(fd, FBIOGET_FSCREENINFO, &fb_fixinfo) < 0) {
+            LOGE("Failed to get screen fix info: %s\n", strerror(errno));
+            goto error;
+        }
+
+        fbmem = (uint8_t*) mmap(0, fb_fixinfo.smem_len, PROT_READ | PROT_WRITE,
+                MAP_SHARED, fd, 0);
+        if (fbmem == MAP_FAILED) {
+            LOGE("Failed to mmap frame buffer: %s\n", strerror(errno));
+            goto error;
+        }
+
+        memset(fbmem, 0, fb_fixinfo.smem_len);
+
+        fb_count = fb_varinfo.yres_virtual / fb_varinfo.yres;
+
+        screen_size = fb_fixinfo.line_length * fb_varinfo.yres;
+
+        fb_curmem = (uint8_t *) calloc(1, fb_fixinfo.line_length
+                * fb_varinfo.yres);
+
+        vt_fd = open(prefix_vt_dev, O_RDWR | O_SYNC);
+        if (vt_fd < 0) {
+            LOGW("Failed to open %s: %s\n", prefix_vt_dev, strerror(errno));
+        } else if (ioctl(vt_fd, KDSETMODE, (void*)KD_GRAPHICS) < 0) {
+            LOGE("Failed to set KD_GRAPHICS on %s: %s\n", prefix_vt_dev,
+                    strerror(errno));
+
+            ioctl(vt_fd, KDSETMODE, (void*) KD_TEXT);
+
             goto error;
         }
     }
-
-    if (ioctl(fd, FBIOGET_VSCREENINFO, &fb_varinfo) < 0) {
-        LOGE("Failed to get screen var info: %s\n", strerror(errno));
-        goto error;
-    }
-
-    if(ioctl(fd, FBIOGET_FSCREENINFO, &fb_fixinfo) < 0) {
-        LOGE("Failed to get screen fix info: %s\n", strerror(errno));
-        goto error;
-    }
-
-    fbmem = (uint8_t*) mmap(0, fb_fixinfo.smem_len, PROT_READ | PROT_WRITE,
-            MAP_SHARED, fd, 0);
-    if (fbmem == MAP_FAILED) {
-        LOGE("Failed to mmap frame buffer: %s\n", strerror(errno));
-        goto error;
-    }
-
-    memset(fbmem, 0, fb_fixinfo.smem_len);
-
-    fb_count = fb_varinfo.yres_virtual / fb_varinfo.yres;
-
-    screen_size = fb_fixinfo.line_length * fb_varinfo.yres;
-
-    fb_curmem = (uint8_t *) calloc(1, fb_fixinfo.line_length
-            * fb_varinfo.yres);
-
-    vt_fd = open(prefix_vt_dev, O_RDWR | O_SYNC);
-    if (vt_fd < 0) {
-        LOGW("Failed to open %s: %s\n", prefix_vt_dev, strerror(errno));
-    } else if (ioctl(vt_fd, KDSETMODE, (void*)KD_GRAPHICS) < 0) {
-        LOGE("Failed to set KD_GRAPHICS on %s: %s\n", prefix_vt_dev,
-                strerror(errno));
-
-        ioctl(vt_fd, KDSETMODE, (void*) KD_TEXT);
-
-        goto error;
-    }
-
-    inited = 1;
 
     pthread_mutex_unlock(&init_lock);
 
@@ -145,28 +141,23 @@ error:
 
 static int deinit(void) {
     pthread_mutex_lock(&init_lock);
-    if (inited == 0) {
-        LOGE("fb manager already deinit\n");
-        pthread_mutex_unlock(&init_lock);
-        return 0;
+
+    if (--init_count == 0) {
+        if (munmap(fbmem, fb_fixinfo.smem_len) < 0) {
+            LOGE("Failed to mumap frame buffer: %s\n", strerror(errno));
+            goto error;
+        }
+
+        if (fb_curmem)
+            free(fb_curmem);
+
+        close(fd);
+        fd = -1;
+
+        ioctl(vt_fd, KDSETMODE, (void*) KD_TEXT);
+        close(vt_fd);
+        vt_fd = -1;
     }
-
-    inited = 0;
-
-    if (munmap(fbmem, fb_fixinfo.smem_len) < 0) {
-        LOGE("Failed to mumap frame buffer: %s\n", strerror(errno));
-        goto error;
-    }
-
-    if (fb_curmem)
-        free(fb_curmem);
-
-    close(fd);
-    fd = -1;
-
-    ioctl(vt_fd, KDSETMODE, (void*) KD_TEXT);
-    close(vt_fd);
-    vt_fd = -1;
 
     pthread_mutex_unlock(&init_lock);
 

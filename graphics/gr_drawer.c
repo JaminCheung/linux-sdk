@@ -48,6 +48,7 @@ static uint8_t gr_current_g = 255;
 static uint8_t gr_current_b = 255;
 
 static int inited;
+static uint32_t init_count;
 static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int outside(uint32_t pos_x, uint32_t pos_y) {
@@ -257,60 +258,56 @@ static void get_font_size(uint32_t* width, uint32_t* height) {
 }
 
 static int init(void) {
-    pthread_mutex_lock(&init_lock);
-    if (inited == 1) {
-        LOGE("gr drawer already init\n");
-        return 0;
-    }
-
     int error = 0;
 
-    fb_manager = get_fb_manager();
-    if (fb_manager->init() < 0) {
-        fb_manager = NULL;
-        goto error;
-    }
+    pthread_mutex_lock(&init_lock);
 
-    fb_width = fb_manager->get_screen_width();
-    fb_height = fb_manager->get_screen_height();
-    fb_bits_per_pixel = fb_manager->get_bits_per_pixel();
-    fb_row_bytes = fb_manager->get_row_bytes();
-    fb_bytes_per_pixel = fb_bits_per_pixel / 8;
-
-    gr_font = calloc(1, sizeof(struct gr_font));
-
-    error = png_decode_font(FONT_PATH, &(gr_font->texture));
-    if (!error) {
-        // The font image should be a 96x2 array of character images.  The
-        // columns are the printable ASCII characters 0x20 - 0x7f.  The
-        // top row is regular text; the bottom row is bold.
-        gr_font->cwidth = gr_font->texture->width / 96;
-        gr_font->cheight = gr_font->texture->height / 2;
-
-    } else {
-        LOGW("Use default build-in font 10x18.\n");
-
-        gr_font->texture = calloc(1, sizeof(*gr_font->texture));
-        gr_font->texture->width = font.width;
-        gr_font->texture->height = font.height;
-        gr_font->texture->row_bytes = font.width;
-        gr_font->texture->pixel_bytes = 1;
-
-        uint8_t* bits = (uint8_t*) calloc(1, font.width * font.height);
-        gr_font->texture->raw_data = (void *) bits;
-
-        uint8_t data;
-        uint8_t* in = font.rundata;
-        while ((data = *in++)) {
-            memset(bits, (data & 0x80) ? 0xff : 0, data & 0x7f);
-            bits += (data & 0x7f);
+    if (init_count++ == 0) {
+        fb_manager = get_fb_manager();
+        if (fb_manager->init() < 0) {
+            fb_manager = NULL;
+            goto error;
         }
 
-        gr_font->cwidth = font.cwidth;
-        gr_font->cheight = font.cheight;
-    }
+        fb_width = fb_manager->get_screen_width();
+        fb_height = fb_manager->get_screen_height();
+        fb_bits_per_pixel = fb_manager->get_bits_per_pixel();
+        fb_row_bytes = fb_manager->get_row_bytes();
+        fb_bytes_per_pixel = fb_bits_per_pixel / 8;
 
-    inited = 1;
+        gr_font = calloc(1, sizeof(struct gr_font));
+
+        error = png_decode_font(FONT_PATH, &(gr_font->texture));
+        if (!error) {
+            // The font image should be a 96x2 array of character images.  The
+            // columns are the printable ASCII characters 0x20 - 0x7f.  The
+            // top row is regular text; the bottom row is bold.
+            gr_font->cwidth = gr_font->texture->width / 96;
+            gr_font->cheight = gr_font->texture->height / 2;
+
+        } else {
+            LOGW("Use default build-in font 10x18.\n");
+
+            gr_font->texture = calloc(1, sizeof(*gr_font->texture));
+            gr_font->texture->width = font.width;
+            gr_font->texture->height = font.height;
+            gr_font->texture->row_bytes = font.width;
+            gr_font->texture->pixel_bytes = 1;
+
+            uint8_t* bits = (uint8_t*) calloc(1, font.width * font.height);
+            gr_font->texture->raw_data = (void *) bits;
+
+            uint8_t data;
+            uint8_t* in = font.rundata;
+            while ((data = *in++)) {
+                memset(bits, (data & 0x80) ? 0xff : 0, data & 0x7f);
+                bits += (data & 0x7f);
+            }
+
+            gr_font->cwidth = font.cwidth;
+            gr_font->cheight = font.cheight;
+        }
+    }
 
     pthread_mutex_unlock(&init_lock);
 
@@ -324,26 +321,21 @@ error:
 
 static int deinit(void) {
     pthread_mutex_lock(&init_lock);
-    if (inited == 0) {
-        LOGE("gr drawer already deinit\n");
-        pthread_mutex_unlock(&init_lock);
-        return 0;
+
+    if (--init_count == 0) {
+        if (fb_manager)
+            fb_manager->deinit();
+
+        if (gr_font) {
+            if (gr_font->texture)
+                free(gr_font->texture);
+
+            free(gr_font);
+        }
+
+        fb_manager = NULL;
+        gr_font = NULL;
     }
-
-    inited = 0;
-
-    if (fb_manager)
-        fb_manager->deinit();
-
-    if (gr_font) {
-        if (gr_font->texture)
-            free(gr_font->texture);
-
-        free(gr_font);
-    }
-
-    fb_manager = NULL;
-    gr_font = NULL;
 
     pthread_mutex_unlock(&init_lock);
 

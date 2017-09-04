@@ -16,9 +16,9 @@
 
 #include <utils/log.h>
 #include <utils/common.h>
-#include <utils/signal_handler.h>
+#include <signal/signal_handler.h>
 #include <thread/thread.h>
-#include "../../include/ring_buffer/ring_buffer.h"
+#include <ring_buffer/ring_buffer.h>
 
 #define LOG_TAG "test_ring_buffer"
 

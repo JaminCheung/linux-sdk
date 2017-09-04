@@ -37,8 +37,7 @@ OBJS-y += thread/pthread_wrapper.o                                             \
 #
 # Utils
 #
-OBJS-y += utils/signal_handler.o                                               \
-          utils/compare_string.o                                               \
+OBJS-y += utils/compare_string.o                                               \
           utils/assert.o                                                       \
           utils/dump_stack.o                                                   \
           utils/common.o                                                       \
@@ -47,6 +46,11 @@ OBJS-y += utils/signal_handler.o                                               \
           utils/png_decode.o                                                   \
           utils/wave_parser.o                                                  \
           utils/yuv2bmp.o
+
+#
+# Signal handler
+#
+OBJS-y += signal/signal_handler.o
 
 #
 # Ring buffer

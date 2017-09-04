@@ -7,7 +7,7 @@
 #include <types.h>
 #include <utils/log.h>
 #include <utils/common.h>
-#include <utils/signal_handler.h>
+#include <signal/signal_handler.h>
 #include <audio/alsa/wave_player.h>
 #include <audio/alsa/wave_recorder.h>
 #include <audio/alsa/mixer_controller.h>
