@@ -47,7 +47,6 @@ static uint8_t gr_current_r = 255;
 static uint8_t gr_current_g = 255;
 static uint8_t gr_current_b = 255;
 
-static int inited;
 static uint32_t init_count;
 static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 

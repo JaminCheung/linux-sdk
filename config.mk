@@ -18,13 +18,19 @@ SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
         else if [ -x /bin/bash ]; then echo /bin/bash; \
         else echo sh; fi; fi)
 
-TARGET_NAME := ingenic
-TARGET := lib/lib$(TARGET_NAME).so
-
 #
 # Top directory
 #
 TOPDIR ?= $(shell pwd)
+
+ifneq ($(TOPDIR)/build.mk, $(wildcard $(TOPDIR)/build.mk))
+$(error Could not find $(TOPDIR)/build.mk !!!)
+endif
+
+include $(TOPDIR)/build.mk
+
+TARGET_NAME := ingenic
+TARGET := lib/lib$(TARGET_NAME).so
 
 #
 # Out & Tools directory
@@ -68,20 +74,48 @@ LDFLAGS := -rdynamic
 #
 # Library link - Static
 #
-LDFLAGS += -Wl,-Bstatic -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint       \
-                        -L$(TOPDIR)/lib/fingerprint -lfps_360_linux
+LDFLAGS += -Wl,-Bstatic
+
+ifeq ($(CONFIG_LIB_FINGERPRINT_GD), y)
+LDFLAGS += -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint
+endif
+
+ifeq ($(CONFIG_LIB_FINGERPRINT_FPC), y)
+LDFLAGS += -L$(TOPDIR)/lib/fingerprint -lfps_360_linux
+endif
+#
+# Put your static library here
+#
+
+
 
 #
 # Library link - Dynamic
 #
-LDFLAGS += -Wl,-Bdynamic -pthread -lm -lrt -ldl -lstdc++                       \
-           -L$(TOPDIR)/lib/openssl -lcrypto -lssl                              \
-           -L$(TOPDIR)/lib/alsa -lasound                                       \
-           -L$(TOPDIR)/lib/fingerprint -lfprint-mips                           \
-           -L$(TOPDIR)/lib/face -lNmIrFaceSdk
+LDFLAGS += -Wl,-Bdynamic -pthread -lm -lrt -ldl -lstdc++
 
-DEBUG := 1
-ifdef DEBUG
+ifeq ($(CONFIG_LIB_ALSA), y)
+LDFLAGS += -L$(TOPDIR)/lib/alsa -lasound
+endif
+
+ifeq ($(CONFIG_LIB_OPENSSL), y)
+LDFLAGS += -L$(TOPDIR)/lib/openssl -lcrypto -lssl
+endif
+
+ifeq ($(CONFIG_LIB_FINGERPRINT_MA), y)
+LDFLAGS += -L$(TOPDIR)/lib/fingerprint -lfprint-mips
+endif
+
+ifeq ($(CONFIG_LIB_FACE_DETECT), y)
+LDFLAGS += -L$(TOPDIR)/lib/face -lNmIrFaceSdk
+endif
+#
+# Put your dynamic library here
+#
+
+
+
+ifeq ($(CONFIG_LOCAL_DEBUG), y)
 CFLAGS += -DLOCAL_DEBUG -DDEBUG
 endif
 

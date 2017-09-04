@@ -15,6 +15,7 @@
 #
 
 argstr=$*
+[[ $argstr =~ "-L" ]] || exit 0
 str1=${argstr#*-Bdynamic }
 
 mkdir -p out/lib

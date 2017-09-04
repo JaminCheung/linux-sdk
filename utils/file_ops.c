@@ -61,7 +61,7 @@ int get_file_size(const char *path) {
         return -1;
     return s.st_size;
 }
-
+#if 0
 int check_file_md5(const char* path, const char* md5) {
     int fd = 0;
     int i;
@@ -110,7 +110,7 @@ error:
 
     return -1;
 }
-
+#endif
 
 int dir_exist(const char* path) {
     assert_die_if(path == NULL, "path is NULL");
