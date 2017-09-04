@@ -19,23 +19,31 @@
 #include <types.h>
 #include <utils/log.h>
 #include <utils/assert.h>
+#include <input/input_manager.h>
 #include <cypress/cypress_manager.h>
 
 
 #define LOG_TAG    "cypress_testunit"
 
+struct input_manager *input;
 
 /*
  * Functions
  */
-void keys_report_handler(uint8_t keycode, uint8_t keyvalue)
+static void keys_report_handler(uint8_t keycode, uint8_t keyvalue)
 {
     printf("Cypress touch-keys, keycode: %d, state: %s\n",
             keycode, keyvalue ? "pressed" : "released");
 }
 
+static void cypress_input_event_listener(const char *input_name,
+        struct input_event *event) {
+    if (event->type == EV_KEY) {
+        keys_report_handler(event->code, event->value);
+    }
+}
 
-void card_report_handler(int dev_fd)
+static void card_report_handler(int dev_fd)
 {
     uint8_t i;
     struct card_t card;
@@ -101,12 +109,30 @@ int main(int argc, char *argv[])
     struct cypress_manager *cypress;
 
     cypress = get_cypress_manager();
-    cypress->init(keys_report_handler, card_report_handler);
+    if (cypress->init(card_report_handler) < 0) {
+        LOGE("Failed to init cypress manager\n");
+        return -1;
+    }
+
+    input = get_input_manager();
+    if (input->init() < 0) {
+        LOGE("Failed to init input manager\n");
+        return -1;
+    }
+
+    input->register_event_listener(CYPRESS_INPUT_DEV_NAME, cypress_input_event_listener);
+    if (input->start() < 0) {
+        LOGE("Failed to start input manager\n");
+        return -1;
+    }
 
     while(1) {
         usleep(100);
     };
 
     cypress->deinit();
+    input->stop();
+    input->unregister_event_listener(CYPRESS_INPUT_DEV_NAME, cypress_input_event_listener);
+    input->deinit();
     return 0;
 }
