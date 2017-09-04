@@ -72,8 +72,9 @@ static uint32_t template_num = 0;
 static int enroll_status;
 static int auth_status;
 
-static pthread_mutex_t id_list_mutex = PTHREAD_MUTEX_INITIALIZER;
+static uint32_t init_count;
 
+static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t enroll_sta_mutex = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t auth_sta_mutex   = PTHREAD_MUTEX_INITIALIZER;
 
@@ -115,15 +116,12 @@ static int send_msg(struct pipo_msg* pp_msg)
 {
     int error = 0;
 
-    pthread_mutex_lock(&id_list_mutex);
     error = write(local_pipe[1], pp_msg, sizeof(struct pipo_msg));
     if (error < 0) {
         LOGE("Failed to send \'%s\' %s\n", msg2str(pp_msg->msg),strerror(errno));
-        pthread_mutex_unlock(&id_list_mutex);
         return -1;
     }
 
-    pthread_mutex_unlock(&id_list_mutex);
     return 0;
 }
 
@@ -132,11 +130,9 @@ static int read_id_list_items(uint32_t num, uint32_t items[])
 {
     int i, ret;
 
-    pthread_mutex_lock(&id_list_mutex);
     ret = lseek(id_list_fd, 0, SEEK_SET);
     if (ret < 0) {
         LOGE("Failed to file lseek. ret: %d %s\n",ret, strerror(errno));
-        pthread_mutex_unlock(&id_list_mutex);
         return -1;
     }
 
@@ -144,7 +140,6 @@ static int read_id_list_items(uint32_t num, uint32_t items[])
         ret = read(id_list_fd, &items[i], sizeof(uint32_t));
         if (ret < 0) {
             LOGE("Failed to read list id. ret: %x %s\n",ret, strerror(errno));
-            pthread_mutex_unlock(&id_list_mutex);
             return -1;
         }
         if (ret == 0) {
@@ -152,7 +147,7 @@ static int read_id_list_items(uint32_t num, uint32_t items[])
             break;
         }
     }
-    pthread_mutex_unlock(&id_list_mutex);
+
     return 0;
 }
 
@@ -161,15 +156,11 @@ static int write_id_list_tail(uint32_t id)
 {
     int ret;
 
-    pthread_mutex_lock(&id_list_mutex);
     ret = write(id_list_fd, &id, sizeof(id));
     if (ret != sizeof(id)) {
         LOGE("Failed to write id to template id list. ret: %d %s\n",ret, strerror(errno));
-        pthread_mutex_unlock(&id_list_mutex);
         return -1;
     }
-
-    pthread_mutex_unlock(&id_list_mutex);
     return 0;
 }
 
@@ -179,13 +170,13 @@ static int remove_id_list_item(uint32_t id)
     uint32_t id_num;
     uint32_t cur_pos;
 
-    pthread_mutex_lock(&id_list_mutex);
     cur_pos = lseek(id_list_fd, 0, SEEK_CUR);
     ret = lseek(id_list_fd, 0, SEEK_SET);
     if (ret < 0) {
         LOGE("Failed to file lseek. ret: %d %s\n",ret, strerror(errno));
         goto file_operate_fail;
     }
+
     ret = read(id_list_fd, id_list, template_num*sizeof(uint32_t));
     if (ret < 0) {
         LOGE("Failed to read file. ret: %d %s\n",id, strerror(errno));
@@ -219,13 +210,11 @@ static int remove_id_list_item(uint32_t id)
         goto file_operate_fail;
     }
 
-    pthread_mutex_unlock(&id_list_mutex);
     return 0;
 
 file_operate_fail:
     lseek(id_list_fd, 0, SEEK_SET);
     lseek(id_list_fd, cur_pos, SEEK_SET);
-    pthread_mutex_unlock(&id_list_mutex);
     return -1;
 }
 
@@ -233,15 +222,12 @@ static int reset_id_list()
 {
     int ret;
 
-    pthread_mutex_lock(&id_list_mutex);
     ret = lseek(id_list_fd, 0, SEEK_SET);
     if (ret < 0) {
         LOGE("Failed to file lseek. ret: %d %s\n",ret, strerror(errno));
-        pthread_mutex_unlock(&id_list_mutex);
         return -1;
     }
 
-    pthread_mutex_unlock(&id_list_mutex);
     return 0;
 }
 
@@ -594,94 +580,97 @@ int fpc_fingerprint_init(notify_callback notify, void *param_config)
     uint8_t filename[128];
     int error = 0;
 
-    callback = notify;
-    memcpy(&config, param_config, sizeof(customer_config_t));
-    fpc_dev_fd = open(FP_DEVICE_NAME, O_RDWR);
-    if (fpc_dev_fd < 0) {
-        LOGE("Faild to open %s . err: %d\n", FP_DEVICE_NAME, fpc_dev_fd);
-        goto err_fpc_dev_open;
-    }
+    pthread_mutex_lock(&init_lock);
+    if (init_count++ == 0) {
+        callback = notify;
+        memcpy(&config, param_config, sizeof(customer_config_t));
+        fpc_dev_fd = open(FP_DEVICE_NAME, O_RDWR);
+        if (fpc_dev_fd < 0) {
+            LOGE("Faild to open %s . err: %d\n", FP_DEVICE_NAME, fpc_dev_fd);
+            goto err_fpc_dev_open;
+        }
 
-    init_info.Sensor_Dev = fpc_dev_fd;
-    sprintf(init_info.Encrypt_Dev, config.uart_devname);
-    sprintf(init_info.Sys_filename,"%s/%s",config.file_path, FPC_FP_DATA_LIST_NAME);
+        init_info.Sensor_Dev = fpc_dev_fd;
+        sprintf(init_info.Encrypt_Dev, config.uart_devname);
+        sprintf(init_info.Sys_filename,"%s/%s",config.file_path, FPC_FP_DATA_LIST_NAME);
 
-    error = FpCommand(FF_INITIALIZE_CODE,(FULL_UINT)&init_info,0,0);
-    if (error != FF_SUCCESS) {
-        LOGE("Failed to command FF_INITIALIZE_CODE : %d\n", error);
-        goto err_fp_cmd_init;
-    }
+        error = FpCommand(FF_INITIALIZE_CODE,(FULL_UINT)&init_info,0,0);
+        if (error != FF_SUCCESS) {
+            LOGE("Failed to command FF_INITIALIZE_CODE : %d\n", error);
+            goto err_fp_cmd_init;
+        }
 
-    error = FpCommand(FF_SET_SECURITYLEVEL_CODE,3,0,0);
-    if (error != FF_SUCCESS) {
-        LOGE("Failed to command FF_SET_SECURITYLEVEL_CODE : %d\n", error);
-        goto err_fp_cmd_set;
-    }
+        error = FpCommand(FF_SET_SECURITYLEVEL_CODE,3,0,0);
+        if (error != FF_SUCCESS) {
+            LOGE("Failed to command FF_SET_SECURITYLEVEL_CODE : %d\n", error);
+            goto err_fp_cmd_set;
+        }
 
-    error = FpCommand(FF_SET_DUP_CHECK_CODE,DISABLE_DUP_CHECK,0,0);
-    if (error != FF_SUCCESS) {
-        LOGE("Failed to command FF_SET_DUP_CHECK_CODE : %d\n", error);
-        goto err_fp_cmd_set;
-    }
+        error = FpCommand(FF_SET_DUP_CHECK_CODE,DISABLE_DUP_CHECK,0,0);
+        if (error != FF_SUCCESS) {
+            LOGE("Failed to command FF_SET_DUP_CHECK_CODE : %d\n", error);
+            goto err_fp_cmd_set;
+        }
 
-    error = FpCommand(FF_GET_ENROLL_COUNT_CODE,(FULL_UINT)&template_num,0,0);
-    if (error != FF_SUCCESS) {
-        LOGE("Failed to require enrolled count. ret: %x\n",error);
-        goto err_fp_cmd_set;
-    }
+        error = FpCommand(FF_GET_ENROLL_COUNT_CODE,(FULL_UINT)&template_num,0,0);
+        if (error != FF_SUCCESS) {
+            LOGE("Failed to require enrolled count. ret: %x\n",error);
+            goto err_fp_cmd_set;
+        }
 
-    error = pipe(local_pipe);
-    if (error) {
-        LOGE("Unable to open pipe: %s\n", strerror(errno));
-        goto err_pipe;
-    }
+        error = pipe(local_pipe);
+        if (error) {
+            LOGE("Unable to open pipe: %s\n", strerror(errno));
+            goto err_pipe;
+        }
 
-    thread_runner = _new(struct thread, thread);
-    if (thread_runner == NULL) {
-        LOGE("Failed to create thread\n");
-        goto err_thread_new;
-    }
+        thread_runner = _new(struct thread, thread);
+        if (thread_runner == NULL) {
+            LOGE("Failed to create thread\n");
+            goto err_thread_new;
+        }
 
-    thread_runner->runnable.run = fpc_thread_loop;
-    error = thread_runner->start(thread_runner, NULL);
-    if (error < 0) {
-        LOGE("Failed to start thread\n");
-        goto err_thread_start;
-    }
-    if (img_data == NULL) {
-        img_data = (uint8_t*)malloc(IMAGE_SIZE);
+        thread_runner->runnable.run = fpc_thread_loop;
+        error = thread_runner->start(thread_runner, NULL);
+        if (error < 0) {
+            LOGE("Failed to start thread\n");
+            goto err_thread_start;
+        }
         if (img_data == NULL) {
-            LOGE("Failed to malloc img_data\n");
+            img_data = (uint8_t*)malloc(IMAGE_SIZE);
+            if (img_data == NULL) {
+                LOGE("Failed to malloc img_data\n");
+                goto err_malloc_img_data;
+            }
+        } else {
+            LOGE("Img_data isn't NUll\n");
             goto err_malloc_img_data;
         }
-    } else {
-        LOGE("Img_data isn't NUll\n");
-        goto err_malloc_img_data;
-    }
 
-    if (id_list == NULL) {
-        id_list = (uint32_t*)malloc(config.max_enroll_finger_num*sizeof(uint32_t));
         if (id_list == NULL) {
-            LOGE("Failed to malloc id list buffer\n");
-            goto err_malloc_id_list;
+            id_list = (uint32_t*)malloc(config.max_enroll_finger_num*sizeof(uint32_t));
+            if (id_list == NULL) {
+                LOGE("Failed to malloc id list buffer\n");
+                goto err_malloc_id_list;
+            }
         }
-    }
 
-    sprintf((char*)filename, "%s/%s", config.file_path, FPC_FP_ID_LIST_NAME);
-    id_list_fd = open((char*)filename, O_RDWR|O_CREAT|O_SYNC, 0644);
-    if (id_list_fd < 0) {
-        LOGE("Failed to open %s.\n",filename);
-        goto err_file_open;
-    }
+        sprintf((char*)filename, "%s/%s", config.file_path, FPC_FP_ID_LIST_NAME);
+        id_list_fd = open((char*)filename, O_RDWR|O_CREAT|O_SYNC, 0644);
+        if (id_list_fd < 0) {
+            LOGE("Failed to open %s.\n",filename);
+            goto err_file_open;
+        }
 
-    alarm_manager = get_alarm_manager();
-    error = alarm_manager->init();
-    if (error < 0) {
-        LOGE("Failed to init alarm.\n");
-        goto err_alarm_init;
+        alarm_manager = get_alarm_manager();
+        error = alarm_manager->init();
+        if (error < 0) {
+            LOGE("Failed to init alarm.\n");
+            goto err_alarm_init;
+        }
+        alarm_manager->start();
     }
-    alarm_manager->start();
-
+    pthread_mutex_unlock(&init_lock);
     return 0;
 
 err_alarm_init:
@@ -705,6 +694,7 @@ err_fp_cmd_set:
 err_fp_cmd_init:
     close(fpc_dev_fd);
 err_fpc_dev_open:
+    pthread_mutex_unlock(&init_lock);
     return -1;
 }
 
@@ -712,27 +702,33 @@ int fpc_fingerprint_destroy(void)
 {
     struct pipo_msg pp_msg = {0};
 
-    pp_msg.msg = MSG_QUIT;
-    if (send_msg(&pp_msg)) {
-        LOGE("Failed to quit thread runner\n");
-        return -1;
+    pthread_mutex_lock(&init_lock);
+    if (--init_count == 0) {
+        pp_msg.msg = MSG_QUIT;
+        if (send_msg(&pp_msg)) {
+            LOGE("Failed to quit thread runner\n");
+            pthread_mutex_unlock(&init_lock);
+            return -1;
+        }
+
+        thread_runner->wait(thread_runner);
+        _delete(thread_runner);
+
+        if (local_pipe[0] > 0)
+            close(local_pipe[0]);
+
+        if (local_pipe[1] > 0)
+            close(local_pipe[1]);
+
+        free(img_data);
+
+        FpCommand(FF_TERMINATE,0,0,0);
+        close(fpc_dev_fd);
+        alarm_manager->stop();
+        alarm_manager->deinit();
     }
 
-    thread_runner->wait(thread_runner);
-    _delete(thread_runner);
-
-    if (local_pipe[0] > 0)
-        close(local_pipe[0]);
-
-    if (local_pipe[1] > 0)
-        close(local_pipe[1]);
-
-    free(img_data);
-
-    FpCommand(FF_TERMINATE,0,0,0);
-    close(fpc_dev_fd);
-    alarm_manager->stop();
-    alarm_manager->deinit();
+    pthread_mutex_unlock(&init_lock);
     return 0;
 }
 
