@@ -33,22 +33,41 @@
 #define DRV_NAME    "/dev/jz-aes"
 
 static int32_t fd = -1;
+static uint32_t init_count;
+
+static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static int security_init() {
-    fd = open(DRV_NAME, O_RDWR);
-    if (fd < 0) {
-        LOGE("Failed to open %s: %s\n", DRV_NAME, strerror(errno));
-        return -1;
+    pthread_mutex_lock(&init_lock);
+
+    if (init_count++ == 0) {
+        fd = open(DRV_NAME, O_RDWR);
+        if (fd < 0) {
+            LOGE("Failed to open %s: %s\n", DRV_NAME, strerror(errno));
+            goto error;
+        }
     }
 
+    pthread_mutex_unlock(&init_lock);
+
     return 0;
+
+error:
+    pthread_mutex_unlock(&init_lock);
+    return -1;
 }
 
 static void security_deinit() {
-    if (fd > 0)
-        close(fd);
+    pthread_mutex_lock(&init_lock);
 
-    fd = -1;
+    if (--init_count == 0) {
+        if (fd > 0)
+            close(fd);
+
+        fd = -1;
+    }
+
+    pthread_mutex_unlock(&init_lock);
 }
 
 static int32_t security_simple_aes_load_key(struct aes_key* aes_key) {

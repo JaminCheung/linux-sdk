@@ -1,4 +1,7 @@
 *.o
+.cproject
+.project
+.tmp
 /out
 /include/ingenic_api.h
 

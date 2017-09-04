@@ -6,7 +6,7 @@
 #include <utils/log.h>
 #include <utils/common.h>
 #include <utils/file_ops.h>
-#include <utils/signal_handler.h>
+#include <signal/signal_handler.h>
 #include <utils/assert.h>
 #include <power/power_manager.h>
 #include <lib/fingerprint/ma_fingerprint.h>

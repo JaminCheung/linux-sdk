@@ -4,7 +4,7 @@
 #include <types.h>
 #include <utils/log.h>
 #include <utils/common.h>
-#include <utils/signal_handler.h>
+#include <signal/signal_handler.h>
 #include <alarm/alarm_manager.h>
 
 #define LOG_TAG "test_alarm"

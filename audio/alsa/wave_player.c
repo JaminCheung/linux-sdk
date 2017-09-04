@@ -25,6 +25,9 @@
 static WaveContainer wave_container;
 static struct snd_pcm_container pcm_container;
 static int hw_inited;
+static uint32_t init_count;
+
+static pthread_mutex_t init_lock = PTHREAD_MUTEX_INITIALIZER;
 
 static uint32_t safe_read(int fd, void* buf, uint32_t count) {
     uint32_t read_sofar = 0;
@@ -190,16 +193,22 @@ static int init(const char* snd_device) {
 
     int error = 0;
 
-    snd_output_stdio_attach(&pcm_container.out_log, stderr, 0);
+    pthread_mutex_lock(&init_lock);
 
-    error = snd_pcm_open(&pcm_container.pcm_handle, snd_device,
-            SND_PCM_STREAM_PLAYBACK, 0);
-    if (error < 0) {
-        LOGE("Failed to snd_pcm_open %s: %s\n", snd_device, snd_strerror(error));
-        goto error;
+    if (init_count++ == 0) {
+        snd_output_stdio_attach(&pcm_container.out_log, stderr, 0);
+
+        error = snd_pcm_open(&pcm_container.pcm_handle, snd_device,
+                SND_PCM_STREAM_PLAYBACK, 0);
+        if (error < 0) {
+            LOGE("Failed to snd_pcm_open %s: %s\n", snd_device, snd_strerror(error));
+            goto error;
+        }
+
+        hw_inited = 0;
     }
 
-    hw_inited = 0;
+    pthread_mutex_unlock(&init_lock);
 
     return 0;
 
@@ -207,17 +216,25 @@ error:
     if (pcm_container.out_log)
         snd_output_close(pcm_container.out_log);
 
+    pthread_mutex_unlock(&init_lock);
+
     return -1;
 }
 
 static int deinit(void) {
-    hw_inited = 0;
+    pthread_mutex_lock(&init_lock);
 
-    if (pcm_container.data_buf)
-        pcm_container.data_buf = NULL;
+    if (--init_count == 0) {
+        hw_inited = 0;
 
-    snd_output_close(pcm_container.out_log);
-    snd_pcm_close(pcm_container.pcm_handle);
+        if (pcm_container.data_buf)
+            pcm_container.data_buf = NULL;
+
+        snd_output_close(pcm_container.out_log);
+        snd_pcm_close(pcm_container.pcm_handle);
+    }
+
+    pthread_mutex_unlock(&init_lock);
 
     return 0;
 }

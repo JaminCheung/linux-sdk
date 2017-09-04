@@ -17,7 +17,7 @@
 #include <signal.h>
 #include <stdio.h>
 
-#include <utils/signal_handler.h>
+#include <signal/signal_handler.h>
 
 #define LOG_TAG "signal_handler"
 
