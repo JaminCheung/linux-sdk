@@ -74,14 +74,10 @@ LDFLAGS := -rdynamic
 #
 # Library link - Static
 #
-LDFLAGS += -Wl,-Bstatic
+LIBS_STATIC_FLAGS += -Wl,-Bstatic
 
 ifeq ($(CONFIG_LIB_FINGERPRINT_GD), y)
-LDFLAGS += -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint
-endif
-
-ifeq ($(CONFIG_LIB_FINGERPRINT_FPC), y)
-LDFLAGS += -L$(TOPDIR)/lib/fingerprint -lfps_360_linux
+LIBS_STATIC_FLAGS += -L$(TOPDIR)/lib/fingerprint -lgoodix_fingerprint
 endif
 #
 # Put your static library here
@@ -92,28 +88,32 @@ endif
 #
 # Library link - Dynamic
 #
-LDFLAGS += -Wl,-Bdynamic -pthread -lm -lrt -ldl -lstdc++
+LIBS_DYNAMIC_FLAGS += -Wl,-Bdynamic -pthread -lm -lrt -ldl -lstdc++
 
 ifeq ($(CONFIG_LIB_ALSA), y)
-LDFLAGS += -L$(TOPDIR)/lib/alsa -lasound
+LIBS_DYNAMIC_FLAGS += -L$(TOPDIR)/lib/alsa -lasound
 endif
 
 ifeq ($(CONFIG_LIB_OPENSSL), y)
-LDFLAGS += -L$(TOPDIR)/lib/openssl -lcrypto -lssl
+LIBS_DYNAMIC_FLAGS += -L$(TOPDIR)/lib/openssl -lcrypto -lssl
 endif
 
 ifeq ($(CONFIG_LIB_FINGERPRINT_MA), y)
-LDFLAGS += -L$(TOPDIR)/lib/fingerprint -lfprint-mips
+LIBS_DYNAMIC_FLAGS += -L$(TOPDIR)/lib/fingerprint -lfprint-mips
 endif
 
 ifeq ($(CONFIG_LIB_FACE_DETECT), y)
-LDFLAGS += -L$(TOPDIR)/lib/face -lNmIrFaceSdk
+LIBS_DYNAMIC_FLAGS += -L$(TOPDIR)/lib/face -lNmIrFaceSdk
+endif
+
+ifeq ($(CONFIG_LIB_FINGERPRINT_FPC), y)
+LIBS_DYNAMIC_FLAGS += -L$(TOPDIR)/lib/fingerprint -lfps_360_linux
 endif
 #
 # Put your dynamic library here
 #
 
-
+override LDFLAGS := $(LDFLAGS) $(LIBS_STATIC_FLAGS) $(LIBS_DYNAMIC_FLAGS)
 
 ifeq ($(CONFIG_LOCAL_DEBUG), y)
 CFLAGS += -DLOCAL_DEBUG -DDEBUG
