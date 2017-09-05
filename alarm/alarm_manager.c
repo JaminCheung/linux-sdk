@@ -323,8 +323,11 @@ static void thread_loop(struct pthread_wrapper* pthread, void *param) {
         list_for_each(pos, &trigger_list) {
             struct alarm* alarm = list_entry(pos, struct alarm, head);
 
-            if (alarm->listener)
+            if (alarm->listener) {
+                pthread_mutex_unlock(&alarms_lock);
                 alarm->listener();
+                pthread_mutex_lock(&alarms_lock);
+            }
         }
 
         pthread_mutex_unlock(&alarms_lock);
