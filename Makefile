@@ -28,7 +28,6 @@ OBJS-y += utils/compare_string.o                                               \
           utils/dump_stack.o                                                   \
           utils/common.o                                                       \
           utils/file_ops.o                                                     \
-          utils/thread_pool/thread_pool.o                                      \
           utils/yuv2bmp.o
 
 ifeq ($(CONFIG_LIB_PNG), y)

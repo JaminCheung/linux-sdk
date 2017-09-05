@@ -1,7 +1,7 @@
 /*
  *  Copyright (C) 2016, Xin Shuan <shuan.xin@ingenic.com>
  *
- *  Ingenic QRcode SDK Project
+ *  Ingenic Linux plarform SDK project
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under  the terms of the GNU General  Public License as published by the
