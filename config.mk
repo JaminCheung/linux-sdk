@@ -43,7 +43,7 @@ LIBS_OUTDIR := $(OUTDIR)/lib
 $(shell [ -d $(LIBS_OUTDIR) ] || mkdir -p $(LIBS_OUTDIR))
 $(if $(LIBS_OUTDIR),,$(error output directory "$(LIBS_OUTDIR)" does not exist))
 
-EXAMPLES_OUTDIR := $(OUTDIR)/examples
+EXAMPLES_OUTDIR := $(OUTDIR)/bin/examples
 $(shell [ -d $(EXAMPLES_OUTDIR) ] || mkdir -p $(EXAMPLES_OUTDIR))
 $(if $(EXAMPLES_OUTDIR),,$(error output directory "$(EXAMPLES_OUTDIR)" does not exist))
 
