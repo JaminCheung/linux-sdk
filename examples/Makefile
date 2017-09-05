@@ -42,6 +42,18 @@ $(EXAMPLE_74HC595_CLEAN):
 	$(call clean_example,$(EXAMPLE_74HC595_OBJ),$(EXAMPLE_74HC595))
 endif
 
+#
+# Timer
+#
+ifeq ($(CONFIG_TIMER_MANAGER), y)
+EXAMPLE_TIMER := test_timer
+EXAMPLE_TIMER_CLEAN := test_timer_clean
+EXAMPLE_TIMER_OBJ := timer/main.o
+$(EXAMPLE_TIMER): $(EXAMPLE_TIMER_OBJ)
+	$(call build_example,$^,$@)
+$(EXAMPLE_TIMER_CLEAN):
+	$(call clean_example,$(EXAMPLE_74HC595_OBJ),$(EXAMPLE_TIMER))
+endif
 
 #
 # Alarm 
@@ -534,7 +546,8 @@ all:                                                                           \
 	$(EXAMPLE_VIBRATOR)                                                        \
 	$(EXAMPLE_ZIGBEE)                                                          \
 	$(EXAMPLE_THREAD)                                                          \
-	$(EXAMPLE_RING_BUFFER)
+	$(EXAMPLE_RING_BUFFER)                                                     \
+	$(EXAMPLE_TIMER)
 
 clean:                                                                         \
 	$(EXAMPLE_74HC595_CLEAN)                                                   \
@@ -571,6 +584,7 @@ clean:                                                                         \
 	$(EXAMPLE_VIBRATOR_CLEAN)                                                  \
 	$(EXAMPLE_ZIGBEE_CLEAN)                                                    \
 	$(EXAMPLE_THREAD_CLEAN)                                                    \
-	$(EXAMPLE_RING_BUFFER_CLEAN)
+	$(EXAMPLE_RING_BUFFER_CLEAN)                                               \
+	$(EXAMPLE_TIMER_CLEAN)
 
 

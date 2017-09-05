@@ -84,13 +84,13 @@ static void join(struct pthread_wrapper* this) {
     if (this->tid) {
         error = pthread_join(this->tid, &ret);
         if (error)
-            LOGE("Failed to join thread %lu: %s\n", this->tid,
+            LOGE("Failed to join thread(PID:%d): %s\n", this->pid,
                     strerror(error));
 
         if (ret == PTHREAD_CANCELED)
-            LOGD("Thread was canceled.\n");
+            LOGD("Thread(PID:%d) was canceled.\n", this->pid);
         else
-            LOGD("Thread terminated normally.\n");
+            LOGD("Thread(PID:%d) terminated normally.\n", this->pid);
 
         this->tid = 0;
         this->pid = 0;
@@ -104,7 +104,7 @@ static void cancel(struct pthread_wrapper* this) {
     if (this->tid) {
         error = pthread_cancel(this->tid);
         if (error)
-            LOGE("Failed to request thread %lu cancel: %s\n", this->tid,
+            LOGE("Failed to request thread(PID:%d) cancel: %s\n", this->pid,
                     strerror(error));
     }
 }

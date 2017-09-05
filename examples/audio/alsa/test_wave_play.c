@@ -108,6 +108,11 @@ static void play_thread(struct pthread_wrapper* thread, void* param) {
     if (error < 0)
         LOGE("Failed to play wave\n");
 
+    if (fd > 0)
+        close(fd);
+
+    fd = -1;
+
     pthread_exit(NULL);
 }
 
@@ -179,7 +184,6 @@ int main(int argc, char *argv[]) {
     LOGI("Playback Volume: %d\n", volume);
 
     play_runner->start(play_runner, NULL);
-
     while (1)
         sleep(1000);
 
