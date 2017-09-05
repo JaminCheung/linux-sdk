@@ -30,13 +30,9 @@ OBJS-y += utils/compare_string.o                                               \
           utils/file_ops.o                                                     \
           utils/yuv2bmp.o
 
-ifeq ($(CONFIG_LIB_PNG), y)
-OBJS-y += utils/png_decode.o
-endif
-
-ifeq ($(CONFIG_ALSA_AUDIO), y)
-OBJS-y += utils/wave_parser.o
-endif
+OBJS-$(CONFIG_LIB_PNG) += utils/png_decode.o
+OBJS-$(CONFIG_ALSA_AUDIO) += utils/wave_parser.o
+OBJS-$(CONFIG_MINI_ZIP) += utils/minizip.o
 
 #
 # Thread
@@ -211,6 +207,13 @@ OBJS-$(CONFIG_ALSA_AUDIO_RECORDER) += audio/alsa/wave_recorder.o
 OBJS-$(CONFIG_ALSA_AUDIO_MIXER) += audio/alsa/mixer_controller.o
 
 OBJS := $(OBJS-y)
+
+#
+# Mini-zip
+#
+LIBS-$(CONFIG_LIB_MINI_ZIP) += lib/zip/minizip/ioapi.o                         \
+                               lib/zip/minizip/unzip.o                         \
+                               lib/zip/minizip/zip.o
 
 #
 # XML Lib

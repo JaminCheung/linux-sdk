@@ -104,6 +104,10 @@ CONFIG_LIB_MTD=y
 #
 CONFIG_LIB_GPIO=y
 
+#
+# Mini-zip lib
+#
+CONFIG_LIB_MINI_ZIP=y
 
 #####################################################
 #
@@ -262,6 +266,11 @@ ifeq ($(CONFIG_ALSA_AUDIO), y)
 	CONFIG_ALSA_AUDIO_MIXER=y
 endif
 
+#
+# Mini-zip
+#
+CONFIG_MINI_ZIP=y
+
 #####################################################
 #
 # Handle dependency
@@ -313,4 +322,9 @@ endif
 
 ifeq ($(CONFIG_VIBRATOR_MANAGER), y)
 CONFIG_NETLINK_MANAGER=y
+endif
+
+ifeq ($(CONFIG_MINI_ZIP), y)
+CONFIG_LIB_ZLIB=y
+CONFIG_LIB_MINI_ZIP=y
 endif
