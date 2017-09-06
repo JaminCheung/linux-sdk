@@ -126,7 +126,12 @@ static int play_wave(int fd) {
         goto error;
     }
 
-    snd_pcm_drain(pcm_container.pcm_handle);
+    /*
+     * Stop frame immediately
+     */
+    snd_pcm_drop(pcm_container.pcm_handle);
+
+    //snd_pcm_drain(pcm_container.pcm_handle);
 
     if (pcm_container.data_buf) {
         free(pcm_container.data_buf);
