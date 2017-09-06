@@ -61,6 +61,7 @@ static int start(void) {
     return 0;
 
 error:
+    start_count = 0;
     pthread_mutex_unlock(&start_lock);
     return -1;
 }
@@ -70,7 +71,7 @@ static int stop(void) {
 
     pthread_mutex_lock(&start_lock);
 
-    if (start_count-- == 0) {
+    if (--start_count == 0) {
         error = nl->stop();
         if (error) {
             LOGE("Failed to stop netlink_listener: %s\n", strerror(errno));
@@ -87,6 +88,7 @@ static int stop(void) {
     return 0;
 
 error:
+    start_count = 1;
     pthread_mutex_unlock(&start_lock);
     return -1;
 }
@@ -141,6 +143,7 @@ static int init(void) {
     return 0;
 
 error:
+    init_count = 0;
     pthread_mutex_unlock(&init_lock);
     return -1;
 }

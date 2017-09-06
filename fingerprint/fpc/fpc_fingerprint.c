@@ -694,6 +694,8 @@ err_fp_cmd_set:
 err_fp_cmd_init:
     close(fpc_dev_fd);
 err_fpc_dev_open:
+
+    init_count = 0;
     pthread_mutex_unlock(&init_lock);
     return -1;
 }
@@ -707,8 +709,7 @@ int fpc_fingerprint_destroy(void)
         pp_msg.msg = MSG_QUIT;
         if (send_msg(&pp_msg)) {
             LOGE("Failed to quit thread runner\n");
-            pthread_mutex_unlock(&init_lock);
-            return -1;
+            goto error;
         }
 
         thread_runner->wait(thread_runner);
@@ -730,6 +731,11 @@ int fpc_fingerprint_destroy(void)
 
     pthread_mutex_unlock(&init_lock);
     return 0;
+
+error:
+    init_count = 1;
+    pthread_mutex_unlock(&init_lock);
+    return -1;
 }
 
 int fpc_fingerprint_reset(void)

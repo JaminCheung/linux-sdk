@@ -117,8 +117,6 @@ int record_wave(int fd, int channles, int sample_rate, int sample_length,
     snd_pcm_dump(pcm_container.pcm_handle, pcm_container.out_log);
 #endif
 
-    return 0;
-
     error = do_record_wave(&pcm_container, &wave_container, fd);
     if (error < 0) {
         LOGE("Failed to record\n");
@@ -207,6 +205,7 @@ static int init(const char* snd_device) {
     return 0;
 
 error:
+    init_count = 0;
     if (pcm_container.out_log)
         snd_output_close(pcm_container.out_log);
 

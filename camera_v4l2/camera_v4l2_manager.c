@@ -124,6 +124,7 @@ static int camera_v4l2_init(struct capt_param_t *capt_p)
     return 0;
 
 error:
+    init_count = 0;
     pthread_mutex_unlock(&init_lock);
     return -1;
 }
@@ -149,6 +150,7 @@ static int camera_v4l2_start()
     return 0;
 
 error:
+    start_count = 0;
     pthread_mutex_unlock(&start_lock);
     return -1;
 }
@@ -175,6 +177,7 @@ static int camera_v4l2_stop()
     return 0;
 
 error:
+    start_count = 1;
     pthread_mutex_unlock(&start_lock);
     return -1;
 }
@@ -271,6 +274,7 @@ static int camera_v4l2_deinit()
     return 0;
 
 error:
+    init_count = 1;
     pthread_mutex_unlock(&init_lock);
     return -1;
 }

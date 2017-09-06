@@ -53,6 +53,7 @@ static int security_init() {
     return 0;
 
 error:
+    init_count = 0;
     pthread_mutex_unlock(&init_lock);
     return -1;
 }

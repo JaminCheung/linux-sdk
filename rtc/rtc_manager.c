@@ -60,6 +60,8 @@ static int32_t init(void) {
     return 0;
 
 error:
+    init_count = 0;
+
     if (fd > 0)
         close(fd);
     pthread_mutex_unlock(&init_lock);

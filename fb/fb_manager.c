@@ -127,6 +127,8 @@ static int init(void) {
     return 0;
 
 error:
+    init_count = 0;
+
     if (fd > 0)
         close(fd);
     if (vt_fd > 0)
@@ -164,6 +166,8 @@ static int deinit(void) {
     return 0;
 
 error:
+    init_count = 1;
+
     pthread_mutex_unlock(&init_lock);
 
     return -1;

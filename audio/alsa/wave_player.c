@@ -218,6 +218,7 @@ static int init(const char* snd_device) {
     return 0;
 
 error:
+    init_count = 0;
     if (pcm_container.out_log)
         snd_output_close(pcm_container.out_log);
 
