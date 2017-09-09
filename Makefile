@@ -314,9 +314,9 @@ LIBS-$(CONFIG_LIB_GPIO) += lib/gpio/libgpio.o
 LIBS := $(LIBS-y)
 
 
-all: $(TARGET) examples libporter
+all: $(TARGET) examples libporter includes
 
-.PHONY : all clean backup examples examples_clean
+.PHONY : all clean backup examples examples_clean includes
 
 #
 # Targets
@@ -331,6 +331,12 @@ $(TARGET): $(OBJS) $(LIBS)
 #
 libporter:
 	@$(TOPDIR)/libporter.sh $(LDFLAGS)
+
+#
+# Includes
+#
+includes:
+	@cp -ar $(TOPDIR)/include $(OUTDIR)
 
 #
 # Examples

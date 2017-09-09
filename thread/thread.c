@@ -18,13 +18,26 @@
 
 #include <utils/log.h>
 #include <utils/common.h>
+#include <utils/assert.h>
 #include <thread/thread.h>
 
 #define LOG_TAG "thread"
 
+static void wait_thread_terminate(struct thread* this) {
+    while (this->is_running(this));
+
+    for (int i = 0; i < this->pthread_count; i++)
+        this->pthreads[i].destruct(&this->pthreads[i]);
+
+    free(this->pthreads);
+    this->pthreads = NULL;
+}
+
 static void set_thread_count(struct thread* this, int count) {
+    assert_die_if(count < 1, "Invalid thread count\n");
+
     if (this->pthreads != NULL) {
-        LOGE("Already running, can't set thread count\n");
+        LOGE("Thread already running, can't set thread count\n");
         return;
     }
 
@@ -32,11 +45,15 @@ static void set_thread_count(struct thread* this, int count) {
 }
 
 static int start(struct thread* this, void* param) {
+    assert_die_if(this->pthread_count < 1, "Invalid thread count\n");
+
     int i = 0;
     int error = 0;
 
-    if (this->pthreads != NULL && this->pthread_count < 1)
-        return -1;
+    if (this->pthreads != NULL) {
+        LOGE("Thread already running, can't start again\n");
+        return 0;
+    }
 
     if (this->pthreads == NULL) {
         this->pthreads = calloc(this->pthread_count, sizeof(struct pthread_wrapper));
@@ -81,13 +98,7 @@ static void stop(struct thread* this) {
             this->pthreads[i].join(&this->pthreads[i]);
         }
 
-        while (this->is_running(this));
-
-        for (int i = 0; i < this->pthread_count; i++)
-            this->pthreads[i].destruct(&this->pthreads[i]);
-
-        free(this->pthreads);
-        this->pthreads = NULL;
+        wait_thread_terminate(this);
     }
 }
 
@@ -95,6 +106,8 @@ static void wait(struct thread* this) {
     if (this->pthreads != NULL) {
         for (int i = 0; i < this->pthread_count; i++)
             this->pthreads[i].join(&this->pthreads[i]);
+
+        wait_thread_terminate(this);
     }
 }
 

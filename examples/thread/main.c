@@ -16,6 +16,8 @@ static void thread2_cleanup(void) {
 }
 
 static void thread1_loop(struct pthread_wrapper* pthread, void* param) {
+    pthread_testcancel();
+
     LOGI("loop1, pid=%d, tid=%d, posix_id=%ld, param=%ld\n", getpid(),
             pthread->get_pid(pthread), pthread_self(), (long)param);
 
@@ -23,6 +25,8 @@ static void thread1_loop(struct pthread_wrapper* pthread, void* param) {
 }
 
 static void thread2_loop(struct pthread_wrapper* pthread, void* param) {
+    pthread_testcancel();
+
     LOGI("loop2, pid=%d, tid=%d, posix_id=%ld, param=%ld\n", getpid(),
             pthread->get_pid(pthread), pthread_self(), (long)param);
 

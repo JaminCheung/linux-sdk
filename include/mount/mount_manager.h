@@ -14,6 +14,8 @@
  *
  */
 
+#include <utils/list.h>
+
 struct mounted_volume {
     char device[64];
     char mount_point[64];

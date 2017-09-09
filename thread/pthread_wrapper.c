@@ -88,9 +88,9 @@ static void join(struct pthread_wrapper* this) {
                     strerror(error));
 
         if (ret == PTHREAD_CANCELED)
-            LOGD("Thread(PID:%d) was canceled.\n", this->pid);
+            LOGI("Thread(PID:%d) was canceled.\n", this->pid);
         else
-            LOGD("Thread(PID:%d) terminated normally.\n", this->pid);
+            LOGI("Thread(PID:%d) terminated normally.\n", this->pid);
 
         this->tid = 0;
         this->pid = 0;

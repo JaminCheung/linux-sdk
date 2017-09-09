@@ -1,7 +1,7 @@
 /*
- *  Copyright (C) 2016, Zhang YanMing <jamincheung@126.com>
+ *  Copyright (C) 2017, Zhang YanMing <yanmin.zhang@ingenic.com, jamincheung@126.com>
  *
- *  Linux recovery updater
+ *  Ingenic Linux plarform SDK project
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under  the terms of the GNU General  Public License as published by the
@@ -46,17 +46,5 @@ typedef     __u32       uint32_t;
 typedef     __u64       uint64_t;
 
 typedef unsigned int        size_t;
-
-struct list_head {
-    struct list_head *next, *prev;
-};
-
-struct hlist_head {
-    struct hlist_node *first;
-};
-
-struct hlist_node {
-    struct hlist_node *next, **pprev;
-};
 
 #endif /* TYPES_H */

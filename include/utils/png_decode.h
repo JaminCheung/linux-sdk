@@ -1,7 +1,7 @@
 /*
- *  Copyright (C) 2016, Zhang YanMing <jamincheung@126.com>
+ *  Copyright (C) 2017, Zhang YanMing <yanmin.zhang@ingenic.com, jamincheung@126.com>
  *
- *  Linux recovery updater
+ *  Ingenic Linux plarform SDK project
  *
  *  This program is free software; you can redistribute it and/or modify it
  *  under  the terms of the GNU General  Public License as published by the

@@ -2,7 +2,18 @@
 #define _LINUX_LIST_H
 
 #include <utils/linux.h>
-#include <types.h>
+
+struct list_head {
+    struct list_head *next, *prev;
+};
+
+struct hlist_head {
+    struct hlist_node *first;
+};
+
+struct hlist_node {
+    struct hlist_node *next, **pprev;
+};
 
 /*
  * Architectures might want to move the poison pointer offset
