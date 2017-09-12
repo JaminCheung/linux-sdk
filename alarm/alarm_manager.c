@@ -272,6 +272,21 @@ static void trigger_alarm_locked(void) {
     struct list_head* pos;
     struct list_head* next_pos;
 
+    /*
+     * Clear trigger list first
+     */
+    if (!list_empty(&trigger_list)) {
+        struct list_head* pos;
+        struct list_head* next_pos;
+        list_for_each_safe(pos, next_pos, &trigger_list) {
+            struct alarm* a =
+                    list_entry(pos, struct alarm, head);
+
+            list_del(&a->head);
+            free(a);
+        }
+    }
+
     list_for_each_safe(pos, next_pos, &alarm_list) {
         struct alarm* alarm = list_entry(pos, struct alarm, head);
 
@@ -281,17 +296,6 @@ static void trigger_alarm_locked(void) {
         if (alarm->when > now)
             break;
 
-        if (!list_empty(&trigger_list)) {
-            struct list_head* pos;
-            struct list_head* next_pos;
-            list_for_each_safe(pos, next_pos, &trigger_list) {
-                struct alarm* a =
-                        list_entry(pos, struct alarm, head);
-
-                list_del(&a->head);
-                free(a);
-            }
-        }
         struct alarm* triggered_alarm = create_triggered_alarm(alarm);
 
         list_add_tail(&triggered_alarm->head, &trigger_list);
