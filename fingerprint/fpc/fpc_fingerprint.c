@@ -606,7 +606,7 @@ int fpc_fingerprint_init(notify_callback notify, void *param_config)
             goto err_fp_cmd_set;
         }
 
-        error = FpCommand(FF_SET_DUP_CHECK_CODE,DISABLE_DUP_CHECK,0,0);
+        error = FpCommand(FF_SET_DUP_CHECK_CODE,ENABLE_DUP_CHECK,0,0);
         if (error != FF_SUCCESS) {
             LOGE("Failed to command FF_SET_DUP_CHECK_CODE : %d\n", error);
             goto err_fp_cmd_set;
