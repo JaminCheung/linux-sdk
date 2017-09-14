@@ -172,12 +172,14 @@ static int record_stream(int channels, int sample_rate, int sample_length,
 }
 
 static int cancel_record(void) {
+    int error = pcm_cancel(&pcm_container);
+
     if (pcm_container.data_buf) {
         free(pcm_container.data_buf);
         pcm_container.data_buf = NULL;
     }
 
-    return pcm_cancel(&pcm_container);
+    return error;
 }
 
 static int init(const char* snd_device) {

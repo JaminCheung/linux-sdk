@@ -187,10 +187,14 @@ static int resume_play(void) {
 }
 
 static int cancel_play(void) {
-    if (pcm_container.data_buf)
-        pcm_container.data_buf = NULL;
+    int error = pcm_cancel(&pcm_container);
 
-    return pcm_cancel(&pcm_container);
+    if (pcm_container.data_buf) {
+        free(pcm_container.data_buf);
+        pcm_container.data_buf = NULL;
+    }
+
+    return error;
 }
 
 static int init(const char* snd_device) {
@@ -233,8 +237,10 @@ static int deinit(void) {
     if (--init_count == 0) {
         hw_inited = 0;
 
-        if (pcm_container.data_buf)
+        if (pcm_container.data_buf) {
+            free(pcm_container.data_buf);
             pcm_container.data_buf = NULL;
+        }
 
         snd_output_close(pcm_container.out_log);
         snd_pcm_close(pcm_container.pcm_handle);
